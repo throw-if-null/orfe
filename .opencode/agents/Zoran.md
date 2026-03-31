@@ -7,11 +7,15 @@ temperature: 0.6
 permission:
   edit: deny
   bash:
+    "*": deny
+
     "gh issue*": allow
     "gh project*": allow
     "gh api*": allow
     "gh auth status*": allow
-    "*": deny
+    "node *": allow
+    "npx tokenner*": allow
+    "npm exec tokenner*": allow
   webfetch: allow
   websearch: allow
   codesearch: allow

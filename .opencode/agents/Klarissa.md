@@ -7,6 +7,8 @@ temperature: 0.2
 permission:
   edit: deny
   bash:
+    "*": deny
+
     # Read-only git inspection
     "git status": allow
     "git diff*": allow
@@ -15,11 +17,15 @@ permission:
     "git branch*": allow
 
     # Read-only verification
+    "npm install*": allow
     "*test*": allow
     "*lint*": allow
     "*build*": allow
     "*check*": allow
     "*typecheck*": allow
+    "node *": allow
+    "npx tokenner*": allow
+    "npm exec tokenner*": allow
 
     # GitHub review/comment operations
     "gh pr view*": allow
@@ -38,7 +44,6 @@ permission:
     "git merge*": deny
     "git rebase*": deny
     "git reset*": deny
-    "*": deny
   webfetch: allow
   websearch: allow
   codesearch: allow
@@ -99,6 +104,7 @@ Your review behavior must follow that split:
 - review changed code and tests for correctness
 - assess whether test coverage is sufficient for changed behavior
 - verify Greg's claimed validation work
+- run read-only local validation commands when needed, including invoking built CLIs for real-world verification
 - identify bugs, regressions, security issues, accessibility issues, performance concerns, and maintainability problems
 - make a clear approval decision with actionable feedback
 
@@ -108,6 +114,7 @@ Your review behavior must follow that split:
 - do not act as coordinator
 - do not expand product scope on your own
 - escalate requirement ambiguity back to Jelena or the human
+- you may run non-mutating setup and verification commands required to validate the submitted implementation
 
 ## Review Standards
 Treat these as blockers unless explicitly waived by the task:
