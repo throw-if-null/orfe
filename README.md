@@ -1,6 +1,6 @@
 # tokenner
 
-`tokenner` is a local CLI for minting short-lived auth tokens for agents. v1 supports GitHub App installation tokens through a provider-based architecture so additional auth providers can be added later.
+`tokenner` is a local Node/TypeScript auth core plus CLI for minting short-lived auth tokens for agents. v1 supports GitHub App installation tokens through a provider-based architecture so additional auth providers can be added later, and includes a local GitHub MCP proxy with role-pinned endpoints.
 
 ## Requirements
 
@@ -82,6 +82,58 @@ Successful output is JSON on stdout only:
 ```
 
 On failure the command exits non-zero and writes the error to stderr only.
+
+## Local GitHub MCP proxy
+
+Start the local proxy:
+
+```bash
+tokenner proxy --repo throw-if-null/orfe --host 127.0.0.1 --port 8787
+```
+
+The proxy binds to loopback only and exposes one endpoint per role:
+
+- `http://127.0.0.1:8787/zoran`
+- `http://127.0.0.1:8787/jelena`
+- `http://127.0.0.1:8787/greg`
+- `http://127.0.0.1:8787/klarissa`
+
+Behavior:
+
+- forwards requests to `https://api.githubcopilot.com/mcp/`
+- mints or reuses a fresh GitHub App installation token for the pinned role
+- injects `Authorization: Bearer <installation-token>` on the outbound request
+- caches tokens until near expiry, then refreshes automatically
+- keeps each MCP session pinned to one role identity via `MCP-Session-Id`
+- never logs tokens
+
+## OpenCode MCP configuration
+
+In OpenCode, replace any local container or static PAT-based GitHub MCP entry with a Streamable HTTP server pointing at the local proxy endpoint for the current role.
+
+Example for Greg:
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "transport": {
+        "type": "streamable-http",
+        "url": "http://127.0.0.1:8787/greg"
+      }
+    }
+  }
+}
+```
+
+Use the matching role endpoint for each agent:
+
+- Zoran → `/zoran`
+- Jelena → `/jelena`
+- Greg → `/greg`
+- Klarissa → `/klarissa`
+
+The proxy handles GitHub App auth locally, so OpenCode should not provide a static GitHub PAT to the remote GitHub MCP server in this setup.
 
 ## Development
 

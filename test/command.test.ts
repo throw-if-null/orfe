@@ -98,3 +98,36 @@ test('runCli rejects unsupported output formats', async () => {
   assert.equal(stdout.output, '');
   assert.match(stderr.output, /supports json only/);
 });
+
+test('runCli starts the proxy subcommand', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+  let closed = false;
+
+  const exitCode = await runCli(['proxy', '--repo', 'throw-if-null/orfe', '--host', '127.0.0.1', '--port', '8787'], {
+    stdout,
+    stderr,
+    tokenIssuer: {
+      async getToken(): Promise<TokenResult> {
+        throw new Error('tokenIssuer should not be called during startup');
+      },
+    },
+    startProxyImpl: async () => ({
+      host: '127.0.0.1',
+      port: 8787,
+      url: 'http://127.0.0.1:8787',
+      close: async () => {
+        closed = true;
+      },
+      waitUntilClosed: async () => {
+        if (!closed) {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+      },
+    }),
+  });
+
+  assert.equal(exitCode, 0);
+  assert.equal(stderr.output, '');
+  assert.match(stdout.output, /GitHub MCP proxy listening at http:\/\/127.0.0.1:8787/);
+});

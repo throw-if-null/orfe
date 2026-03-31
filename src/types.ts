@@ -33,10 +33,20 @@ export interface TokenResult {
   auth_mode: AuthMode;
 }
 
+export interface AuthTokenRequest {
+  role: Role;
+  repo: string;
+  forceRefresh?: boolean;
+}
+
 export interface TokenRequest {
   role: Role;
   repo: string;
   provider: ProviderConfig;
+}
+
+export interface TokenIssuer {
+  getToken(request: AuthTokenRequest): Promise<TokenResult>;
 }
 
 export interface TokenProvider {
