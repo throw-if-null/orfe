@@ -119,7 +119,7 @@ export class GitHubMcpProxy {
         this.bindSessionRole(responseSessionId, route.role);
       }
 
-      if ((method === 'DELETE' || upstreamResponse.status === 404) && incomingSessionId) {
+      if (method === 'DELETE' && incomingSessionId) {
         this.sessionRoles.delete(incomingSessionId);
       }
 

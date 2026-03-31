@@ -90,6 +90,164 @@ test('GitHubMcpProxy injects bearer auth and pins MCP sessions to roles', async 
   assert.equal(conflict.status, 409);
 });
 
+test('GitHubMcpProxy keeps session-role pinning after upstream 404 responses', async () => {
+  const issuer = new StubTokenIssuer();
+  let requestCount = 0;
+  const proxy = new GitHubMcpProxy(
+    {
+      repo: 'throw-if-null/orfe',
+      remoteBaseUrl: 'https://example.test/mcp/',
+    },
+    {
+      tokenIssuer: issuer,
+      fetchImpl: async (_input, init) => {
+        requestCount += 1;
+        const headers = new Headers(init.headers);
+
+        if (requestCount === 1) {
+          return new Response(JSON.stringify({ jsonrpc: '2.0', result: { ok: true }, id: 1 }), {
+            status: 200,
+            headers: {
+              'content-type': 'application/json',
+              'mcp-session-id': 'session-404',
+            },
+          });
+        }
+
+        assert.equal(headers.get('mcp-session-id'), 'session-404');
+
+        return new Response(JSON.stringify({ message: 'Not Found' }), {
+          status: 404,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+      },
+    },
+  );
+
+  const initialize = await invokeProxy(proxy, {
+    method: 'POST',
+    path: '/greg',
+    body: JSON.stringify({ jsonrpc: '2.0', method: 'initialize', id: 1 }),
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+
+  assert.equal(initialize.status, 200);
+  assert.equal(initialize.headers.get('mcp-session-id'), 'session-404');
+
+  const notFound = await invokeProxy(proxy, {
+    method: 'POST',
+    path: '/greg',
+    body: JSON.stringify({ jsonrpc: '2.0', method: 'resources/read', id: 2 }),
+    headers: {
+      'content-type': 'application/json',
+      'mcp-session-id': 'session-404',
+    },
+  });
+
+  assert.equal(notFound.status, 404);
+
+  const conflict = await invokeProxy(proxy, {
+    method: 'POST',
+    path: '/jelena',
+    body: JSON.stringify({ jsonrpc: '2.0', method: 'tools/list', id: 3 }),
+    headers: {
+      'content-type': 'application/json',
+      'mcp-session-id': 'session-404',
+    },
+  });
+
+  assert.equal(conflict.status, 409);
+});
+
+test('GitHubMcpProxy releases session-role pinning only after explicit delete', async () => {
+  const issuer = new StubTokenIssuer();
+  let deleted = false;
+  const proxy = new GitHubMcpProxy(
+    {
+      repo: 'throw-if-null/orfe',
+      remoteBaseUrl: 'https://example.test/mcp/',
+    },
+    {
+      tokenIssuer: issuer,
+      fetchImpl: async (_input, init) => {
+        const headers = new Headers(init.headers);
+        const sessionId = headers.get('mcp-session-id');
+
+        if (!sessionId) {
+          return new Response(JSON.stringify({ jsonrpc: '2.0', result: { ok: true }, id: 1 }), {
+            status: 200,
+            headers: {
+              'content-type': 'application/json',
+              'mcp-session-id': 'session-delete',
+            },
+          });
+        }
+
+        if (init.method === 'DELETE') {
+          deleted = true;
+          return new Response(null, { status: 204 });
+        }
+
+        return new Response(JSON.stringify({ ok: deleted }), {
+          status: 200,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+      },
+    },
+  );
+
+  const initialize = await invokeProxy(proxy, {
+    method: 'POST',
+    path: '/greg',
+    body: JSON.stringify({ jsonrpc: '2.0', method: 'initialize', id: 1 }),
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+
+  assert.equal(initialize.status, 200);
+
+  const conflictBeforeDelete = await invokeProxy(proxy, {
+    method: 'POST',
+    path: '/jelena',
+    body: JSON.stringify({ jsonrpc: '2.0', method: 'tools/list', id: 2 }),
+    headers: {
+      'content-type': 'application/json',
+      'mcp-session-id': 'session-delete',
+    },
+  });
+
+  assert.equal(conflictBeforeDelete.status, 409);
+
+  const deletedResponse = await invokeProxy(proxy, {
+    method: 'DELETE',
+    path: '/greg',
+    headers: {
+      'mcp-session-id': 'session-delete',
+    },
+  });
+
+  assert.equal(deletedResponse.status, 204);
+
+  const rebound = await invokeProxy(proxy, {
+    method: 'POST',
+    path: '/jelena',
+    body: JSON.stringify({ jsonrpc: '2.0', method: 'initialize', id: 3 }),
+    headers: {
+      'content-type': 'application/json',
+      'mcp-session-id': 'session-delete',
+    },
+  });
+
+  assert.equal(rebound.status, 200);
+});
+
 test('startGitHubMcpProxy binds locally and forwards requests', async () => {
   const issuer = new StubTokenIssuer();
   const upstreamRequests: Array<{ url: string; authorization: string | null }> = [];
