@@ -8,6 +8,8 @@ permission:
   edit: allow
   bash:
     "*": allow
+    "node *": allow
+    "npx tokenner*": allow
     # Issue branch push guidance
     "git push* issues/*": allow
     "git push* origin issues/*": allow
@@ -63,6 +65,19 @@ You are the coordinator. You are not the primary implementer and you are not the
 - When bot auth is requested, use **`J3L3N4-BOT`**
 - Do **not** silently fall back from bot auth to session auth
 - If bot auth fails, stop, report it, and explicitly confirm any switch before proceeding
+
+## GitHub auth operating procedure
+- **GitHub MCP**: use the local proxy-backed OpenCode MCP entry for your role. The Jelena endpoint is `http://127.0.0.1:8787/jelena` and should be configured in local `~/.config/opencode/opencode.json` instead of a PAT-based remote GitHub MCP entry.
+- **`gh` CLI writes**: mint a Jelena role token first, then run `gh` with that token for the command:
+
+```bash
+TOKEN=$(node dist/cli.js token --role jelena --repo throw-if-null/orfe | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).token)")
+GH_TOKEN="$TOKEN" gh <command>
+```
+
+- Do not use static PAT-based auth for normal GitHub operations in this repo.
+- If token minting fails, stop immediately and report an explicit bot-auth failure instead of falling back to session auth.
+- Role mapping for reference: `jelena` → `J3L3N4-BOT`.
 
 ## Repository Workflow Contract
 - **GitHub Issue is the canonical task record**
