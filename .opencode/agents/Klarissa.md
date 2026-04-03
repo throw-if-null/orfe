@@ -84,7 +84,7 @@ You do not change code or branch state. You review, verify, and communicate outc
 - If bot auth fails, stop, report it, and explicitly confirm any switch before proceeding
 
 ## GitHub auth operating procedure
-- **GitHub MCP**: use only the local proxy-backed OpenCode MCP entry for your role. The Klarissa endpoint is `http://127.0.0.1:8787/klarissa` and should be configured in local `~/.config/opencode/opencode.json` instead of any separate direct GitHub MCP entry.
+- **GitHub MCP**: the only supported OpenCode MCP path for your role is the local proxy-backed entry at `http://127.0.0.1:8787/klarissa`. Configure that role endpoint in local `~/.config/opencode/opencode.json`, do not add a separate direct GitHub MCP entry there, and do not rely on direct upstream GitHub MCP access or ambient session auth for normal operation.
 - **`gh` CLI writes**: mint a Klarissa role token first, then run `gh` with that token for the command:
 
 ```bash

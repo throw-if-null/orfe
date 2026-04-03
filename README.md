@@ -110,7 +110,7 @@ Behavior:
 
 ## OpenCode MCP configuration
 
-In OpenCode, replace any local container or direct remote GitHub MCP entry with a role-pinned local MCP entry that points at the proxy endpoint for the current role.
+In OpenCode, the supported GitHub MCP path is a role-pinned local MCP entry that points at the proxy endpoint for the current role. Do not configure a separate direct GitHub MCP entry in `~/.config/opencode/opencode.json` for this flow.
 
 Example for Greg:
 
@@ -133,7 +133,7 @@ Use the matching role endpoint for each agent:
 - Greg → `/greg`
 - Klarissa → `/klarissa`
 
-The proxy handles GitHub App auth and the standard upstream GitHub MCP headers locally, so OpenCode should not provide a PAT, custom MCP headers, or a separate direct GitHub MCP entry in this setup.
+The proxy handles GitHub App auth and the standard upstream GitHub MCP headers locally. In this setup, OpenCode should configure only the local role proxy endpoints, should not add a separate direct GitHub MCP entry in `~/.config/opencode/opencode.json`, and agents should not rely on direct upstream GitHub MCP access or ambient session auth for normal operation.
 
 ### Expected `~/.config/opencode/opencode.json`
 
