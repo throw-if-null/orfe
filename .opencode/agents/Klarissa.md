@@ -83,6 +83,19 @@ You do not change code or branch state. You review, verify, and communicate outc
 - Do **not** silently fall back from bot auth to session auth
 - If bot auth fails, stop, report it, and explicitly confirm any switch before proceeding
 
+## GitHub auth operating procedure
+- **GitHub MCP**: use the local proxy-backed OpenCode MCP entry for your role. The Klarissa endpoint is `http://127.0.0.1:8787/klarissa` and should be configured in local `~/.config/opencode/opencode.json` instead of a PAT-based remote GitHub MCP entry.
+- **`gh` CLI writes**: mint a Klarissa role token first, then run `gh` with that token for the command:
+
+```bash
+TOKEN=$(node dist/cli.js token --role klarissa --repo throw-if-null/orfe | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).token)")
+GH_TOKEN="$TOKEN" gh <command>
+```
+
+- Do not use static PAT-based auth for normal GitHub operations in this repo.
+- If token minting fails, stop immediately and report an explicit bot-auth failure instead of falling back to session auth.
+- Role mapping for reference: `klarissa` → `KL4R1554-BOT`.
+
 ## Repository Workflow Contract
 - **GitHub Issue is the canonical task record**
 - **GitHub Project is the coarse-grained state tracker**

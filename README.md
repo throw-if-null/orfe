@@ -109,17 +109,21 @@ Behavior:
 
 ## OpenCode MCP configuration
 
-In OpenCode, replace any local container or static PAT-based GitHub MCP entry with a Streamable HTTP server pointing at the local proxy endpoint for the current role.
+In OpenCode, replace any local container or static PAT-based GitHub MCP entry with a role-pinned local HTTP MCP entry that points at the proxy endpoint for the current role.
 
 Example for Greg:
 
 ```json
 {
-  "mcpServers": {
-    "github": {
-      "transport": {
-        "type": "streamable-http",
-        "url": "http://127.0.0.1:8787/greg"
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "github-greg": {
+      "type": "http",
+      "url": "http://127.0.0.1:8787/greg",
+      "enabled": true,
+      "timeout": 10000,
+      "headers": {
+        "X-MCP-Toolsets": "context,issues,pull_requests,projects"
       }
     }
   }
@@ -134,6 +138,103 @@ Use the matching role endpoint for each agent:
 - Klarissa → `/klarissa`
 
 The proxy handles GitHub App auth locally, so OpenCode should not provide a static GitHub PAT to the remote GitHub MCP server in this setup.
+
+### Expected `~/.config/opencode/opencode.json`
+
+The local OpenCode config is machine-local and should not be committed. Configure one GitHub MCP entry per role and point each entry at the local proxy instead of `https://api.githubcopilot.com/mcp/`.
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "context7": {
+      "type": "local",
+      "command": ["npx", "-y", "@upstash/context7-mcp"]
+    },
+    "github-zoran": {
+      "type": "http",
+      "url": "http://127.0.0.1:8787/zoran",
+      "headers": {
+        "X-MCP-Toolsets": "context,issues,pull_requests,projects"
+      },
+      "enabled": true,
+      "timeout": 10000
+    },
+    "github-jelena": {
+      "type": "http",
+      "url": "http://127.0.0.1:8787/jelena",
+      "headers": {
+        "X-MCP-Toolsets": "context,issues,pull_requests,projects"
+      },
+      "enabled": true,
+      "timeout": 10000
+    },
+    "github-greg": {
+      "type": "http",
+      "url": "http://127.0.0.1:8787/greg",
+      "headers": {
+        "X-MCP-Toolsets": "context,issues,pull_requests,projects"
+      },
+      "enabled": true,
+      "timeout": 10000
+    },
+    "github-klarissa": {
+      "type": "http",
+      "url": "http://127.0.0.1:8787/klarissa",
+      "headers": {
+        "X-MCP-Toolsets": "context,issues,pull_requests,projects"
+      },
+      "enabled": true,
+      "timeout": 10000
+    }
+  }
+}
+```
+
+### Local agent auth workflow
+
+Role mapping must stay consistent across `AGENTS.md`, `~/.config/tokenner/apps.yaml`, and the OpenCode MCP entries:
+
+- `zoran` → `Z0R4N-BOT`
+- `jelena` → `J3L3N4-BOT`
+- `greg` → `GR3G-BOT`
+- `klarissa` → `KL4R1554-BOT`
+
+For normal local use:
+
+1. Build the project with `npm run build`.
+2. Start the proxy with `npm run proxy` (or `node dist/cli.js proxy --repo throw-if-null/orfe`).
+3. Use the matching role-specific OpenCode MCP entry.
+4. For `gh` CLI writes, mint a fresh token first and pass it with `GH_TOKEN`.
+
+### `gh` CLI auth for agents
+
+Agents should not rely on a static PAT or implicit session auth for GitHub writes. Mint a role token first, then run `gh` with `GH_TOKEN` set for that command only.
+
+Greg example:
+
+```bash
+TOKEN=$(node dist/cli.js token --role greg --repo throw-if-null/orfe | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).token)")
+GH_TOKEN="$TOKEN" gh issue comment 5 --repo throw-if-null/orfe --body "smoke test from greg"
+```
+
+If token minting fails, stop and fix bot auth. Do not silently fall back to session auth.
+
+### Manual smoke testing
+
+You can validate each role manually with the built CLI by making a repo-scoped request that installation tokens are allowed to perform:
+
+```bash
+TOKEN=$(node dist/cli.js token --role zoran --repo throw-if-null/orfe | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).token)")
+GH_TOKEN="$TOKEN" gh api repos/throw-if-null/orfe/issues/5 --jq '.title'
+```
+
+Or post an issue comment to verify the visible bot identity end to end:
+
+```bash
+TOKEN=$(node dist/cli.js token --role klarissa --repo throw-if-null/orfe | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).token)")
+GH_TOKEN="$TOKEN" gh issue comment 5 --repo throw-if-null/orfe --body "smoke test from klarissa"
+```
 
 ## Development
 
