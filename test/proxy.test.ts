@@ -3,7 +3,7 @@ import { once } from 'node:events';
 import { createServer } from 'node:http';
 import test from 'node:test';
 
-import { GitHubMcpProxy, startGitHubMcpProxy } from '../src/proxy.js';
+import { DEFAULT_GITHUB_MCP_TOOLSETS, GitHubMcpProxy, startGitHubMcpProxy } from '../src/proxy.js';
 import type { AuthTokenRequest, TokenIssuer, TokenResult } from '../src/types.js';
 
 class StubTokenIssuer implements TokenIssuer {
@@ -25,7 +25,7 @@ class StubTokenIssuer implements TokenIssuer {
 
 test('GitHubMcpProxy injects bearer auth and pins MCP sessions to roles', async () => {
   const issuer = new StubTokenIssuer();
-  const seenHeaders: Array<{ authorization: string | null; sessionId: string | null }> = [];
+  const seenHeaders: Array<{ authorization: string | null; sessionId: string | null; toolsets: string | null }> = [];
   const proxy = new GitHubMcpProxy(
     {
       repo: 'throw-if-null/orfe',
@@ -38,6 +38,7 @@ test('GitHubMcpProxy injects bearer auth and pins MCP sessions to roles', async 
         seenHeaders.push({
           authorization: headers.get('authorization'),
           sessionId: headers.get('mcp-session-id'),
+          toolsets: headers.get('x-mcp-toolsets'),
         });
 
         return new Response(JSON.stringify({ jsonrpc: '2.0', result: { ok: true }, id: 1 }), {
@@ -63,6 +64,7 @@ test('GitHubMcpProxy injects bearer auth and pins MCP sessions to roles', async 
   assert.equal(first.status, 200);
   assert.equal(first.headers.get('mcp-session-id'), 'session-1');
   assert.equal(seenHeaders[0]?.authorization, 'Bearer token-for-greg');
+  assert.equal(seenHeaders[0]?.toolsets, DEFAULT_GITHUB_MCP_TOOLSETS);
   assert.equal(issuer.calls.length, 1);
 
   const second = await invokeProxy(proxy, {
@@ -250,11 +252,12 @@ test('GitHubMcpProxy releases session-role pinning only after explicit delete', 
 
 test('startGitHubMcpProxy binds locally and forwards requests', async () => {
   const issuer = new StubTokenIssuer();
-  const upstreamRequests: Array<{ url: string; authorization: string | null }> = [];
+  const upstreamRequests: Array<{ url: string; authorization: string | null; toolsets: string | null }> = [];
   const upstream = createServer((request, response) => {
     upstreamRequests.push({
       url: request.url ?? '',
       authorization: request.headers.authorization ?? null,
+      toolsets: typeof request.headers['x-mcp-toolsets'] === 'string' ? request.headers['x-mcp-toolsets'] : null,
     });
     response.statusCode = 200;
     response.setHeader('content-type', 'application/json');
@@ -295,10 +298,49 @@ test('startGitHubMcpProxy binds locally and forwards requests', async () => {
     assert.equal(response.headers.get('mcp-session-id'), 'local-session');
     assert.equal(upstreamRequests[0]?.url, '/mcp');
     assert.equal(upstreamRequests[0]?.authorization, 'Bearer token-for-klarissa');
+    assert.equal(upstreamRequests[0]?.toolsets, DEFAULT_GITHUB_MCP_TOOLSETS);
   } finally {
     await started.close();
     upstream.close();
   }
+});
+
+test('GitHubMcpProxy overrides client-provided MCP toolset headers', async () => {
+  const issuer = new StubTokenIssuer();
+  let seenToolsets: string | null = null;
+  const proxy = new GitHubMcpProxy(
+    {
+      repo: 'throw-if-null/orfe',
+      remoteBaseUrl: 'https://example.test/mcp/',
+    },
+    {
+      tokenIssuer: issuer,
+      fetchImpl: async (_input, init) => {
+        const headers = new Headers(init.headers);
+        seenToolsets = headers.get('x-mcp-toolsets');
+
+        return new Response(JSON.stringify({ jsonrpc: '2.0', result: { ok: true }, id: 1 }), {
+          status: 200,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+      },
+    },
+  );
+
+  const response = await invokeProxy(proxy, {
+    method: 'POST',
+    path: '/greg',
+    body: JSON.stringify({ jsonrpc: '2.0', method: 'initialize', id: 1 }),
+    headers: {
+      'content-type': 'application/json',
+      'x-mcp-toolsets': 'custom,client,value',
+    },
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(seenToolsets, DEFAULT_GITHUB_MCP_TOOLSETS);
 });
 
 test('startGitHubMcpProxy rejects non-loopback hosts', async () => {

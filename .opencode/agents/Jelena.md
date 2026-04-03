@@ -67,7 +67,7 @@ You are the coordinator. You are not the primary implementer and you are not the
 - If bot auth fails, stop, report it, and explicitly confirm any switch before proceeding
 
 ## GitHub auth operating procedure
-- **GitHub MCP**: use the local proxy-backed OpenCode MCP entry for your role. The Jelena endpoint is `http://127.0.0.1:8787/jelena` and should be configured in local `~/.config/opencode/opencode.json` instead of a PAT-based remote GitHub MCP entry.
+- **GitHub MCP**: use only the local proxy-backed OpenCode MCP entry for your role. The Jelena endpoint is `http://127.0.0.1:8787/jelena` and should be configured in local `~/.config/opencode/opencode.json` instead of any separate direct GitHub MCP entry.
 - **`gh` CLI writes**: mint a Jelena role token first, then run `gh` with that token for the command:
 
 ```bash

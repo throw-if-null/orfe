@@ -103,13 +103,14 @@ Behavior:
 - forwards requests to `https://api.githubcopilot.com/mcp/`
 - mints or reuses a fresh GitHub App installation token for the pinned role
 - injects `Authorization: Bearer <installation-token>` on the outbound request
+- injects the standard GitHub MCP `X-MCP-Toolsets: context,issues,pull_requests,projects` header on the outbound request
 - caches tokens until near expiry, then refreshes automatically
 - keeps each MCP session pinned to one role identity via `MCP-Session-Id`
 - never logs tokens
 
 ## OpenCode MCP configuration
 
-In OpenCode, replace any local container or static PAT-based GitHub MCP entry with a role-pinned local HTTP MCP entry that points at the proxy endpoint for the current role.
+In OpenCode, replace any local container or direct remote GitHub MCP entry with a role-pinned local MCP entry that points at the proxy endpoint for the current role.
 
 Example for Greg:
 
@@ -118,13 +119,8 @@ Example for Greg:
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "github-greg": {
-      "type": "http",
-      "url": "http://127.0.0.1:8787/greg",
-      "enabled": true,
-      "timeout": 10000,
-      "headers": {
-        "X-MCP-Toolsets": "context,issues,pull_requests,projects"
-      }
+      "type": "remote",
+      "url": "http://127.0.0.1:8787/greg"
     }
   }
 }
@@ -137,11 +133,18 @@ Use the matching role endpoint for each agent:
 - Greg → `/greg`
 - Klarissa → `/klarissa`
 
-The proxy handles GitHub App auth locally, so OpenCode should not provide a static GitHub PAT to the remote GitHub MCP server in this setup.
+The proxy handles GitHub App auth and the standard upstream GitHub MCP headers locally, so OpenCode should not provide a PAT, custom MCP headers, or a separate direct GitHub MCP entry in this setup.
 
 ### Expected `~/.config/opencode/opencode.json`
 
 The local OpenCode config is machine-local and should not be committed. Configure one GitHub MCP entry per role and point each entry at the local proxy instead of `https://api.githubcopilot.com/mcp/`.
+
+OpenCode's published schema currently accepts local HTTP MCP entries as `type: "remote"` with just a `url`. The shorter shape below was validated two ways for this issue:
+
+- against the published schema from `https://opencode.ai/config.json`
+- by loading the same shape through `opencode debug config`
+
+Minimal supported example:
 
 ```json
 {
@@ -152,44 +155,26 @@ The local OpenCode config is machine-local and should not be committed. Configur
       "command": ["npx", "-y", "@upstash/context7-mcp"]
     },
     "github-zoran": {
-      "type": "http",
-      "url": "http://127.0.0.1:8787/zoran",
-      "headers": {
-        "X-MCP-Toolsets": "context,issues,pull_requests,projects"
-      },
-      "enabled": true,
-      "timeout": 10000
+      "type": "remote",
+      "url": "http://127.0.0.1:8787/zoran"
     },
     "github-jelena": {
-      "type": "http",
-      "url": "http://127.0.0.1:8787/jelena",
-      "headers": {
-        "X-MCP-Toolsets": "context,issues,pull_requests,projects"
-      },
-      "enabled": true,
-      "timeout": 10000
+      "type": "remote",
+      "url": "http://127.0.0.1:8787/jelena"
     },
     "github-greg": {
-      "type": "http",
-      "url": "http://127.0.0.1:8787/greg",
-      "headers": {
-        "X-MCP-Toolsets": "context,issues,pull_requests,projects"
-      },
-      "enabled": true,
-      "timeout": 10000
+      "type": "remote",
+      "url": "http://127.0.0.1:8787/greg"
     },
     "github-klarissa": {
-      "type": "http",
-      "url": "http://127.0.0.1:8787/klarissa",
-      "headers": {
-        "X-MCP-Toolsets": "context,issues,pull_requests,projects"
-      },
-      "enabled": true,
-      "timeout": 10000
+      "type": "remote",
+      "url": "http://127.0.0.1:8787/klarissa"
     }
   }
 }
 ```
+
+Do not also configure a separate direct GitHub MCP server entry in OpenCode when using these local proxy endpoints.
 
 ### Local agent auth workflow
 
@@ -204,8 +189,43 @@ For normal local use:
 
 1. Build the project with `npm run build`.
 2. Start the proxy with `npm run proxy` (or `node dist/cli.js proxy --repo throw-if-null/orfe`).
-3. Use the matching role-specific OpenCode MCP entry.
+3. Use only the matching role-specific OpenCode MCP entry.
 4. For `gh` CLI writes, mint a fresh token first and pass it with `GH_TOKEN`.
+
+### Validation notes for OpenCode config
+
+Schema and config loading checks used for this repository:
+
+```bash
+python - <<'PY'
+import json
+import requests
+import jsonschema
+
+config = {
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "github-greg": {
+      "type": "remote",
+      "url": "http://127.0.0.1:8787/greg"
+    }
+  }
+}
+
+schema = requests.get(
+  "https://opencode.ai/config.json",
+  headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"},
+  timeout=30,
+).json()
+jsonschema.validate(config, schema)
+print("schema ok")
+PY
+
+OPENCODE_CONFIG_CONTENT='{"$schema":"https://opencode.ai/config.json","mcp":{"github-greg":{"type":"remote","url":"http://127.0.0.1:8787/greg"}}}' \
+  opencode debug config
+```
+
+`opencode debug config` is a deterministic way to prove OpenCode accepts and resolves the config shape. A full interactive session load and live MCP tool invocation may still require a human runtime check depending on the environment where OpenCode is launched.
 
 ### `gh` CLI auth for agents
 

@@ -11,6 +11,8 @@ import { SUPPORTED_ROLES, type Role, type TokenIssuer } from './types.js';
 const DEFAULT_PROXY_HOST = '127.0.0.1';
 const DEFAULT_PROXY_PORT = 8787;
 const DEFAULT_REMOTE_BASE_URL = 'https://api.githubcopilot.com/mcp/';
+const GITHUB_MCP_TOOLSETS_HEADER = 'x-mcp-toolsets';
+export const DEFAULT_GITHUB_MCP_TOOLSETS = 'context,issues,pull_requests,projects';
 const HOP_BY_HOP_HEADERS = new Set([
   'connection',
   'content-length',
@@ -274,6 +276,7 @@ function createUpstreamHeaders(headers: IncomingHttpHeaders, bearerToken: string
   }
 
   upstreamHeaders.set('authorization', `Bearer ${bearerToken}`);
+  upstreamHeaders.set(GITHUB_MCP_TOOLSETS_HEADER, DEFAULT_GITHUB_MCP_TOOLSETS);
   return upstreamHeaders;
 }
 
