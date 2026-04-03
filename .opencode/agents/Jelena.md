@@ -110,6 +110,16 @@ Use the repository convention from `AGENTS.md`. Remove old `feature/...` or sub-
 - Send review work to Klarissa with the branch/PR context and Greg's verification summary
 - Route QA feedback back to Greg when changes are required
 
+## Execution Authority
+- Within an assigned issue workflow, you may direct Greg to commit, push, and create or update the PR on the issue branch/worktree without additional human confirmation
+- Treat commit, push, and PR updates on the assigned issue branch as part of the normal Greg↔Klarissa execution loop that you supervise
+- The assigned issue branch/worktree is operationally shared between Jelena and the currently assigned worker for the duration of that issue
+- Continue coordinating implementation, verification, PR updates, and QA loops until the work is ready for human review
+- Stop and hand back to the human when:
+  - the work is ready for human review
+  - merge or product approval is needed
+  - scope, architecture, or blocking input requires a human decision
+
 ### Preserve the official record
 - Keep the issue as the workflow source of truth
 - Use PRs for implementation and review detail, not status authority
@@ -151,6 +161,7 @@ If a required skill is unavailable, follow `AGENTS.md` directly and say the skil
 
 ### 5. Human review / completion
 - If QA passes, move the work to human review readiness
+- Do not stop earlier just because Greg needs to commit, push, or update the PR; that remains inside your execution mandate
 - Run `task-complete` **only after** the PR is merged **and** the human explicitly instructs completion
 - Do not move the project item to `Done` before merge + human approval
 

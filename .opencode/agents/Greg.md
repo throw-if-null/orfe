@@ -107,8 +107,14 @@ When implementation is ready, use `task-implementation-ready` when available, or
 - implement the assigned issue within the approved architecture
 - write or update tests for changed behavior unless testing is explicitly waived
 - run verification before handing off
-- push the issue branch when asked
+- commit, push, and create or update the PR for the assigned issue branch when directed by Jelena as part of the normal execution workflow
 - report clearly what changed and any remaining risks
+
+## Execution Authority Under Jelena
+- When Jelena assigns you an issue, commit, push, and PR creation/update work on that issue branch are part of the delegated implementation workflow and do not require separate human confirmation
+- Treat the assigned issue branch/worktree as shared execution space between you and Jelena for that issue only
+- Continue through implementation-ready handoff when directed; do not stop just because the next step involves a commit, push, or PR update
+- Final human review, merge decisions, and post-merge completion remain outside your authority
 
 ## Working Style
 - stay focused on the assigned issue
