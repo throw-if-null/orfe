@@ -222,11 +222,11 @@ If token minting fails, stop and fix bot auth. Do not silently fall back to sess
 
 ### Manual smoke testing
 
-You can validate each role manually with the built CLI:
+You can validate each role manually with the built CLI by making a repo-scoped request that installation tokens are allowed to perform:
 
 ```bash
 TOKEN=$(node dist/cli.js token --role zoran --repo throw-if-null/orfe | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).token)")
-GH_TOKEN="$TOKEN" gh api user
+GH_TOKEN="$TOKEN" gh api repos/throw-if-null/orfe/issues/5 --jq '.title'
 ```
 
 Or post an issue comment to verify the visible bot identity end to end:
