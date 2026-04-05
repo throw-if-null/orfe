@@ -1,57 +1,144 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { getRoleConfig, loadConfig } from '../src/config.js';
-import { expandUserPath } from '../src/path.js';
+import { getRoleAuthConfig, loadAuthConfig, loadRepoConfig, resolveCallerRole, resolveRepository } from '../src/config.js';
 
-test('expandUserPath resolves tilde paths', () => {
-  assert.equal(expandUserPath('~/keys/greg.pem', '/tmp/home'), path.join('/tmp/home', 'keys/greg.pem'));
-  assert.equal(expandUserPath('/tmp/keys/greg.pem', '/tmp/home'), '/tmp/keys/greg.pem');
-});
-
-test('loadConfig reads github app settings for a supported role', async () => {
-  const tempDirectory = await mkdtemp(path.join(os.tmpdir(), 'tokenner-config-'));
-  const configPath = path.join(tempDirectory, 'apps.yaml');
-
+test('loadRepoConfig reads .orfe/config.json from the repo context', async () => {
+  const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
+  await mkdir(path.join(repoDirectory, '.orfe'));
   await writeFile(
-    configPath,
-    `apps:\n  greg:\n    provider: github-app\n    app_id: 123456\n    app_slug: GR3G-BOT\n    private_key_path: ~/keys/greg.pem\n`,
+    path.join(repoDirectory, '.orfe', 'config.json'),
+    JSON.stringify({
+      version: 1,
+      repository: {
+        owner: 'throw-if-null',
+        name: 'orfe',
+        default_branch: 'main',
+      },
+      caller_to_github_role: {
+        Greg: 'greg',
+      },
+      projects: {
+        default: {
+          owner: 'throw-if-null',
+          project_number: 1,
+          status_field_name: 'Status',
+        },
+      },
+    }),
   );
 
-  const config = await loadConfig({ configPath, homeDirectory: '/home/test-user' });
-  const greg = getRoleConfig(config, 'greg');
+  const config = await loadRepoConfig({ cwd: path.join(repoDirectory, 'nested', 'child') });
 
-  assert.equal(greg.provider.kind, 'github-app');
-  assert.equal(greg.provider.appId, '123456');
-  assert.equal(greg.provider.appSlug, 'GR3G-BOT');
-  assert.equal(greg.provider.privateKeyPath, '/home/test-user/keys/greg.pem');
+  assert.equal(config.repository.owner, 'throw-if-null');
+  assert.equal(config.repository.defaultBranch, 'main');
+  assert.equal(config.projects?.default?.projectNumber, 1);
 });
 
-test('loadConfig rejects unsupported providers', async () => {
-  const tempDirectory = await mkdtemp(path.join(os.tmpdir(), 'tokenner-config-'));
-  const configPath = path.join(tempDirectory, 'apps.yaml');
+test('loadRepoConfig reports malformed repo config clearly', async () => {
+  const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
+  await mkdir(path.join(repoDirectory, '.orfe'));
+  await writeFile(path.join(repoDirectory, '.orfe', 'config.json'), '{bad json');
 
-  await writeFile(
-    configPath,
-    `apps:\n  greg:\n    provider: session\n    app_id: 123456\n    app_slug: GR3G-BOT\n    private_key_path: ~/keys/greg.pem\n`,
-  );
-
-  await assert.rejects(loadConfig({ configPath }), /supports github-app only/);
+  await assert.rejects(loadRepoConfig({ cwd: repoDirectory }), /is not valid JSON/);
 });
 
-test('getRoleConfig fails when the requested role is missing', async () => {
-  const tempDirectory = await mkdtemp(path.join(os.tmpdir(), 'tokenner-config-'));
-  const configPath = path.join(tempDirectory, 'apps.yaml');
+test('loadAuthConfig reads machine-local GitHub App credentials', async () => {
+  const tempDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-auth-config-'));
+  const authConfigPath = path.join(tempDirectory, 'auth.json');
 
   await writeFile(
-    configPath,
-    `apps:\n  zoran:\n    app_id: 123456\n    app_slug: Z0R4N-BOT\n    private_key_path: ~/keys/zoran.pem\n`,
+    authConfigPath,
+    JSON.stringify({
+      version: 1,
+      roles: {
+        greg: {
+          provider: 'github-app',
+          app_id: 123458,
+          app_slug: 'GR3G-BOT',
+          private_key_path: '~/keys/greg.pem',
+        },
+      },
+    }),
   );
 
-  const config = await loadConfig({ configPath });
+  const config = await loadAuthConfig({ authConfigPath, homeDirectory: '/home/test-user' });
+  const roleConfig = getRoleAuthConfig(config, 'greg');
 
-  assert.throws(() => getRoleConfig(config, 'greg'), /Role "greg" is missing/);
+  assert.equal(roleConfig.provider, 'github-app');
+  assert.equal(roleConfig.appId, 123458);
+  assert.equal(roleConfig.privateKeyPath, '/home/test-user/keys/greg.pem');
+});
+
+test('loadAuthConfig rejects unsupported providers', async () => {
+  const tempDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-auth-config-'));
+  const authConfigPath = path.join(tempDirectory, 'auth.json');
+
+  await writeFile(
+    authConfigPath,
+    JSON.stringify({
+      version: 1,
+      roles: {
+        greg: {
+          provider: 'session',
+          app_id: 1,
+          app_slug: 'GR3G-BOT',
+          private_key_path: '/tmp/greg.pem',
+        },
+      },
+    }),
+  );
+
+  await assert.rejects(loadAuthConfig({ authConfigPath }), /supports provider "github-app"/);
+});
+
+test('resolveCallerRole trims and matches exact caller names', async () => {
+  const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
+  await mkdir(path.join(repoDirectory, '.orfe'));
+  await writeFile(
+    path.join(repoDirectory, '.orfe', 'config.json'),
+    JSON.stringify({
+      version: 1,
+      repository: {
+        owner: 'throw-if-null',
+        name: 'orfe',
+        default_branch: 'main',
+      },
+      caller_to_github_role: {
+        Greg: 'greg',
+      },
+    }),
+  );
+
+  const config = await loadRepoConfig({ cwd: repoDirectory });
+
+  assert.equal(resolveCallerRole(config, ' Greg '), 'greg');
+  assert.throws(() => resolveCallerRole(config, 'greg'), /not mapped/);
+});
+
+test('resolveRepository uses repo override when provided', async () => {
+  const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
+  await mkdir(path.join(repoDirectory, '.orfe'));
+  await writeFile(
+    path.join(repoDirectory, '.orfe', 'config.json'),
+    JSON.stringify({
+      version: 1,
+      repository: {
+        owner: 'throw-if-null',
+        name: 'orfe',
+        default_branch: 'main',
+      },
+      caller_to_github_role: {
+        Greg: 'greg',
+      },
+    }),
+  );
+
+  const config = await loadRepoConfig({ cwd: repoDirectory });
+  const repository = resolveRepository(config, 'octo/demo');
+
+  assert.equal(repository.fullName, 'octo/demo');
 });

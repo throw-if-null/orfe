@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "repository": {
+    "owner": "throw-if-null",
+    "name": "orfe",
+    "default_branch": "main"
+  },
+  "caller_to_github_role": {
+    "Greg": "greg",
+    "Jelena": "jelena",
+    "Zoran": "zoran",
+    "Klarissa": "klarissa"
+  },
+  "projects": {
+    "default": {
+      "owner": "throw-if-null",
+      "project_number": 1,
+      "status_field_name": "Status"
+    }
+  }
+}
