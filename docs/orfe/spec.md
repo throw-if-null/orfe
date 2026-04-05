@@ -16,6 +16,8 @@ V1 exists to provide a deterministic, reusable contract for:
 - generic pull request operations
 - GitHub Project Status field read/write operations
 
+`orfe` is a generic GitHub operations layer. It does not own repo-local workflow semantics or higher-level coordination policy; those belong in callers layered on top of generic `orfe` commands.
+
 ## 2. Resolved design decisions
 
 1. `orfe` is a stand-alone tool, not a repo-specific workflow engine.
@@ -974,6 +976,7 @@ End-to-end coverage is a later milestone. Lack of e2e coverage must not block #1
 
 This spec does not authorize `orfe` to own:
 
+- repo-local workflow semantics or coordination policy
 - repo-specific board state semantics beyond generic Status-field reads/writes
 - branch naming policy
 - worktree policy
