@@ -28,11 +28,13 @@ V1 exists to provide a deterministic, reusable contract for:
 6. `orfe` uses Octokit as the GitHub API client layer.
 7. Issue and PR operations should use Octokit REST where available.
 8. GitHub Project Status operations should use Octokit GraphQL.
-9. Issue duplicate handling must create GitHub's actual duplicate relationship, not only set `state_reason=duplicate`.
-10. `gh` and GitHub MCP are **not** the command implementation layer for `orfe` behavior.
-11. Command-level HTTP mocking uses `nock`.
-12. V1 does **not** use a fake GitHub server.
-13. Full end-to-end testing is a later milestone and does not block issue #13.
+9. GitHub App auth is the default and only auth mode in v1.
+10. `orfe` mints GitHub App installation tokens internally; it does not shell out to an external token provider.
+11. Issue duplicate handling must create GitHub's actual duplicate relationship, not only set `state_reason=duplicate`.
+12. `gh` and GitHub MCP are **not** the command implementation layer for `orfe` behavior.
+13. Command-level HTTP mocking uses `nock`.
+14. V1 does **not** use a fake GitHub server.
+15. Full end-to-end testing is a later milestone and does not block issue #13.
 
 ## 3. Scope
 
@@ -100,7 +102,25 @@ The core is runtime-agnostic. It must be callable from both CLI and OpenCode wra
 
 ### 4.3 Auth adapter
 
-V1 auth is role-aware and externalized. The core resolves the GitHub role from config, then invokes the configured token provider. In this repo, that provider may wrap existing bot-token minting tooling, but that detail is outside the generic `orfe` command contract.
+V1 auth is role-aware and internal to `orfe`.
+
+Auth flow:
+
+1. the wrapper or CLI provides `callerName`
+2. the core loads repo-local config and resolves `callerName -> github role`
+3. the auth adapter loads machine-local auth config for that GitHub role
+4. the auth adapter reads the GitHub App credentials and private key path for that role
+5. `orfe` creates a GitHub App JWT internally
+6. `orfe` resolves the repository installation for the target repo internally
+7. `orfe` mints a GitHub App installation token internally
+8. the core builds Octokit clients with that installation token
+
+The auth adapter is part of the `orfe` runtime. It must not:
+
+- shell out to an external token provider
+- recursively invoke `orfe` to mint its own token
+- depend on `gh` auth
+- silently fall back to session auth
 
 The core must never silently fall back to a different auth mode.
 
@@ -146,8 +166,9 @@ interface OrfeCoreRequest {
   callerName: string;
   command: OrfeCommandName;
   input: Record<string, unknown>;
-  cwd?: string;
+  cwd?: string; // current working directory
   configPath?: string;
+  authConfigPath?: string;
 }
 ```
 
@@ -178,7 +199,7 @@ Default path:
 
 CLI may override the path with `--config <path>`.
 
-### 6.1 Required config shape
+### 6.1 Required repo-local config shape
 
 ```json
 {
@@ -193,20 +214,6 @@ CLI may override the path with `--config <path>`.
     "Jelena": "jelena",
     "Zoran": "zoran",
     "Klarissa": "klarissa"
-  },
-  "auth": {
-    "mode": "external-command",
-    "token_command": [
-      "node",
-      "dist/cli.js",
-      "token",
-      "--role",
-      "{github_role}",
-      "--repo",
-      "{owner}/{repo}",
-      "--format",
-      "json"
-    ]
   },
   "projects": {
     "default": {
@@ -226,22 +233,65 @@ CLI may override the path with `--config <path>`.
 - `caller_to_github_role` is required and maps exact `callerName` strings to GitHub role names.
 - Matching is exact after trimming surrounding whitespace; no case folding is performed.
 - Repos may support aliases by adding multiple keys that point to the same role.
-- `auth.mode` is required and must be `external-command` in v1.
-- `auth.token_command` is required and must return JSON containing a top-level `token` string.
 - `projects.default` is optional overall, but if omitted then `project` commands must require explicit project options.
+- repo-local config must not contain private keys, GitHub App IDs, or other machine-local auth secrets.
 
-### 6.3 Token command placeholder expansion
+### 6.3 Machine-local auth config model
 
-`auth.token_command` supports these placeholders:
+Default path:
 
-- `{github_role}`
-- `{owner}`
-- `{repo}`
-- `{owner_repo}`
+```text
+~/.config/orfe/auth.json
+```
 
-The expanded command is executed by the core to acquire the GitHub token used to build Octokit.
+CLI may override the auth config path with `--auth-config <path>`.
 
-### 6.4 Config non-goals
+Required machine-local auth config shape:
+
+```json
+{
+  "version": 1,
+  "roles": {
+    "greg": {
+      "provider": "github-app",
+      "app_id": 123458,
+      "app_slug": "GR3G-BOT",
+      "private_key_path": "~/.config/orfe/keys/greg.pem"
+    },
+    "jelena": {
+      "provider": "github-app",
+      "app_id": 123457,
+      "app_slug": "J3L3N4-BOT",
+      "private_key_path": "~/.config/orfe/keys/jelena.pem"
+    }
+  }
+}
+```
+
+Rules:
+
+- `version` is required and must equal `1`.
+- `roles` is required.
+- each GitHub role referenced by repo-local `caller_to_github_role` must have a corresponding machine-local role entry when that caller is used.
+- `provider` is required and must equal `github-app` in v1.
+- `app_id`, `app_slug`, and `private_key_path` are required for each role.
+- `private_key_path` may use `~` and is expanded locally at runtime.
+- this file is machine-local, must not be committed, and is outside the repo-local public contract artifact set.
+
+### 6.4 Internal token minting behavior
+
+For each command execution, `orfe` must:
+
+1. resolve the GitHub role from repo-local config
+2. load that role's GitHub App credentials from machine-local auth config
+3. mint the GitHub App JWT internally
+4. resolve the installation for the target repository internally
+5. mint the installation token internally
+6. construct Octokit clients from that token
+
+The public contract does not expose any `token_command`, external token hook, or compatibility requirement with prior tooling.
+
+### 6.5 Config non-goals
 
 The config file does not define:
 
@@ -285,6 +335,7 @@ These options are available to every leaf command:
 
 - `--caller-name <name>`
 - `--config <path>`
+- `--auth-config <path>`
 - `--repo <owner/name>`
 - `--help`
 
