@@ -28,10 +28,11 @@ V1 exists to provide a deterministic, reusable contract for:
 6. `orfe` uses Octokit as the GitHub API client layer.
 7. Issue and PR operations should use Octokit REST where available.
 8. GitHub Project Status operations should use Octokit GraphQL.
-9. `gh` and GitHub MCP are **not** the command implementation layer for `orfe` behavior.
-10. Command-level HTTP mocking uses `nock`.
-11. V1 does **not** use a fake GitHub server.
-12. Full end-to-end testing is a later milestone and does not block issue #13.
+9. Issue duplicate handling must create GitHub's actual duplicate relationship, not only set `state_reason=duplicate`.
+10. `gh` and GitHub MCP are **not** the command implementation layer for `orfe` behavior.
+11. Command-level HTTP mocking uses `nock`.
+12. V1 does **not** use a fake GitHub server.
+13. Full end-to-end testing is a later milestone and does not block issue #13.
 
 ## 3. Scope
 
@@ -107,8 +108,14 @@ The core must never silently fall back to a different auth mode.
 
 - Octokit REST for issue and PR operations
 - Octokit GraphQL for GitHub Project Status field operations
+- Octokit GraphQL for issue duplicate relationship mutations
 - no `gh` shell-outs for command behavior
 - no GitHub MCP dependency for command behavior
+
+For `issue set-state` specifically:
+
+- non-duplicate open/close transitions use Octokit REST issue update operations
+- duplicate closure uses Octokit GraphQL because REST `state_reason=duplicate` alone does not establish GitHub's canonical duplicate relationship
 
 ## 5. Wrapper/core boundary
 
@@ -577,6 +584,58 @@ Rules:
 
 - `--state-reason` is valid only with `--state closed`
 - `--duplicate-of` is valid only when `--state-reason duplicate`
+- when `--state-reason duplicate` is used, `--duplicate-of` is required
+- `--duplicate-of` refers to another issue number in the same repository
+- `--duplicate-of` must not equal `--issue-number`
+- v1 does not support cross-repository duplicate targets
+
+Duplicate semantics are explicit and normative for v1:
+
+- `orfe` must create GitHub's actual duplicate relationship
+- it is **not** sufficient to only call REST issue update with `state=closed` and `state_reason=duplicate`
+- the authoritative implementation path is Octokit GraphQL using `markIssueAsDuplicate`
+- if the issue is already marked as a duplicate of a different canonical issue, `orfe` must first call Octokit GraphQL `unmarkIssueAsDuplicate`, then call `markIssueAsDuplicate` with the requested canonical issue
+- after duplicate mutation, the command must return the observed canonical duplicate target in its success payload
+
+Concrete implementation path for `--state closed --state-reason duplicate --duplicate-of <issue-number>`:
+
+1. Use Octokit GraphQL to resolve the duplicate issue node ID and current `duplicateOf` relationship from `(owner, repo, issue_number)`.
+2. Use Octokit GraphQL to resolve the canonical issue node ID from `(owner, repo, duplicate_of_issue_number)`.
+3. If the canonical issue does not exist, fail with `github_not_found`.
+4. If the duplicate issue is already marked duplicate of the requested canonical issue and is already closed, succeed as a no-op.
+5. If the duplicate issue is marked duplicate of a different canonical issue, call Octokit GraphQL `unmarkIssueAsDuplicate` with the current canonical ID and duplicate issue ID.
+6. Call Octokit GraphQL `markIssueAsDuplicate` with:
+   - `duplicateId = <duplicate issue node id>`
+   - `canonicalId = <canonical issue node id>`
+7. Re-read the issue and verify:
+   - `state = closed`
+   - `state_reason = duplicate`
+   - `duplicateOf.number = <duplicate-of issue number>`
+8. If GitHub establishes the duplicate relationship but leaves close state unnormalized unexpectedly, `orfe` may perform a final Octokit REST issue update to normalize `state=closed` and `state_reason=duplicate`, then re-read again.
+
+Concrete Octokit/API path:
+
+- lookup/read steps: `octokit.graphql(...)`
+- duplicate mutation step: `octokit.graphql(...)` with the GraphQL mutation `markIssueAsDuplicate(input: { duplicateId, canonicalId })`
+- re-targeting step when needed: `octokit.graphql(...)` with the GraphQL mutation `unmarkIssueAsDuplicate(input: { duplicateId, canonicalId })`, followed by `markIssueAsDuplicate(...)`
+- fallback normalization only if required: `octokit.rest.issues.update({ owner, repo, issue_number, state: "closed", state_reason: "duplicate" })`
+
+Representative mutation shape:
+
+```graphql
+mutation MarkIssueAsDuplicate($duplicateId: ID!, $canonicalId: ID!) {
+  markIssueAsDuplicate(
+    input: {
+      duplicateId: $duplicateId
+      canonicalId: $canonicalId
+    }
+  ) {
+    clientMutationId
+  }
+}
+```
+
+This means the duplicate relationship is the source of truth. The REST close operation is only a fallback normalization step, not the primary implementation path.
 
 **Success `data` shape**:
 
@@ -585,12 +644,25 @@ Rules:
   "issue_number": 13,
   "state": "closed",
   "state_reason": "completed",
+  "duplicate_of_issue_number": null,
+  "changed": true
+}
+```
+
+For duplicate closure, the success payload must instead include the canonical issue number:
+
+```json
+{
+  "issue_number": 13,
+  "state": "closed",
+  "state_reason": "duplicate",
+  "duplicate_of_issue_number": 7,
   "changed": true
 }
 ```
 
 **Side effects**: updates issue state  
-**Failure behavior**: invalid combination => `invalid_usage`  
+**Failure behavior**: invalid combination => `invalid_usage`; missing duplicate target => `github_not_found`  
 **Idempotency**: yes
 
 ## 11.6 `pr get`
