@@ -16,8 +16,6 @@ V1 exists to provide a deterministic, reusable contract for:
 - generic pull request operations
 - GitHub Project Status field read/write operations
 
-`orfe` does **not** own repository-specific workflow semantics such as `[WORKFLOW]` comments or any repo-local event DSL. Those belong in higher-level automation built on top of generic `orfe` commands.
-
 ## 2. Resolved design decisions
 
 1. `orfe` is a stand-alone tool, not a repo-specific workflow engine.
@@ -33,8 +31,7 @@ V1 exists to provide a deterministic, reusable contract for:
 11. Issue duplicate handling must create GitHub's actual duplicate relationship, not only set `state_reason=duplicate`.
 12. `gh` and GitHub MCP are **not** the command implementation layer for `orfe` behavior.
 13. Command-level HTTP mocking uses `nock`.
-14. V1 does **not** use a fake GitHub server.
-15. Full end-to-end testing is a later milestone and does not block issue #13.
+14. Full end-to-end testing is a later milestone and does not block issue #13.
 
 ## 3. Scope
 
@@ -56,12 +53,10 @@ V1 exists to provide a deterministic, reusable contract for:
 
 ### Out of scope for v1
 
-- repository-specific `[WORKFLOW]` comments or state vocabularies
 - git branch/worktree operations
 - merge automation
 - reviewer assignment policy
 - agent permission policy changes
-- a fake GitHub test server
 - e2e/live GitHub validation as a blocker for #13, #14, or #15
 - install-time config bootstrapping
 
@@ -83,7 +78,6 @@ The wrapper must not:
 
 - call GitHub directly
 - load repo config itself except as needed to locate repo context
-- implement repo workflow semantics
 - pass raw OpenCode runtime objects into the core
 
 ### 4.2 Core runtime
@@ -295,7 +289,6 @@ The public contract does not expose any `token_command`, external token hook, or
 
 The config file does not define:
 
-- repo-specific workflow event vocabularies
 - issue/PR templates
 - reviewer policy
 - permission policy
@@ -981,7 +974,6 @@ End-to-end coverage is a later milestone. Lack of e2e coverage must not block #1
 
 This spec does not authorize `orfe` to own:
 
-- repo-specific `[WORKFLOW]` comment formatting
 - repo-specific board state semantics beyond generic Status-field reads/writes
 - branch naming policy
 - worktree policy
