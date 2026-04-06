@@ -36,9 +36,9 @@ export interface RepoLocalConfig {
   callerToGitHubRole: Record<string, string>;
   projects?: {
     default?: {
-      owner: string;
-      projectNumber: number;
-      statusFieldName: string;
+      owner?: string;
+      projectNumber?: number;
+      statusFieldName?: string;
     };
   };
 }

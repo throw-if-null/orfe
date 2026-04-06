@@ -1,3 +1,4 @@
+import { getCommandContract } from './command-contracts.js';
 import { OrfeError, createNotImplementedError } from './errors.js';
 import type { CommandContext, CommandInput, OrfeCommandGroup, OrfeCommandName } from './types.js';
 
@@ -21,6 +22,7 @@ export interface CommandDefinition {
   successSummary: string;
   examples: string[];
   options: CommandOptionDefinition[];
+  successDataExample: Record<string, unknown>;
   handler(context: CommandContext): Promise<unknown>;
   validate?(input: CommandInput): void;
 }
@@ -297,13 +299,17 @@ export function validateCommandInput(definition: CommandDefinition, input: Comma
   return validatedInput;
 }
 
-function defineCommand(definition: Omit<CommandDefinition, 'group' | 'leaf' | 'handler'> & { validate?: CommandDefinition['validate'] }): CommandDefinition {
+function defineCommand(
+  definition: Omit<CommandDefinition, 'group' | 'leaf' | 'handler' | 'successDataExample'> & { validate?: CommandDefinition['validate'] },
+): CommandDefinition {
   const [group, leaf] = definition.name.split('.') as [OrfeCommandGroup, string];
+  const contract = getCommandContract(definition.name);
 
   return {
     ...definition,
     group,
     leaf,
+    successDataExample: contract.successDataExample,
     handler: async () => {
       throw createNotImplementedError(definition.name);
     },

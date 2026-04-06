@@ -4,7 +4,7 @@ import { runOrfeCore, type OrfeCoreDependencies } from './core.js';
 import { createErrorResponse } from './response.js';
 import type { CommandInput, OrfeCommandGroup } from './types.js';
 
-interface ParsedLeafInvocation {
+export interface ParsedLeafInvocation {
   kind: 'leaf';
   commandDefinition: CommandDefinition;
   callerName: string;
@@ -13,12 +13,12 @@ interface ParsedLeafInvocation {
   input: CommandInput;
 }
 
-interface ParsedHelpInvocation {
+export interface ParsedHelpInvocation {
   kind: 'help';
   output: string;
 }
 
-type ParsedInvocation = ParsedLeafInvocation | ParsedHelpInvocation;
+export type ParsedInvocation = ParsedLeafInvocation | ParsedHelpInvocation;
 
 export interface RunCliDependencies extends OrfeCoreDependencies {
   env?: NodeJS.ProcessEnv;
@@ -27,6 +27,10 @@ export interface RunCliDependencies extends OrfeCoreDependencies {
 }
 
 const COMMAND_GROUPS: readonly OrfeCommandGroup[] = ['issue', 'pr', 'project'];
+
+export function parseInvocationForCli(args: string[], env: NodeJS.ProcessEnv): ParsedInvocation {
+  return parseInvocation(args, env);
+}
 
 export async function runCli(args: string[], dependencies: RunCliDependencies = {}): Promise<number> {
   const env = dependencies.env ?? process.env;
@@ -299,6 +303,9 @@ function renderLeafHelp(commandDefinition: CommandDefinition): string {
     '',
     'Examples:',
     ...commandDefinition.examples.map((example) => `  ${example}`),
+    '',
+    'JSON success shape example:',
+    `  ${JSON.stringify(commandDefinition.successDataExample)}`,
   ].join('\n');
 }
 
