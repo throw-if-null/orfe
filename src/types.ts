@@ -1,55 +1,110 @@
-export const SUPPORTED_ROLES = ['zoran', 'jelena', 'greg', 'klarissa'] as const;
+import type { Octokit } from 'octokit';
 
-export type Role = (typeof SUPPORTED_ROLES)[number];
-export type OutputFormat = 'json';
-export type ProviderKind = 'github-app';
-export type AuthMode = 'github-app';
+export const ORFE_COMMANDS = [
+  'issue.get',
+  'issue.create',
+  'issue.update',
+  'issue.comment',
+  'issue.set-state',
+  'pr.get',
+  'pr.get-or-create',
+  'pr.comment',
+  'pr.submit-review',
+  'pr.reply',
+  'project.get-status',
+  'project.set-status',
+] as const;
 
-export interface GitHubAppProviderConfig {
-  kind: 'github-app';
-  appId: string;
+export type OrfeCommandName = (typeof ORFE_COMMANDS)[number];
+export type OrfeCommandGroup = 'issue' | 'pr' | 'project';
+export type CommandInput = Record<string, unknown>;
+
+export interface RepoRef {
+  owner: string;
+  name: string;
+  fullName: string;
+}
+
+export interface RepoLocalConfig {
+  configPath: string;
+  version: 1;
+  repository: {
+    owner: string;
+    name: string;
+    defaultBranch: string;
+  };
+  callerToGitHubRole: Record<string, string>;
+  projects?: {
+    default?: {
+      owner: string;
+      projectNumber: number;
+      statusFieldName: string;
+    };
+  };
+}
+
+export interface GitHubAppRoleAuthConfig {
+  provider: 'github-app';
+  appId: number;
   appSlug: string;
   privateKeyPath: string;
 }
 
-export type ProviderConfig = GitHubAppProviderConfig;
-
-export interface RoleConfig {
-  role: Role;
-  provider: ProviderConfig;
-}
-
-export interface LoadedConfig {
+export interface MachineAuthConfig {
   configPath: string;
-  roles: Partial<Record<Role, RoleConfig>>;
+  version: 1;
+  roles: Record<string, GitHubAppRoleAuthConfig>;
 }
 
-export interface TokenResult {
+export interface GitHubClientAuthInfo {
+  roleName: string;
+  appSlug: string;
+  installationId: number;
   token: string;
-  expires_at: string;
-  role: Role;
-  app_slug: string;
+  expiresAt: string;
+}
+
+export interface GitHubClients {
+  octokit: Octokit;
+  rest: Octokit['rest'];
+  graphql: Octokit['graphql'];
+  auth: GitHubClientAuthInfo;
+}
+
+export interface OrfeCoreRequest {
+  callerName: string;
+  command: OrfeCommandName | string;
+  input: CommandInput;
+  cwd?: string;
+  configPath?: string;
+  authConfigPath?: string;
+}
+
+export interface SuccessResponse<TData> {
+  ok: true;
+  command: string;
   repo: string;
-  auth_mode: AuthMode;
+  data: TData;
 }
 
-export interface AuthTokenRequest {
-  role: Role;
-  repo: string;
-  forceRefresh?: boolean;
+export interface ErrorResponse {
+  ok: false;
+  command: string;
+  error: {
+    code: string;
+    message: string;
+    retryable: boolean;
+  };
 }
 
-export interface TokenRequest {
-  role: Role;
-  repo: string;
-  provider: ProviderConfig;
-}
-
-export interface TokenIssuer {
-  getToken(request: AuthTokenRequest): Promise<TokenResult>;
-}
-
-export interface TokenProvider {
-  readonly kind: ProviderKind;
-  mintToken(request: TokenRequest): Promise<TokenResult>;
+export interface CommandContext {
+  callerName: string;
+  callerRole: string;
+  command: OrfeCommandName;
+  input: CommandInput;
+  repo: RepoRef;
+  repoConfig: RepoLocalConfig;
+  authConfig: MachineAuthConfig;
+  roleAuth: GitHubAppRoleAuthConfig;
+  getGitHubClient(): Promise<GitHubClients>;
 }

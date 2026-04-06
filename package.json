@@ -4,26 +4,26 @@
   "private": true,
   "type": "module",
   "bin": {
-    "tokenner": "dist/cli.js"
+    "orfe": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "test": "node --import tsx --test test/**/*.test.ts",
-    "proxy": "node dist/cli.js proxy --repo throw-if-null/orfe"
+    "test": "node --import tsx --test test/**/*.test.ts"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
-    "yaml": "^2.8.1"
+    "octokit": "^4.1.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
     "@types/node": "^24.5.2",
     "eslint": "^9.24.0",
     "globals": "^16.0.0",
+    "nock": "^14.0.4",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.29.0"
