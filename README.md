@@ -110,3 +110,13 @@ npm run lint
 npm run typecheck
 npm run build
 ```
+
+## CI
+
+Fast CI runs on pull requests to `main` and on pushes to `main`.
+It installs dependencies with `npm ci` using the npm cache and runs:
+
+- `npm test`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
