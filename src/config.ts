@@ -19,6 +19,20 @@ export interface LoadAuthConfigOptions {
   homeDirectory?: string;
 }
 
+export interface ProjectCommandOptions {
+  project_owner?: unknown;
+  project_number?: unknown;
+  status_field_name?: unknown;
+}
+
+export interface ResolvedProjectConfig {
+  projectOwner: string;
+  projectNumber: number;
+  statusFieldName: string;
+}
+
+type ProjectDefaults = RepoLocalConfig['projects'] extends infer T ? (T extends { default?: infer D } ? D : never) : never;
+
 export async function loadRepoConfig(options: LoadRepoConfigOptions = {}): Promise<RepoLocalConfig> {
   const cwd = path.resolve(options.cwd ?? process.cwd());
   const configPath = await resolveRepoConfigPath(cwd, options.configPath);
@@ -50,12 +64,20 @@ export async function loadRepoConfig(options: LoadRepoConfigOptions = {}): Promi
       const projectDefaults = expectObject(projects.default, `${configPath}: projects.default`);
       loadedConfig.projects = {
         default: {
-          owner: expectString(projectDefaults.owner, `${configPath}: projects.default.owner`),
-          projectNumber: expectNumber(projectDefaults.project_number, `${configPath}: projects.default.project_number`),
-          statusFieldName: expectString(
-            projectDefaults.status_field_name,
-            `${configPath}: projects.default.status_field_name`,
-          ),
+          ...('owner' in projectDefaults && projectDefaults.owner !== undefined
+            ? { owner: expectString(projectDefaults.owner, `${configPath}: projects.default.owner`) }
+            : {}),
+          ...('project_number' in projectDefaults && projectDefaults.project_number !== undefined
+            ? { projectNumber: expectNumber(projectDefaults.project_number, `${configPath}: projects.default.project_number`) }
+            : {}),
+          ...('status_field_name' in projectDefaults && projectDefaults.status_field_name !== undefined
+            ? {
+                statusFieldName: expectString(
+                  projectDefaults.status_field_name,
+                  `${configPath}: projects.default.status_field_name`,
+                ),
+              }
+            : {}),
         },
       };
     }
@@ -144,6 +166,22 @@ export function getRoleAuthConfig(config: MachineAuthConfig, roleName: string): 
   return roleConfig;
 }
 
+export function resolveProjectCommandConfig(
+  config: RepoLocalConfig,
+  options: ProjectCommandOptions = {},
+): ResolvedProjectConfig {
+  const projectDefaults = config.projects?.default;
+  const projectOwner = readProjectOwner(options, projectDefaults, config.configPath);
+  const projectNumber = readProjectNumber(options, projectDefaults, config.configPath);
+  const statusFieldName = readStatusFieldName(options, projectDefaults);
+
+  return {
+    projectOwner,
+    projectNumber,
+    statusFieldName,
+  };
+}
+
 async function resolveRepoConfigPath(cwd: string, configPath?: string): Promise<string> {
   if (configPath) {
     return resolveFromCwd(cwd, configPath);
@@ -199,6 +237,55 @@ function readCallerRoleMapping(value: Record<string, unknown>, configPath: strin
   }
 
   return mapping;
+}
+
+function readProjectOwner(
+  options: ProjectCommandOptions,
+  defaults: ProjectDefaults | undefined,
+  configPath: string,
+): string {
+  if (typeof options.project_owner === 'string' && options.project_owner.trim().length > 0) {
+    return options.project_owner.trim();
+  }
+
+  if (defaults?.owner) {
+    return defaults.owner;
+  }
+
+  throw new OrfeError(
+    'invalid_usage',
+    `Project commands require --project-owner when ${configPath} has no projects.default.owner.`,
+  );
+}
+
+function readProjectNumber(
+  options: ProjectCommandOptions,
+  defaults: ProjectDefaults | undefined,
+  configPath: string,
+): number {
+  if (typeof options.project_number === 'number' && Number.isInteger(options.project_number) && options.project_number >= 0) {
+    return options.project_number;
+  }
+
+  if (defaults?.projectNumber !== undefined) {
+    return defaults.projectNumber;
+  }
+
+  throw new OrfeError(
+    'invalid_usage',
+    `Project commands require --project-number when ${configPath} has no projects.default.project_number.`,
+  );
+}
+
+function readStatusFieldName(
+  options: ProjectCommandOptions,
+  defaults: ProjectDefaults | undefined,
+): string {
+  if (typeof options.status_field_name === 'string' && options.status_field_name.trim().length > 0) {
+    return options.status_field_name.trim();
+  }
+
+  return defaults?.statusFieldName ?? 'Status';
 }
 
 function expectLiteralNumber(value: unknown, expected: 1, label: string): 1 {

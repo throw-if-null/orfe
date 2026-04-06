@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getCommandContract } from '../src/command-contracts.js';
+import { COMMAND_NAMES, getCommandContract } from '../src/command-contracts.js';
 import { getCommandDefinition, listCommandNames } from '../src/command-registry.js';
 import { OrfeError } from '../src/errors.js';
 import { createRuntimeSnapshot, runOrfeCore } from '../src/core.js';
-import type { OrfeCommandName } from '../src/types.js';
 
 function createRepoConfig() {
   return {
@@ -37,27 +36,139 @@ function createAuthConfig() {
   };
 }
 
-const EXPECTED_COMMANDS: readonly OrfeCommandName[] = [
-  'issue.get',
-  'issue.create',
-  'issue.update',
-  'issue.comment',
-  'issue.set-state',
-  'pr.get',
-  'pr.get-or-create',
-  'pr.comment',
-  'pr.submit-review',
-  'pr.reply',
-  'project.get-status',
-  'project.set-status',
-];
-
 test('listCommandNames exposes the agreed V1 command surface', () => {
-  assert.deepEqual(listCommandNames(), EXPECTED_COMMANDS);
+  assert.deepEqual(listCommandNames(), COMMAND_NAMES);
 });
 
-test('every command exposes a non-breaking placeholder contract and success example', () => {
-  for (const commandName of EXPECTED_COMMANDS) {
+test('issue.get pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('issue.get').successDataExample, {
+    issue_number: 13,
+    title: 'Design the `orfe` custom tool and CLI contract',
+    body: '...',
+    state: 'open',
+    state_reason: null,
+    labels: ['needs-input'],
+    assignees: ['greg'],
+    html_url: 'https://github.com/throw-if-null/orfe/issues/13',
+  });
+});
+
+test('issue.create pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('issue.create').successDataExample, {
+    issue_number: 21,
+    title: 'New issue title',
+    state: 'open',
+    html_url: 'https://github.com/throw-if-null/orfe/issues/21',
+    created: true,
+  });
+});
+
+test('issue.update pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('issue.update').successDataExample, {
+    issue_number: 13,
+    title: 'Updated title',
+    state: 'open',
+    html_url: 'https://github.com/throw-if-null/orfe/issues/13',
+    changed: true,
+  });
+});
+
+test('issue.comment pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('issue.comment').successDataExample, {
+    issue_number: 13,
+    comment_id: 123456,
+    html_url: 'https://github.com/throw-if-null/orfe/issues/13#issuecomment-123456',
+    created: true,
+  });
+});
+
+test('issue.set-state pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('issue.set-state').successDataExample, {
+    issue_number: 13,
+    state: 'closed',
+    state_reason: 'completed',
+    duplicate_of_issue_number: null,
+    changed: true,
+  });
+});
+
+test('pr.get pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('pr.get').successDataExample, {
+    pr_number: 9,
+    title: 'Design the `orfe` custom tool and CLI contract',
+    body: '...',
+    state: 'open',
+    draft: false,
+    head: 'issues/orfe-13',
+    base: 'main',
+    html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+  });
+});
+
+test('pr.get-or-create pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('pr.get-or-create').successDataExample, {
+    pr_number: 9,
+    html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+    head: 'issues/orfe-13',
+    base: 'main',
+    draft: false,
+    created: false,
+  });
+});
+
+test('pr.comment pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('pr.comment').successDataExample, {
+    pr_number: 9,
+    comment_id: 123456,
+    html_url: 'https://github.com/throw-if-null/orfe/pull/9#issuecomment-123456',
+    created: true,
+  });
+});
+
+test('pr.submit-review pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('pr.submit-review').successDataExample, {
+    pr_number: 9,
+    review_id: 555,
+    event: 'approve',
+    submitted: true,
+  });
+});
+
+test('pr.reply pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('pr.reply').successDataExample, {
+    pr_number: 9,
+    comment_id: 123999,
+    in_reply_to_comment_id: 123456,
+    created: true,
+  });
+});
+
+test('project.get-status pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('project.get-status').successDataExample, {
+    project_owner: 'throw-if-null',
+    project_number: 1,
+    status_field_name: 'Status',
+    item_type: 'issue',
+    item_number: 13,
+    status: 'In Progress',
+  });
+});
+
+test('project.set-status pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('project.set-status').successDataExample, {
+    project_owner: 'throw-if-null',
+    project_number: 1,
+    status_field_name: 'Status',
+    item_type: 'issue',
+    item_number: 13,
+    status: 'In Progress',
+    previous_status: 'Todo',
+    changed: true,
+  });
+});
+
+test('every command definition uses the independently pinned success contract', () => {
+  for (const commandName of COMMAND_NAMES) {
     const definition = getCommandDefinition(commandName);
     const contract = getCommandContract(commandName);
 
@@ -90,7 +201,7 @@ test('runOrfeCore can be exercised directly with plain callerName data', async (
 
 test('runOrfeCore returns the shared not-implemented stub error for every leaf command', async (t) => {
   await Promise.all(
-    EXPECTED_COMMANDS.map((commandName) =>
+    COMMAND_NAMES.map((commandName) =>
       t.test(commandName, async () => {
         const contract = getCommandContract(commandName);
 

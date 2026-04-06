@@ -5,7 +5,14 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { OrfeError } from '../src/errors.js';
-import { getRoleAuthConfig, loadAuthConfig, loadRepoConfig, resolveCallerRole, resolveRepository } from '../src/config.js';
+import {
+  getRoleAuthConfig,
+  loadAuthConfig,
+  loadRepoConfig,
+  resolveCallerRole,
+  resolveProjectCommandConfig,
+  resolveRepository,
+} from '../src/config.js';
 
 async function writeRepoConfig(repoDirectory: string, content: string): Promise<void> {
   await mkdir(path.join(repoDirectory, '.orfe'), { recursive: true });
@@ -273,4 +280,171 @@ test('resolveRepository uses repo override when provided', async () => {
   const repository = resolveRepository(config, 'octo/demo');
 
   assert.equal(repository.fullName, 'octo/demo');
+});
+
+test('resolveProjectCommandConfig uses repo config defaults when explicit overrides are absent', async () => {
+  const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
+  await writeRepoConfig(
+    repoDirectory,
+    JSON.stringify({
+      version: 1,
+      repository: {
+        owner: 'throw-if-null',
+        name: 'orfe',
+        default_branch: 'main',
+      },
+      caller_to_github_role: {
+        Greg: 'greg',
+      },
+      projects: {
+        default: {
+          owner: 'throw-if-null',
+          project_number: 1,
+          status_field_name: 'Status',
+        },
+      },
+    }),
+  );
+
+  const config = await loadRepoConfig({ cwd: repoDirectory });
+
+  assert.deepEqual(resolveProjectCommandConfig(config), {
+    projectOwner: 'throw-if-null',
+    projectNumber: 1,
+    statusFieldName: 'Status',
+  });
+});
+
+test('resolveProjectCommandConfig allows explicit overrides to replace project defaults', async () => {
+  const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
+  await writeRepoConfig(
+    repoDirectory,
+    JSON.stringify({
+      version: 1,
+      repository: {
+        owner: 'throw-if-null',
+        name: 'orfe',
+        default_branch: 'main',
+      },
+      caller_to_github_role: {
+        Greg: 'greg',
+      },
+      projects: {
+        default: {
+          owner: 'throw-if-null',
+          project_number: 1,
+          status_field_name: 'Status',
+        },
+      },
+    }),
+  );
+
+  const config = await loadRepoConfig({ cwd: repoDirectory });
+
+  assert.deepEqual(
+    resolveProjectCommandConfig(config, {
+      project_owner: 'octo-org',
+      project_number: 9,
+      status_field_name: 'Delivery',
+    }),
+    {
+      projectOwner: 'octo-org',
+      projectNumber: 9,
+      statusFieldName: 'Delivery',
+    },
+  );
+});
+
+test('resolveProjectCommandConfig requires explicit project owner when repo config has no default owner', async () => {
+  const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
+  await writeRepoConfig(
+    repoDirectory,
+    JSON.stringify({
+      version: 1,
+      repository: {
+        owner: 'throw-if-null',
+        name: 'orfe',
+        default_branch: 'main',
+      },
+      caller_to_github_role: {
+        Greg: 'greg',
+      },
+      projects: {
+        default: {
+          project_number: 1,
+          status_field_name: 'Status',
+        },
+      },
+    }),
+  );
+
+  const config = await loadRepoConfig({ cwd: repoDirectory });
+
+  assert.throws(
+    () => resolveProjectCommandConfig(config),
+    /Project commands require --project-owner when .* has no projects\.default\.owner/,
+  );
+});
+
+test('resolveProjectCommandConfig requires explicit project number when repo config has no default project number', async () => {
+  const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
+  await writeRepoConfig(
+    repoDirectory,
+    JSON.stringify({
+      version: 1,
+      repository: {
+        owner: 'throw-if-null',
+        name: 'orfe',
+        default_branch: 'main',
+      },
+      caller_to_github_role: {
+        Greg: 'greg',
+      },
+      projects: {
+        default: {
+          owner: 'throw-if-null',
+          status_field_name: 'Status',
+        },
+      },
+    }),
+  );
+
+  const config = await loadRepoConfig({ cwd: repoDirectory });
+
+  assert.throws(
+    () => resolveProjectCommandConfig(config),
+    /Project commands require --project-number when .* has no projects\.default\.project_number/,
+  );
+});
+
+test('resolveProjectCommandConfig falls back to literal Status when no default status field exists', async () => {
+  const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
+  await writeRepoConfig(
+    repoDirectory,
+    JSON.stringify({
+      version: 1,
+      repository: {
+        owner: 'throw-if-null',
+        name: 'orfe',
+        default_branch: 'main',
+      },
+      caller_to_github_role: {
+        Greg: 'greg',
+      },
+      projects: {
+        default: {
+          owner: 'throw-if-null',
+          project_number: 1,
+        },
+      },
+    }),
+  );
+
+  const config = await loadRepoConfig({ cwd: repoDirectory });
+
+  assert.deepEqual(resolveProjectCommandConfig(config), {
+    projectOwner: 'throw-if-null',
+    projectNumber: 1,
+    statusFieldName: 'Status',
+  });
 });

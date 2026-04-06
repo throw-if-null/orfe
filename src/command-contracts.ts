@@ -5,6 +5,21 @@ export interface CommandContract {
   successDataExample: Record<string, unknown>;
 }
 
+export const COMMAND_NAMES = [
+  'issue.get',
+  'issue.create',
+  'issue.update',
+  'issue.comment',
+  'issue.set-state',
+  'pr.get',
+  'pr.get-or-create',
+  'pr.comment',
+  'pr.submit-review',
+  'pr.reply',
+  'project.get-status',
+  'project.set-status',
+] as const satisfies readonly OrfeCommandName[];
+
 export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
   'issue.get': {
     validInput: { issue_number: 13 },
