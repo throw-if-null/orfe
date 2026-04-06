@@ -98,15 +98,32 @@ function mockIssueCommentRequest(options: {
   body: string;
   status?: number;
   responseBody?: Record<string, unknown>;
+  issueGetStatus?: number;
+  issueGetResponseBody?: Record<string, unknown>;
 }) {
   const issueNumber = options.issueNumber;
   const status = options.status ?? 201;
+  const issueGetStatus = options.issueGetStatus ?? 200;
 
   return nock('https://api.github.com')
     .get('/repos/throw-if-null/orfe/installation')
     .reply(200, { id: 42 })
     .post('/app/installations/42/access_tokens')
     .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/issues/${issueNumber}`)
+    .reply(
+      issueGetStatus,
+      options.issueGetResponseBody ?? {
+        number: issueNumber,
+        title: 'Issue title',
+        body: 'Issue body',
+        state: 'open',
+        state_reason: null,
+        labels: [],
+        assignees: [],
+        html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
+      },
+    )
     .post(`/repos/throw-if-null/orfe/issues/${issueNumber}/comments`, { body: options.body })
     .reply(
       status,
@@ -345,8 +362,8 @@ test('runCli prints structured not-found failures for issue.comment', async () =
     const api = mockIssueCommentRequest({
       issueNumber: 404,
       body: 'Hello from orfe',
-      status: 404,
-      responseBody: { message: 'Not Found' },
+      issueGetStatus: 404,
+      issueGetResponseBody: { message: 'Not Found' },
     });
 
     const exitCode = await runCli(['issue', 'comment', '--issue-number', '404', '--body', 'Hello from orfe'], {
@@ -368,7 +385,58 @@ test('runCli prints structured not-found failures for issue.comment', async () =
         retryable: false,
       },
     });
-    assert.equal(api.isDone(), true);
+    assert.equal(api.isDone(), false);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured pull-request boundary failures for issue.comment', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueCommentRequest({
+      issueNumber: 46,
+      body: 'Hello from orfe',
+      issueGetResponseBody: {
+        number: 46,
+        title: 'Implement `orfe issue comment`',
+        body: 'PR body',
+        state: 'open',
+        state_reason: null,
+        labels: [],
+        assignees: [],
+        html_url: 'https://github.com/throw-if-null/orfe/pull/46',
+        pull_request: {
+          url: 'https://api.github.com/repos/throw-if-null/orfe/pulls/46',
+        },
+      },
+    });
+
+    const exitCode = await runCli(['issue', 'comment', '--issue-number', '46', '--body', 'Hello from orfe'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'issue.comment',
+      error: {
+        code: 'github_conflict',
+        message: 'Issue #46 is a pull request. Use pr.comment instead.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), false);
   } finally {
     nock.cleanAll();
     nock.enableNetConnect();

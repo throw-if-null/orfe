@@ -1,5 +1,5 @@
 import { OrfeError } from './errors.js';
-import type { CommandContext } from './types.js';
+import type { CommandContext, GitHubClients } from './types.js';
 
 interface IssueGetData {
   issue_number: number;
@@ -28,6 +28,7 @@ interface IssueGetResponseData {
   labels?: unknown;
   assignees?: unknown;
   html_url?: unknown;
+  pull_request?: unknown;
 }
 
 interface IssueCommentResponseData {
@@ -58,6 +59,7 @@ export async function handleIssueComment(context: CommandContext): Promise<Issue
 
   try {
     const { rest } = await context.getGitHubClient();
+    await assertIssueCommentTargetIsIssue(rest, context.repo.owner, context.repo.name, issueNumber);
     const response = await rest.issues.createComment({
       owner: context.repo.owner,
       repo: context.repo.name,
@@ -66,6 +68,27 @@ export async function handleIssueComment(context: CommandContext): Promise<Issue
     });
 
     return normalizeIssueCommentResponse(issueNumber, response.data as IssueCommentResponseData);
+  } catch (error) {
+    throw mapIssueCommentError(error, issueNumber);
+  }
+}
+
+async function assertIssueCommentTargetIsIssue(
+  rest: GitHubClients['rest'],
+  owner: string,
+  repo: string,
+  issueNumber: number,
+): Promise<void> {
+  try {
+    const response = await rest.issues.get({
+      owner,
+      repo,
+      issue_number: issueNumber,
+    });
+
+    if (isObject((response.data as IssueGetResponseData).pull_request)) {
+      throw new OrfeError('github_conflict', `Issue #${issueNumber} is a pull request. Use pr.comment instead.`);
+    }
   } catch (error) {
     throw mapIssueCommentError(error, issueNumber);
   }
