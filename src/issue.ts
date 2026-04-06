@@ -12,6 +12,13 @@ interface IssueGetData {
   html_url: string;
 }
 
+interface IssueCommentData {
+  issue_number: number;
+  comment_id: number;
+  html_url: string;
+  created: true;
+}
+
 interface IssueGetResponseData {
   number?: unknown;
   title?: unknown;
@@ -20,6 +27,11 @@ interface IssueGetResponseData {
   state_reason?: unknown;
   labels?: unknown;
   assignees?: unknown;
+  html_url?: unknown;
+}
+
+interface IssueCommentResponseData {
+  id?: unknown;
   html_url?: unknown;
 }
 
@@ -37,6 +49,25 @@ export async function handleIssueGet(context: CommandContext): Promise<IssueGetD
     return normalizeIssueGetResponse(response.data as IssueGetResponseData);
   } catch (error) {
     throw mapIssueGetError(error, issueNumber);
+  }
+}
+
+export async function handleIssueComment(context: CommandContext): Promise<IssueCommentData> {
+  const issueNumber = context.input.issue_number as number;
+  const body = context.input.body as string;
+
+  try {
+    const { rest } = await context.getGitHubClient();
+    const response = await rest.issues.createComment({
+      owner: context.repo.owner,
+      repo: context.repo.name,
+      issue_number: issueNumber,
+      body,
+    });
+
+    return normalizeIssueCommentResponse(issueNumber, response.data as IssueCommentResponseData);
+  } catch (error) {
+    throw mapIssueCommentError(error, issueNumber);
   }
 }
 
@@ -66,6 +97,23 @@ function normalizeIssueGetResponse(issue: IssueGetResponseData): IssueGetData {
     labels: normalizeLabels(issue.labels),
     assignees: normalizeAssignees(issue.assignees),
     html_url: issue.html_url,
+  };
+}
+
+function normalizeIssueCommentResponse(issueNumber: number, comment: IssueCommentResponseData): IssueCommentData {
+  if (typeof comment.id !== 'number' || !Number.isInteger(comment.id)) {
+    throw new OrfeError('internal_error', `GitHub comment response for issue #${issueNumber} is missing a valid id.`);
+  }
+
+  if (typeof comment.html_url !== 'string' || comment.html_url.length === 0) {
+    throw new OrfeError('internal_error', `GitHub comment response for issue #${issueNumber} is missing a valid html_url.`);
+  }
+
+  return {
+    issue_number: issueNumber,
+    comment_id: comment.id,
+    html_url: comment.html_url,
+    created: true,
   };
 }
 
@@ -125,6 +173,32 @@ function mapIssueGetError(error: unknown, issueNumber: number): OrfeError {
   }
 
   return new OrfeError('internal_error', 'Unknown GitHub issue lookup failure.');
+}
+
+function mapIssueCommentError(error: unknown, issueNumber: number): OrfeError {
+  if (error instanceof OrfeError) {
+    return error;
+  }
+
+  if (isGitHubRequestError(error)) {
+    if (error.status === 404) {
+      return new OrfeError('github_not_found', `Issue #${issueNumber} was not found.`);
+    }
+
+    if (error.status === 401 || error.status === 403) {
+      return new OrfeError('auth_failed', `GitHub App authentication failed while commenting on issue #${issueNumber}.`);
+    }
+
+    return new OrfeError('internal_error', `GitHub API request failed with status ${error.status}: ${error.message}`, {
+      retryable: error.status >= 500 || error.status === 429,
+    });
+  }
+
+  if (error instanceof Error) {
+    return new OrfeError('internal_error', error.message);
+  }
+
+  return new OrfeError('internal_error', 'Unknown GitHub issue comment failure.');
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
