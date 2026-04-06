@@ -212,14 +212,14 @@ function parseCliOptionValue(
     case 'number': {
       const parsedNumber = Number(nextToken);
       if (!Number.isInteger(parsedNumber)) {
-        throw new OrfeError('invalid_usage', `Option "${optionDefinition.flag}" expects an integer.`);
+        throw createLeafUsageError(commandDefinition, `Option "${optionDefinition.flag}" expects an integer.`);
       }
       return parsedNumber;
     }
     case 'enum':
       if (!optionDefinition.enumValues?.includes(nextToken)) {
-        throw new OrfeError(
-          'invalid_usage',
+        throw createLeafUsageError(
+          commandDefinition,
           `Option "${optionDefinition.flag}" must be one of: ${(optionDefinition.enumValues ?? []).join(', ')}.`,
         );
       }

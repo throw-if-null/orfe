@@ -135,3 +135,40 @@ test('runCli formats core invalid_usage errors as CLI usage failures', async () 
   assert.match(stderr.output, /state_reason/);
   assert.match(stderr.output, /See: orfe issue set-state --help/);
 });
+
+test('runCli reports malformed numeric CLI option values as usage errors', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['issue', 'get', '--issue-number', 'nope', '--caller-name', 'Greg'], {
+    stdout,
+    stderr,
+  });
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /^Error: Option "--issue-number" expects an integer\./);
+  assert.match(stderr.output, /Usage: orfe issue get --issue-number <number>/);
+  assert.match(stderr.output, /Example: orfe issue get --issue-number 14 --caller-name Greg/);
+  assert.match(stderr.output, /See: orfe issue get --help/);
+});
+
+test('runCli reports malformed enum CLI option values as usage errors', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(
+    ['pr', 'submit-review', '--pr-number', '9', '--event', 'nope', '--body', 'ok', '--caller-name', 'Greg'],
+    {
+      stdout,
+      stderr,
+    },
+  );
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /^Error: Option "--event" must be one of: approve, request-changes, comment\./);
+  assert.match(stderr.output, /Usage: orfe pr submit-review --pr-number <number> --event <approve\|request-changes\|comment>/);
+  assert.match(stderr.output, /Example: orfe pr submit-review --pr-number 9 --event approve --body "Looks good" --caller-name Greg/);
+  assert.match(stderr.output, /See: orfe pr submit-review --help/);
+});
