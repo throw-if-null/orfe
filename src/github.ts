@@ -6,6 +6,8 @@ import { Octokit } from 'octokit';
 import { OrfeError } from './errors.js';
 import type { GitHubAppRoleAuthConfig, GitHubClients, RepoRef } from './types.js';
 
+// GitHub REST API version header reference:
+// https://docs.github.com/en/rest/about-the-rest-api/api-versions
 const GITHUB_API_VERSION = '2022-11-28';
 const USER_AGENT = 'orfe/0.1.0';
 
