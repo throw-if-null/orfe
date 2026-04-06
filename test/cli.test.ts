@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
+import nock from 'nock';
 import test from 'node:test';
 
 import { getCommandDefinition, getGroupDefinitions } from '../src/command-registry.js';
 import { getCommandContract } from '../src/command-contracts.js';
 import { OrfeError } from '../src/errors.js';
+import { GitHubClientFactory } from '../src/github.js';
 import { parseInvocationForCli, runCli } from '../src/command.js';
 import type { OrfeCommandGroup, OrfeCommandName } from '../src/types.js';
 
@@ -53,6 +55,42 @@ function createRuntimeDependencies() {
       },
     }),
   };
+}
+
+function createGitHubClientFactory() {
+  return new GitHubClientFactory({
+    readFileImpl: async () => 'private-key',
+    jwtFactory: () => 'jwt-token',
+  });
+}
+
+function mockIssueGetRequest(options: {
+  issueNumber: number;
+  status?: number;
+  responseBody?: Record<string, unknown>;
+}) {
+  const issueNumber = options.issueNumber;
+  const status = options.status ?? 200;
+
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/issues/${issueNumber}`)
+    .reply(
+      status,
+      options.responseBody ?? {
+        number: issueNumber,
+        title: 'Build `orfe` foundation and runtime scaffolding',
+        body: 'Issue body',
+        state: 'open',
+        state_reason: null,
+        labels: [{ name: 'needs-input' }],
+        assignees: [{ login: 'greg' }],
+        html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
+      },
+    );
 }
 
 test('runCli renders root help', async () => {
@@ -156,7 +194,87 @@ test('runCli prefers --caller-name over ORFE_CALLER_NAME', () => {
   }
 });
 
-test('runCli uses ORFE_CALLER_NAME and prints structured runtime failures', async () => {
+test('runCli uses ORFE_CALLER_NAME and prints structured success JSON', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueGetRequest({ issueNumber: 14 });
+
+    const exitCode = await runCli(['issue', 'get', '--issue-number', '14'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'issue.get',
+      repo: 'throw-if-null/orfe',
+      data: {
+        issue_number: 14,
+        title: 'Build `orfe` foundation and runtime scaffolding',
+        body: 'Issue body',
+        state: 'open',
+        state_reason: null,
+        labels: ['needs-input'],
+        assignees: ['greg'],
+        html_url: 'https://github.com/throw-if-null/orfe/issues/14',
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured not-found failures for issue.get', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueGetRequest({
+      issueNumber: 404,
+      status: 404,
+      responseBody: { message: 'Not Found' },
+    });
+
+    const exitCode = await runCli(['issue', 'get', '--issue-number', '404'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'issue.get',
+      error: {
+        code: 'github_not_found',
+        message: 'Issue #404 was not found.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured config failures for issue.get', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -164,7 +282,9 @@ test('runCli uses ORFE_CALLER_NAME and prints structured runtime failures', asyn
     stdout,
     stderr,
     env: { ORFE_CALLER_NAME: 'Greg' },
-    ...createRuntimeDependencies(),
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('config_not_found', 'repo-local config not found at /tmp/.orfe/config.json.');
+    },
   });
 
   assert.equal(exitCode, 1);
@@ -173,8 +293,8 @@ test('runCli uses ORFE_CALLER_NAME and prints structured runtime failures', asyn
     ok: false,
     command: 'issue.get',
     error: {
-      code: 'not_implemented',
-      message: 'Command "issue.get" is not implemented yet.',
+      code: 'config_not_found',
+      message: 'repo-local config not found at /tmp/.orfe/config.json.',
       retryable: false,
     },
   });

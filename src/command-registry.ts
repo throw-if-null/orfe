@@ -1,5 +1,6 @@
 import { getCommandContract } from './command-contracts.js';
 import { OrfeError, createNotImplementedError } from './errors.js';
+import { handleIssueGet } from './issue.js';
 import type { CommandContext, CommandInput, OrfeCommandGroup, OrfeCommandName } from './types.js';
 
 type OptionType = 'string' | 'number' | 'boolean' | 'enum' | 'string-array';
@@ -62,6 +63,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     successSummary: 'Prints a structured JSON issue payload.',
     examples: ['orfe issue get --issue-number 14 --caller-name Greg'],
     options: [{ key: 'issue_number', flag: '--issue-number', description: 'Issue number.', type: 'number', required: true }],
+    handler: handleIssueGet,
   }),
   defineCommand({
     name: 'issue.create',
@@ -300,7 +302,10 @@ export function validateCommandInput(definition: CommandDefinition, input: Comma
 }
 
 function defineCommand(
-  definition: Omit<CommandDefinition, 'group' | 'leaf' | 'handler' | 'successDataExample'> & { validate?: CommandDefinition['validate'] },
+  definition: Omit<CommandDefinition, 'group' | 'leaf' | 'handler' | 'successDataExample'> & {
+    handler?: CommandDefinition['handler'];
+    validate?: CommandDefinition['validate'];
+  },
 ): CommandDefinition {
   const [group, leaf] = definition.name.split('.') as [OrfeCommandGroup, string];
   const contract = getCommandContract(definition.name);
@@ -310,9 +315,11 @@ function defineCommand(
     group,
     leaf,
     successDataExample: contract.successDataExample,
-    handler: async () => {
-      throw createNotImplementedError(definition.name);
-    },
+    handler:
+      definition.handler ??
+      (async () => {
+        throw createNotImplementedError(definition.name);
+      }),
   };
 }
 
