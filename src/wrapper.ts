@@ -8,14 +8,19 @@ export interface OpenCodeToolContext {
   cwd?: string;
 }
 
+export interface OrfeToolDependencies extends OrfeCoreDependencies {
+  runOrfeCoreImpl?: typeof runOrfeCore;
+}
+
 export type OrfeToolResult = SuccessResponse<unknown> | ErrorResponse;
 
 export async function executeOrfeTool(
   input: Record<string, unknown>,
   context: OpenCodeToolContext,
-  dependencies: OrfeCoreDependencies = {},
+  dependencies: OrfeToolDependencies = {},
 ): Promise<OrfeToolResult> {
   const command = typeof input.command === 'string' ? input.command : 'unknown';
+  const runOrfeCoreImpl = dependencies.runOrfeCoreImpl ?? runOrfeCore;
 
   try {
     if ('caller_name' in input) {
@@ -30,7 +35,7 @@ export async function executeOrfeTool(
     const rest = { ...input };
     delete rest.command;
 
-    return await runOrfeCore(
+    return await runOrfeCoreImpl(
       {
         callerName,
         command: input.command,
