@@ -8,7 +8,9 @@ import { OrfeError } from '../src/errors.js';
 import { GitHubClientFactory } from '../src/github.js';
 import { createRuntimeSnapshot, runOrfeCore } from '../src/core.js';
 
-const UNIMPLEMENTED_COMMAND_NAMES = COMMAND_NAMES.filter((commandName) => commandName !== 'issue.get');
+const UNIMPLEMENTED_COMMAND_NAMES = COMMAND_NAMES.filter(
+  (commandName) => commandName !== 'issue.get' && commandName !== 'issue.comment',
+);
 
 function createRepoConfig() {
   return {
@@ -72,6 +74,47 @@ function mockIssueGetRequest(options: {
         labels: [{ name: 'needs-input' }],
         assignees: [{ login: 'greg' }],
         html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
+      },
+     );
+}
+
+function mockIssueCommentRequest(options: {
+  issueNumber: number;
+  body: string;
+  status?: number;
+  responseBody?: Record<string, unknown>;
+  issueGetStatus?: number;
+  issueGetResponseBody?: Record<string, unknown>;
+}) {
+  const issueNumber = options.issueNumber;
+  const status = options.status ?? 201;
+  const issueGetStatus = options.issueGetStatus ?? 200;
+
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/issues/${issueNumber}`)
+    .reply(
+      issueGetStatus,
+      options.issueGetResponseBody ?? {
+        number: issueNumber,
+        title: 'Issue title',
+        body: 'Issue body',
+        state: 'open',
+        state_reason: null,
+        labels: [],
+        assignees: [],
+        html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
+      },
+    )
+    .post(`/repos/throw-if-null/orfe/issues/${issueNumber}/comments`, { body: options.body })
+    .reply(
+      status,
+      options.responseBody ?? {
+        id: 123456,
+        html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}#issuecomment-123456`,
       },
     );
 }
@@ -328,6 +371,171 @@ test('runOrfeCore maps issue.get auth failures clearly', async () => {
     );
 
     assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore posts a generic issue comment and returns structured success output', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueCommentRequest({ issueNumber: 14, body: 'Hello from orfe' });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'issue.comment',
+        input: { issue_number: 14, body: 'Hello from orfe' },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'issue.comment',
+      repo: 'throw-if-null/orfe',
+      data: {
+        issue_number: 14,
+        comment_id: 123456,
+        html_url: 'https://github.com/throw-if-null/orfe/issues/14#issuecomment-123456',
+        created: true,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore maps issue.comment not-found responses clearly', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueCommentRequest({
+      issueNumber: 999,
+      body: 'Hello from orfe',
+      issueGetStatus: 404,
+      issueGetResponseBody: { message: 'Not Found' },
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'issue.comment',
+          input: { issue_number: 999, body: 'Hello from orfe' },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'github_not_found');
+        assert.equal(error.message, 'Issue #999 was not found.');
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), false);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore maps issue.comment auth failures clearly', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueCommentRequest({
+      issueNumber: 14,
+      body: 'Hello from orfe',
+      issueGetStatus: 403,
+      issueGetResponseBody: { message: 'Resource not accessible by integration' },
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'issue.comment',
+          input: { issue_number: 14, body: 'Hello from orfe' },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'auth_failed');
+        assert.equal(error.message, 'GitHub App authentication failed while commenting on issue #14.');
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), false);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore rejects pull request targets for issue.comment clearly', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueCommentRequest({
+      issueNumber: 46,
+      body: 'Hello from orfe',
+      issueGetResponseBody: {
+        number: 46,
+        title: 'Implement `orfe issue comment`',
+        body: 'PR body',
+        state: 'open',
+        state_reason: null,
+        labels: [],
+        assignees: [],
+        html_url: 'https://github.com/throw-if-null/orfe/pull/46',
+        pull_request: {
+          url: 'https://api.github.com/repos/throw-if-null/orfe/pulls/46',
+        },
+      },
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'issue.comment',
+          input: { issue_number: 46, body: 'Hello from orfe' },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'github_conflict');
+        assert.equal(error.message, 'Issue #46 is a pull request. Use pr.comment instead.');
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), false);
   } finally {
     nock.cleanAll();
     nock.enableNetConnect();

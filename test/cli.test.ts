@@ -90,6 +90,47 @@ function mockIssueGetRequest(options: {
         assignees: [{ login: 'greg' }],
         html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
       },
+     );
+}
+
+function mockIssueCommentRequest(options: {
+  issueNumber: number;
+  body: string;
+  status?: number;
+  responseBody?: Record<string, unknown>;
+  issueGetStatus?: number;
+  issueGetResponseBody?: Record<string, unknown>;
+}) {
+  const issueNumber = options.issueNumber;
+  const status = options.status ?? 201;
+  const issueGetStatus = options.issueGetStatus ?? 200;
+
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/issues/${issueNumber}`)
+    .reply(
+      issueGetStatus,
+      options.issueGetResponseBody ?? {
+        number: issueNumber,
+        title: 'Issue title',
+        body: 'Issue body',
+        state: 'open',
+        state_reason: null,
+        labels: [],
+        assignees: [],
+        html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
+      },
+    )
+    .post(`/repos/throw-if-null/orfe/issues/${issueNumber}/comments`, { body: options.body })
+    .reply(
+      status,
+      options.responseBody ?? {
+        id: 123456,
+        html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}#issuecomment-123456`,
+      },
     );
 }
 
@@ -272,6 +313,181 @@ test('runCli prints structured not-found failures for issue.get', async () => {
     nock.cleanAll();
     nock.enableNetConnect();
   }
+});
+
+test('runCli prints structured success JSON for issue.comment', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueCommentRequest({ issueNumber: 14, body: 'Hello from orfe' });
+
+    const exitCode = await runCli(['issue', 'comment', '--issue-number', '14', '--body', 'Hello from orfe'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'issue.comment',
+      repo: 'throw-if-null/orfe',
+      data: {
+        issue_number: 14,
+        comment_id: 123456,
+        html_url: 'https://github.com/throw-if-null/orfe/issues/14#issuecomment-123456',
+        created: true,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured not-found failures for issue.comment', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueCommentRequest({
+      issueNumber: 404,
+      body: 'Hello from orfe',
+      issueGetStatus: 404,
+      issueGetResponseBody: { message: 'Not Found' },
+    });
+
+    const exitCode = await runCli(['issue', 'comment', '--issue-number', '404', '--body', 'Hello from orfe'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'issue.comment',
+      error: {
+        code: 'github_not_found',
+        message: 'Issue #404 was not found.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), false);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured pull-request boundary failures for issue.comment', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueCommentRequest({
+      issueNumber: 46,
+      body: 'Hello from orfe',
+      issueGetResponseBody: {
+        number: 46,
+        title: 'Implement `orfe issue comment`',
+        body: 'PR body',
+        state: 'open',
+        state_reason: null,
+        labels: [],
+        assignees: [],
+        html_url: 'https://github.com/throw-if-null/orfe/pull/46',
+        pull_request: {
+          url: 'https://api.github.com/repos/throw-if-null/orfe/pulls/46',
+        },
+      },
+    });
+
+    const exitCode = await runCli(['issue', 'comment', '--issue-number', '46', '--body', 'Hello from orfe'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'issue.comment',
+      error: {
+        code: 'github_conflict',
+        message: 'Issue #46 is a pull request. Use pr.comment instead.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), false);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli formats core invalid_usage errors as CLI usage failures for issue.comment', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['issue', 'comment', '--issue-number', '14', '--body', '   '], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('internal_error', 'loadRepoConfigImpl should not run');
+    },
+  });
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /Option "body" must be a non-empty string\./);
+  assert.match(stderr.output, /Usage: orfe issue comment --issue-number <number> --body <text>/);
+  assert.match(stderr.output, /Example: orfe issue comment --issue-number 14 --body "hello" --caller-name Greg/);
+  assert.match(stderr.output, /See: orfe issue comment --help/);
+});
+
+test('runCli prints structured config failures for issue.comment', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['issue', 'comment', '--issue-number', '14', '--body', 'Hello from orfe'], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('config_not_found', 'repo-local config not found at /tmp/.orfe/config.json.');
+    },
+  });
+
+  assert.equal(exitCode, 1);
+  assert.equal(stdout.output, '');
+  assert.deepEqual(JSON.parse(stderr.output), {
+    ok: false,
+    command: 'issue.comment',
+    error: {
+      code: 'config_not_found',
+      message: 'repo-local config not found at /tmp/.orfe/config.json.',
+      retryable: false,
+    },
+  });
 });
 
 test('runCli prints structured config failures for issue.get', async () => {

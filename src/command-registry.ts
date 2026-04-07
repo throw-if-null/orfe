@@ -1,6 +1,6 @@
 import { getCommandContract } from './command-contracts.js';
 import { OrfeError, createNotImplementedError } from './errors.js';
-import { handleIssueGet } from './issue.js';
+import { handleIssueComment, handleIssueGet } from './issue.js';
 import type { CommandContext, CommandInput, OrfeCommandGroup, OrfeCommandName } from './types.js';
 
 type OptionType = 'string' | 'number' | 'boolean' | 'enum' | 'string-array';
@@ -116,6 +116,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
       { key: 'issue_number', flag: '--issue-number', description: 'Issue number.', type: 'number', required: true },
       { key: 'body', flag: '--body', description: 'Comment body.', type: 'string', required: true },
     ],
+    handler: handleIssueComment,
   }),
   defineCommand({
     name: 'issue.set-state',
