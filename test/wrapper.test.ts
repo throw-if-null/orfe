@@ -32,6 +32,25 @@ function mockIssueGetRequest(issueNumber: number) {
     });
 }
 
+function mockIssueUpdateRequest(issueNumber: number, requestBody: Record<string, unknown>) {
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .patch(`/repos/throw-if-null/orfe/issues/${issueNumber}`, requestBody)
+    .reply(200, {
+      number: issueNumber,
+      title: 'Updated title',
+      body: 'Updated body',
+      state: 'open',
+      state_reason: null,
+      labels: [{ name: 'bug' }],
+      assignees: [{ login: 'greg' }],
+      html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
+    });
+}
+
 test('resolveCallerNameFromContext accepts a string agent name', () => {
   assert.equal(resolveCallerNameFromContext({ agent: 'Greg' }), 'Greg');
 });
@@ -134,6 +153,68 @@ test('executeOrfeTool returns the shared success envelope for issue.get', async 
         labels: ['needs-input'],
         assignees: ['greg'],
         html_url: 'https://github.com/throw-if-null/orfe/issues/14',
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('executeOrfeTool returns the shared success envelope for issue.update', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueUpdateRequest(14, {
+      title: 'Updated title',
+      labels: ['bug'],
+    });
+
+    const result = await executeOrfeTool(
+      {
+        command: 'issue.update',
+        issue_number: 14,
+        title: 'Updated title',
+        labels: ['bug'],
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => ({
+          configPath: '/tmp/.orfe/config.json',
+          version: 1,
+          repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
+          callerToGitHubRole: { Greg: 'greg' },
+        }),
+        loadAuthConfigImpl: async () => ({
+          configPath: '/tmp/auth.json',
+          version: 1,
+          roles: {
+            greg: {
+              provider: 'github-app',
+              appId: 123,
+              appSlug: 'GR3G-BOT',
+              privateKeyPath: '/tmp/greg.pem',
+            },
+          },
+        }),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'issue.update',
+      repo: 'throw-if-null/orfe',
+      data: {
+        issue_number: 14,
+        title: 'Updated title',
+        state: 'open',
+        html_url: 'https://github.com/throw-if-null/orfe/issues/14',
+        changed: true,
       },
     });
     assert.equal(api.isDone(), true);
