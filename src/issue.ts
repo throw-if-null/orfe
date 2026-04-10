@@ -1,6 +1,14 @@
 import { OrfeError } from './errors.js';
 import type { CommandContext, CommandInput, GitHubClients } from './types.js';
 
+interface IssueCreateData {
+  issue_number: number;
+  title: string;
+  state: string;
+  html_url: string;
+  created: true;
+}
+
 interface IssueGetData {
   issue_number: number;
   title: string;
@@ -54,6 +62,13 @@ interface IssueCommentResponseData {
 
 interface IssueUpdateMutation {
   title?: string;
+  body?: string;
+  labels?: string[];
+  assignees?: string[];
+}
+
+interface IssueCreateMutation {
+  title: string;
   body?: string;
   labels?: string[];
   assignees?: string[];
@@ -139,6 +154,23 @@ export async function handleIssueGet(context: CommandContext): Promise<IssueGetD
     return normalizeIssueGetResponse(response.data as IssueGetResponseData);
   } catch (error) {
     throw mapIssueGetError(error, issueNumber);
+  }
+}
+
+export async function handleIssueCreate(context: CommandContext): Promise<IssueCreateData> {
+  const mutation = buildIssueCreateMutation(context.input);
+
+  try {
+    const { rest } = await context.getGitHubClient();
+    const response = await rest.issues.create({
+      owner: context.repo.owner,
+      repo: context.repo.name,
+      ...mutation,
+    });
+
+    return normalizeIssueCreateResponse(response.data as IssueGetResponseData);
+  } catch (error) {
+    throw mapIssueCreateError(error, context.repo.fullName);
   }
 }
 
@@ -303,6 +335,18 @@ function normalizeIssueGetResponse(issue: IssueGetResponseData): IssueGetData {
   };
 }
 
+function normalizeIssueCreateResponse(issue: IssueGetResponseData): IssueCreateData {
+  const coreFields = readIssueCoreFields(issue);
+
+  return {
+    issue_number: coreFields.issueNumber,
+    title: coreFields.title,
+    state: coreFields.state,
+    html_url: coreFields.htmlUrl,
+    created: true,
+  };
+}
+
 function normalizeIssueUpdateResponse(issue: IssueGetResponseData): IssueUpdateData {
   const coreFields = readIssueCoreFields(issue);
 
@@ -387,6 +431,26 @@ function buildIssueUpdateMutation(input: CommandInput): IssueUpdateMutation {
   if (input.clear_assignees === true) {
     mutation.assignees = [];
   } else if (Array.isArray(input.assignees)) {
+    mutation.assignees = input.assignees.filter((entry): entry is string => typeof entry === 'string');
+  }
+
+  return mutation;
+}
+
+function buildIssueCreateMutation(input: CommandInput): IssueCreateMutation {
+  const mutation: IssueCreateMutation = {
+    title: input.title as string,
+  };
+
+  if (typeof input.body === 'string') {
+    mutation.body = input.body;
+  }
+
+  if (Array.isArray(input.labels)) {
+    mutation.labels = input.labels.filter((entry): entry is string => typeof entry === 'string');
+  }
+
+  if (Array.isArray(input.assignees)) {
     mutation.assignees = input.assignees.filter((entry): entry is string => typeof entry === 'string');
   }
 
@@ -796,6 +860,37 @@ function mapIssueGetError(error: unknown, issueNumber: number): OrfeError {
   }
 
   return new OrfeError('internal_error', 'Unknown GitHub issue lookup failure.');
+}
+
+function mapIssueCreateError(error: unknown, repoFullName: string): OrfeError {
+  if (error instanceof OrfeError) {
+    return error;
+  }
+
+  const status = getGitHubRequestStatus(error);
+  if (status !== undefined) {
+    if (status === 404) {
+      return new OrfeError('github_not_found', `Repository ${repoFullName} was not found.`);
+    }
+
+    if (status === 401 || status === 403) {
+      return new OrfeError('auth_failed', `GitHub App authentication failed while creating an issue in ${repoFullName}.`);
+    }
+
+    return new OrfeError(
+      'internal_error',
+      `GitHub issue creation failed with status ${status}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      {
+        retryable: status >= 500 || status === 429,
+      },
+    );
+  }
+
+  if (error instanceof Error) {
+    return new OrfeError('internal_error', error.message);
+  }
+
+  return new OrfeError('internal_error', 'Unknown GitHub issue creation failure.');
 }
 
 function mapIssueCommentError(error: unknown, issueNumber: number): OrfeError {

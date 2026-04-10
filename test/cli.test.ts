@@ -134,6 +134,37 @@ function mockIssueCommentRequest(options: {
      );
 }
 
+function mockIssueCreateRequest(options: {
+  requestBody: Record<string, unknown>;
+  status?: number;
+  responseBody?: Record<string, unknown>;
+  repo?: { owner: string; name: string };
+}) {
+  const owner = options.repo?.owner ?? 'throw-if-null';
+  const repo = options.repo?.name ?? 'orfe';
+  const status = options.status ?? 201;
+
+  return nock('https://api.github.com')
+    .get(`/repos/${owner}/${repo}/installation`)
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .post(`/repos/${owner}/${repo}/issues`, options.requestBody)
+    .reply(
+      status,
+      options.responseBody ?? {
+        number: 21,
+        title: options.requestBody.title,
+        body: options.requestBody.body ?? '',
+        state: 'open',
+        state_reason: null,
+        labels: ((options.requestBody.labels as string[] | undefined) ?? []).map((name) => ({ name })),
+        assignees: ((options.requestBody.assignees as string[] | undefined) ?? []).map((login) => ({ login })),
+        html_url: `https://github.com/${owner}/${repo}/issues/21`,
+      },
+     );
+}
+
 function mockIssueUpdateRequest(options: {
   issueNumber: number;
   requestBody: Record<string, unknown>;
@@ -484,6 +515,183 @@ test('runCli prints structured not-found failures for issue.get', async () => {
       error: {
         code: 'github_not_found',
         message: 'Issue #404 was not found.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured success JSON for issue.create', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueCreateRequest({
+      requestBody: {
+        title: 'New issue title',
+        body: 'Body text',
+        labels: ['needs-input'],
+        assignees: ['greg'],
+      },
+    });
+
+    const exitCode = await runCli(
+      [
+        'issue',
+        'create',
+        '--title',
+        'New issue title',
+        '--body',
+        'Body text',
+        '--label',
+        'needs-input',
+        '--assignee',
+        'greg',
+      ],
+      {
+        stdout,
+        stderr,
+        env: { ORFE_CALLER_NAME: 'Greg' },
+        ...createRuntimeDependencies(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'issue.create',
+      repo: 'throw-if-null/orfe',
+      data: {
+        issue_number: 21,
+        title: 'New issue title',
+        state: 'open',
+        html_url: 'https://github.com/throw-if-null/orfe/issues/21',
+        created: true,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured auth failures for issue.create', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueCreateRequest({
+      requestBody: { title: 'New issue title' },
+      status: 403,
+      responseBody: { message: 'Resource not accessible by integration' },
+    });
+
+    const exitCode = await runCli(['issue', 'create', '--title', 'New issue title'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'issue.create',
+      error: {
+        code: 'auth_failed',
+        message: 'GitHub App authentication failed while creating an issue in throw-if-null/orfe.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured repository-not-found failures for issue.create', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueCreateRequest({
+      repo: { owner: 'octo', name: 'missing' },
+      requestBody: { title: 'New issue title' },
+      status: 404,
+      responseBody: { message: 'Not Found' },
+    });
+
+    const exitCode = await runCli(['issue', 'create', '--title', 'New issue title', '--repo', 'octo/missing'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'issue.create',
+      error: {
+        code: 'github_not_found',
+        message: 'Repository octo/missing was not found.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured creation failures for issue.create', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueCreateRequest({
+      requestBody: { title: 'New issue title' },
+      status: 422,
+      responseBody: { message: 'Validation Failed' },
+    });
+
+    const exitCode = await runCli(['issue', 'create', '--title', 'New issue title'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'issue.create',
+      error: {
+        code: 'internal_error',
+        message: 'GitHub issue creation failed with status 422: Validation Failed',
         retryable: false,
       },
     });
