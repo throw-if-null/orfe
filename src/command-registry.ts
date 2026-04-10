@@ -1,6 +1,6 @@
 import { getCommandContract } from './command-contracts.js';
 import { OrfeError, createNotImplementedError } from './errors.js';
-import { handleIssueComment, handleIssueGet } from './issue.js';
+import { handleIssueComment, handleIssueGet, handleIssueUpdate } from './issue.js';
 import type { CommandContext, CommandInput, OrfeCommandGroup, OrfeCommandName } from './types.js';
 
 type OptionType = 'string' | 'number' | 'boolean' | 'enum' | 'string-array';
@@ -104,7 +104,16 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
       ) {
         throw new OrfeError('invalid_usage', 'issue.update requires at least one mutation option.');
       }
+
+      if (input.labels !== undefined && input.clear_labels === true) {
+        throw new OrfeError('invalid_usage', 'issue.update does not allow labels together with --clear-labels.');
+      }
+
+      if (input.assignees !== undefined && input.clear_assignees === true) {
+        throw new OrfeError('invalid_usage', 'issue.update does not allow assignees together with --clear-assignees.');
+      }
     },
+    handler: handleIssueUpdate,
   }),
   defineCommand({
     name: 'issue.comment',
