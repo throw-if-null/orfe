@@ -7,6 +7,11 @@
 
 Issue #14 builds the shared foundation only. The V1 leaf commands are registered and routed, but command behavior is intentionally stubbed until follow-up issues implement real GitHub operations.
 
+## Documentation
+
+Canonical product and architecture memory now lives under `docs/`.
+Start with `docs/README.md` for the documentation map and authoritative entrypoints.
+
 ## Requirements
 
 - Node.js 22+

@@ -3,6 +3,13 @@
 Status: canonical v1 design for issue #13  
 Applies to follow-up implementation issues #14 and #15
 
+See also:
+- `docs/README.md` for the documentation map
+- `docs/product/vision.md` for product intent and non-goals
+- `docs/architecture/invariants.md` for the architecture constraints this spec assumes
+- `docs/architecture/adrs/` for accepted design decisions captured as ADRs
+- `docs/project/debt.md` for known documentation and architecture drift
+
 ## 1. Purpose
 
 `orfe` is a stand-alone GitHub operations tool with two entrypoints:

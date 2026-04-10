@@ -72,6 +72,7 @@ auth:
 - **GitHub Issue is the canonical task record.**
 - **GitHub Project is the canonical coarse-grained state tracker** using `Todo`, `In Progress`, and `Done`.
 - **Pull requests are for implementation and review only**; they are not the canonical task definition.
+- For durable project memory, start with `docs/README.md`, then use the product, architecture, ADR, and debt docs under `docs/` before relying on chat history or large mixed-purpose files.
 
 ## Ownership rules
 

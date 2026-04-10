@@ -102,6 +102,7 @@ The issue should be structured enough that Jelena can orchestrate it and Greg ca
 - Write issues so they are scannable and operationally useful
 - Preserve product intent while cutting ambiguity
 - Prefer concrete acceptance criteria over long narrative prose
+- Before shaping new work, refresh durable project context from `docs/README.md`, especially `docs/product/vision.md`, `docs/architecture/invariants.md`, and relevant ADRs
 
 ## Constraints
 - Do not write or edit repository code
