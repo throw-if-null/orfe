@@ -252,6 +252,8 @@ function mockIssueSetStateRequest(options: {
   issueGetResponseBody?: Record<string, unknown>;
   duplicateOfIssueNumber?: number;
   canonicalIssueState?: Record<string, unknown> | null;
+  duplicateTargetGetStatus?: number;
+  duplicateTargetGetResponseBody?: Record<string, unknown>;
   mark?: { duplicateId: string; canonicalId: string };
   unmark?: { duplicateId: string; canonicalId: string };
 }) {
@@ -269,6 +271,12 @@ function mockIssueSetStateRequest(options: {
     scope
       .post('/graphql', (body: unknown) => matchesIssueStateLookup(body, options.duplicateOfIssueNumber!))
       .reply(200, { data: { repository: { issue: options.canonicalIssueState ?? null } } });
+  }
+
+  if (options.duplicateOfIssueNumber !== undefined && options.canonicalIssueState === null) {
+    scope
+      .get(`/repos/throw-if-null/orfe/issues/${options.duplicateOfIssueNumber}`)
+      .reply(options.duplicateTargetGetStatus ?? 404, options.duplicateTargetGetResponseBody ?? { message: 'Not Found' });
   }
 
   if (options.mark) {
@@ -971,6 +979,57 @@ test('runCli prints structured not-found failures for issue.set-state duplicate 
       error: {
         code: 'github_not_found',
         message: 'Duplicate target issue #999 was not found.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured pull-request boundary failures for duplicate issue.set-state targets', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueSetStateRequest({
+      issueNumber: 14,
+      currentIssueState: createIssueStateNode({ id: 'I_14', issueNumber: 14, state: 'OPEN' }),
+      duplicateOfIssueNumber: 48,
+      canonicalIssueState: null,
+      duplicateTargetGetStatus: 200,
+      duplicateTargetGetResponseBody: createIssueRestResponse(48, {
+        title: 'Implement `orfe issue set-state`',
+        html_url: 'https://github.com/throw-if-null/orfe/pull/48',
+        pull_request: {
+          url: 'https://api.github.com/repos/throw-if-null/orfe/pulls/48',
+        },
+      }),
+    });
+
+    const exitCode = await runCli(
+      ['issue', 'set-state', '--issue-number', '14', '--state', 'closed', '--state-reason', 'duplicate', '--duplicate-of', '48'],
+      {
+        stdout,
+        stderr,
+        env: { ORFE_CALLER_NAME: 'Greg' },
+        ...createRuntimeDependencies(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'issue.set-state',
+      error: {
+        code: 'github_conflict',
+        message: 'Duplicate target issue #48 is a pull request. --duplicate-of must reference an issue.',
         retryable: false,
       },
     });

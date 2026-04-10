@@ -286,6 +286,8 @@ function mockIssueSetStateDuplicateRequest(options: {
   duplicateOfIssueNumber: number;
   currentIssueState: Record<string, unknown>;
   canonicalIssueState: Record<string, unknown> | null;
+  duplicateTargetGetStatus?: number;
+  duplicateTargetGetResponseBody?: Record<string, unknown>;
   unmark?: { duplicateId: string; canonicalId: string };
   mark?: { duplicateId: string; canonicalId: string };
   restUpdateBody?: Record<string, unknown>;
@@ -308,6 +310,12 @@ function mockIssueSetStateDuplicateRequest(options: {
       .reply(200, { data: { repository: { issue: options.currentIssueState } } })
       .post('/graphql', (body: unknown) => matchesIssueStateLookup(body, options.duplicateOfIssueNumber))
       .reply(200, { data: { repository: { issue: options.canonicalIssueState } } });
+  }
+
+  if (options.canonicalIssueState === null) {
+    scope
+      .get(`/repos/throw-if-null/orfe/issues/${options.duplicateOfIssueNumber}`)
+      .reply(options.duplicateTargetGetStatus ?? 404, options.duplicateTargetGetResponseBody ?? { message: 'Not Found' });
   }
 
   if (options.unmark) {
@@ -1228,6 +1236,53 @@ test('runOrfeCore maps issue.set-state missing duplicate target clearly', async 
   }
 });
 
+test('runOrfeCore rejects pull request duplicate targets for issue.set-state clearly', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueSetStateDuplicateRequest({
+      issueNumber: 14,
+      duplicateOfIssueNumber: 48,
+      currentIssueState: createIssueStateNode({ id: 'I_14', issueNumber: 14, state: 'OPEN' }),
+      canonicalIssueState: null,
+      duplicateTargetGetStatus: 200,
+      duplicateTargetGetResponseBody: createIssueRestResponse(48, {
+        title: 'Implement `orfe issue set-state`',
+        html_url: 'https://github.com/throw-if-null/orfe/pull/48',
+        pull_request: {
+          url: 'https://api.github.com/repos/throw-if-null/orfe/pulls/48',
+        },
+      }),
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'issue.set-state',
+          input: { issue_number: 14, state: 'closed', state_reason: 'duplicate', duplicate_of: 48 },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'github_conflict');
+        assert.equal(error.message, 'Duplicate target issue #48 is a pull request. --duplicate-of must reference an issue.');
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
 test('runOrfeCore maps issue.set-state auth failures clearly', async () => {
   nock.disableNetConnect();
 
@@ -1312,6 +1367,116 @@ test('runOrfeCore rejects pull request targets for issue.set-state clearly', asy
       },
     );
 
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore re-targets duplicate issue.set-state requests and reports changes', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueSetStateDuplicateRequest({
+      issueNumber: 14,
+      duplicateOfIssueNumber: 9,
+      currentIssueState: createIssueStateNode({
+        id: 'I_14',
+        issueNumber: 14,
+        state: 'CLOSED',
+        stateReason: 'DUPLICATE',
+        duplicateOfIssueNumber: 7,
+        duplicateOfId: 'I_7',
+      }),
+      canonicalIssueState: createIssueStateNode({ id: 'I_9', issueNumber: 9, state: 'OPEN' }),
+      unmark: { duplicateId: 'I_14', canonicalId: 'I_7' },
+      mark: { duplicateId: 'I_14', canonicalId: 'I_9' },
+      observedIssueState: createIssueStateNode({
+        id: 'I_14',
+        issueNumber: 14,
+        state: 'CLOSED',
+        stateReason: 'DUPLICATE',
+        duplicateOfIssueNumber: 9,
+        duplicateOfId: 'I_9',
+      }),
+    });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'issue.set-state',
+        input: { issue_number: 14, state: 'closed', state_reason: 'duplicate', duplicate_of: 9 },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'issue.set-state',
+      repo: 'throw-if-null/orfe',
+      data: {
+        issue_number: 14,
+        state: 'closed',
+        state_reason: 'duplicate',
+        duplicate_of_issue_number: 9,
+        changed: true,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore treats matching duplicate issue.set-state requests as no-ops', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueSetStateDuplicateRequest({
+      issueNumber: 14,
+      duplicateOfIssueNumber: 7,
+      currentIssueState: createIssueStateNode({
+        id: 'I_14',
+        issueNumber: 14,
+        state: 'CLOSED',
+        stateReason: 'DUPLICATE',
+        duplicateOfIssueNumber: 7,
+        duplicateOfId: 'I_7',
+      }),
+      canonicalIssueState: createIssueStateNode({ id: 'I_7', issueNumber: 7, state: 'OPEN' }),
+    });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'issue.set-state',
+        input: { issue_number: 14, state: 'closed', state_reason: 'duplicate', duplicate_of: 7 },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'issue.set-state',
+      repo: 'throw-if-null/orfe',
+      data: {
+        issue_number: 14,
+        state: 'closed',
+        state_reason: 'duplicate',
+        duplicate_of_issue_number: 7,
+        changed: false,
+      },
+    });
     assert.equal(api.isDone(), true);
   } finally {
     nock.cleanAll();

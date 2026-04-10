@@ -429,16 +429,7 @@ async function closeIssueAsDuplicate(options: {
   duplicateOfIssueNumber: number;
 }): Promise<IssueSetStateData> {
   const currentIssue = await lookupObservedIssueState(options.graphql, options.owner, options.repo, options.issueNumber);
-  const canonicalIssue = await lookupObservedIssueStateAllowNotFound(
-    options.graphql,
-    options.owner,
-    options.repo,
-    options.duplicateOfIssueNumber,
-  );
-
-  if (canonicalIssue === null) {
-    throw new OrfeError('github_not_found', `Duplicate target issue #${options.duplicateOfIssueNumber} was not found.`);
-  }
+  const canonicalIssue = await resolveCanonicalDuplicateIssue(options);
 
   if (
     currentIssue.state === 'closed' &&
@@ -478,6 +469,57 @@ async function closeIssueAsDuplicate(options: {
   }
 
   return normalizeIssueSetStateResult(observedIssue, true);
+}
+
+async function resolveCanonicalDuplicateIssue(options: {
+  graphql: GitHubClients['graphql'];
+  rest: GitHubClients['rest'];
+  owner: string;
+  repo: string;
+  issueNumber: number;
+  duplicateOfIssueNumber: number;
+}): Promise<ObservedIssueState> {
+  const canonicalIssue = await lookupObservedIssueStateAllowNotFound(
+    options.graphql,
+    options.owner,
+    options.repo,
+    options.duplicateOfIssueNumber,
+  );
+
+  if (canonicalIssue !== null) {
+    return canonicalIssue;
+  }
+
+  try {
+    const response = await options.rest.issues.get({
+      owner: options.owner,
+      repo: options.repo,
+      issue_number: options.duplicateOfIssueNumber,
+    });
+
+    if (isObject((response.data as IssueGetResponseData).pull_request)) {
+      throw new OrfeError(
+        'github_conflict',
+        `Duplicate target issue #${options.duplicateOfIssueNumber} is a pull request. --duplicate-of must reference an issue.`,
+      );
+    }
+  } catch (error) {
+    if (error instanceof OrfeError) {
+      throw error;
+    }
+
+    const status = getGitHubRequestStatus(error);
+    if (status === 404) {
+      throw new OrfeError('github_not_found', `Duplicate target issue #${options.duplicateOfIssueNumber} was not found.`);
+    }
+
+    throw mapIssueSetStateError(error, options.issueNumber);
+  }
+
+  throw new OrfeError(
+    'internal_error',
+    `Duplicate target issue #${options.duplicateOfIssueNumber} exists but could not be resolved as an issue via GraphQL.`,
+  );
 }
 
 async function lookupObservedIssueState(
