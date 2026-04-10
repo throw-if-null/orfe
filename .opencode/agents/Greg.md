@@ -38,6 +38,7 @@ permission:
     api-design-principles: allow
     typescript-advanced-types: allow
     test-driven-development: allow
+    e2e-testing-patterns: allow
     systematic-debugging: allow
     verification-before-completion: allow
     finishing-a-development-branch: allow
