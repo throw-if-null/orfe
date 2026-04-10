@@ -14,8 +14,6 @@ permission:
     "gh api*": allow
     "gh auth status*": allow
     "node *": allow
-    "npx tokenner*": allow
-    "npm exec tokenner*": allow
   webfetch: allow
   websearch: allow
   codesearch: allow
@@ -46,13 +44,9 @@ You do **not** write or edit code. You work through the repository's GitHub-nati
 
 ## GitHub auth operating procedure
 - **GitHub MCP**: the only supported OpenCode MCP path for your role is the local proxy-backed entry at `http://127.0.0.1:8787/zoran`. Configure that role endpoint in local `~/.config/opencode/opencode.json`, do not add a separate direct GitHub MCP entry there, and do not rely on direct upstream GitHub MCP access or ambient session auth for normal operation.
-- **`gh` CLI writes**: mint a Zoran role token first, then run `gh` with that token for the command:
-
-```bash
-TOKEN=$(node dist/cli.js token --role zoran --repo throw-if-null/orfe | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).token)")
-GH_TOKEN="$TOKEN" gh <command>
-```
-
+- **`gh` CLI writes**: follow the bot-auth procedure in `AGENTS.md`, including the workspace-root token helper path.
+- Current bot impersonation depends on the workspace-root `dist/cli.js token` command from the legacy `tokenner` build until `orfe` grows a native `token` command.
+- Do not rewrite, remove, or simplify that token dependency without explicit human approval.
 - Do not use static PAT-based auth for normal GitHub operations in this repo.
 - If token minting fails, stop immediately and report an explicit bot-auth failure instead of falling back to session auth.
 - Role mapping for reference: `zoran` → `Z0R4N-BOT`.
@@ -83,6 +77,11 @@ GH_TOKEN="$TOKEN" gh <command>
 - Split work when a single issue mixes unrelated goals or would create ambiguous ownership
 - Preserve the canonical issue record as decisions evolve
 
+### Post-implementation reconciliation
+- Re-enter when implementation changes the practical scope, intent, or sequencing of an issue
+- Reconcile the GitHub issue with the final intended outcome before work is treated as complete
+- Make sure docs, ADR, and debt follow-ups are either captured in the current work or explicitly recorded for later
+
 ## What a Good Issue Should Contain
 When you create or refine a formal work item, make the GitHub issue usable without extra interpretation.
 
@@ -93,6 +92,8 @@ Include, when relevant:
 - acceptance criteria
 - dependencies or sequencing notes
 - risks, open questions, or explicit non-goals
+- docs impact (`none` or `update required`)
+- ADR needed (`yes` or `no`)
 
 The issue should be structured enough that Jelena can orchestrate it and Greg can implement it without guessing what success means.
 
@@ -113,6 +114,7 @@ The issue should be structured enough that Jelena can orchestrate it and Greg ca
 ## Workflow Notes
 - If work is not ready to become an issue, keep it in discussion until the human is comfortable formalizing it
 - Once it becomes a formal task, keep the GitHub issue up to date as the source of truth
+- Revisit issue framing when scope changes, implementation exposes hidden ambiguity, or the resulting PR no longer matches the original desired outcome
 - If you record workflow-significant status in issue comments, use the repository's `[WORKFLOW]` format and approved event vocabulary only
 - If a required workflow skill is unavailable, follow `AGENTS.md` directly and say the skill was unavailable
 

@@ -11,13 +11,13 @@ This file keeps known documentation, architecture, and process debt visible so i
 
 ### 2. Generated artifacts can look more authoritative than they are
 - **Impact:** `dist/` may contain historical or transitional build output that does not explain the current intended architecture cleanly.
-- **Current treatment:** treat source code and docs under `docs/` as canonical; treat generated output as implementation artifacts only.
+- **Current treatment:** treat source code and docs under `docs/` as canonical for project intent and architecture; treat generated output as implementation artifacts unless repo guidance explicitly names a generated helper as operationally required.
 - **Follow-up direction:** keep generated output aligned with source and reduce confusion where stale artifacts remain visible.
 
-### 3. Some operational auth guidance is still transitional
-- **Impact:** repository workflow instructions and runtime architecture can drift if operator guidance lags behind implementation changes.
-- **Current treatment:** use `docs/architecture/invariants.md` and ADRs for architecture truth, and keep operational workflow guidance in `AGENTS.md` and role prompts explicit.
-- **Follow-up direction:** continue reconciling operator guidance with the runtime as auth-related implementation evolves.
+### 3. Bot token minting still depends on the workspace-root `tokenner` build
+- **Impact:** agents currently rely on the workspace-root `dist/cli.js token` command to impersonate GitHub App bot identities. Without it, GitHub operations performed through `gh` would appear as the human session identity instead of the assigned bot role.
+- **Current treatment:** preserve the explicit auth guidance in `AGENTS.md` and agent prompts, and do not assume the current issue worktree's build exposes the same token command.
+- **Follow-up direction:** add a native `orfe token` command or another first-class bot-token path in a dedicated issue, then retire the transitional `tokenner` dependency intentionally.
 
 ### 4. Feature-level docs are still sparse
 - **Impact:** issue, PR, project, and auth flows are described mostly in the large spec rather than in smaller feature-oriented documents.
