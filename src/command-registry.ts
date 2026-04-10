@@ -1,6 +1,6 @@
 import { getCommandContract } from './command-contracts.js';
 import { OrfeError, createNotImplementedError } from './errors.js';
-import { handleIssueComment, handleIssueGet, handleIssueUpdate } from './issue.js';
+import { handleIssueComment, handleIssueGet, handleIssueSetState, handleIssueUpdate } from './issue.js';
 import type { CommandContext, CommandInput, OrfeCommandGroup, OrfeCommandName } from './types.js';
 
 type OptionType = 'string' | 'number' | 'boolean' | 'enum' | 'string-array';
@@ -162,6 +162,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
         throw new OrfeError('invalid_usage', 'issue.set-state cannot mark an issue as a duplicate of itself.');
       }
     },
+    handler: handleIssueSetState,
   }),
   defineCommand({
     name: 'pr.get',
