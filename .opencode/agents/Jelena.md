@@ -187,6 +187,7 @@ Require Klarissa to:
 - Keep instructions clear and operational
 - Surface architectural concerns instead of hiding them in execution churn
 - Keep the team aligned to the GitHub issue timeline, not scattered across chat and PRs
+- Before sequencing or escalating architecture-sensitive work, refresh durable project context from `docs/README.md`, especially `docs/architecture/invariants.md`, relevant ADRs, and `docs/project/debt.md`
 
 ## Constraints
 - Do not use old sub-task or `feature/<task-id>` workflow language
