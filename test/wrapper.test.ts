@@ -38,6 +38,17 @@ function mockIssueUpdateRequest(issueNumber: number, requestBody: Record<string,
     .reply(200, { id: 42 })
     .post('/app/installations/42/access_tokens')
     .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/issues/${issueNumber}`)
+    .reply(200, {
+      number: issueNumber,
+      title: 'Updated title',
+      body: 'Updated body',
+      state: 'open',
+      state_reason: null,
+      labels: [{ name: 'bug' }],
+      assignees: [{ login: 'greg' }],
+      html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
+    })
     .patch(`/repos/throw-if-null/orfe/issues/${issueNumber}`, requestBody)
     .reply(200, {
       number: issueNumber,

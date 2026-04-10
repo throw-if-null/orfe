@@ -139,15 +139,32 @@ function mockIssueUpdateRequest(options: {
   requestBody: Record<string, unknown>;
   status?: number;
   responseBody?: Record<string, unknown>;
+  issueGetStatus?: number;
+  issueGetResponseBody?: Record<string, unknown>;
 }) {
   const issueNumber = options.issueNumber;
   const status = options.status ?? 200;
+  const issueGetStatus = options.issueGetStatus ?? 200;
 
   return nock('https://api.github.com')
     .get('/repos/throw-if-null/orfe/installation')
     .reply(200, { id: 42 })
     .post('/app/installations/42/access_tokens')
     .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/issues/${issueNumber}`)
+    .reply(
+      issueGetStatus,
+      options.issueGetResponseBody ?? {
+        number: issueNumber,
+        title: 'Updated title',
+        body: 'Updated body',
+        state: 'open',
+        state_reason: null,
+        labels: [{ name: 'bug' }, { name: 'needs-input' }],
+        assignees: [{ login: 'greg' }],
+        html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
+      },
+    )
     .patch(`/repos/throw-if-null/orfe/issues/${issueNumber}`, options.requestBody)
     .reply(
       status,
@@ -443,6 +460,57 @@ test('runCli prints structured not-found failures for issue.update', async () =>
       },
     });
     assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured pull-request boundary failures for issue.update', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueUpdateRequest({
+      issueNumber: 46,
+      requestBody: { title: 'Updated title' },
+      issueGetResponseBody: {
+        number: 46,
+        title: 'Implement `orfe issue update`',
+        body: 'PR body',
+        state: 'open',
+        state_reason: null,
+        labels: [],
+        assignees: [],
+        html_url: 'https://github.com/throw-if-null/orfe/pull/46',
+        pull_request: {
+          url: 'https://api.github.com/repos/throw-if-null/orfe/pulls/46',
+        },
+      },
+    });
+
+    const exitCode = await runCli(['issue', 'update', '--issue-number', '46', '--title', 'Updated title'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'issue.update',
+      error: {
+        code: 'github_conflict',
+        message: 'Issue #46 is a pull request. issue.update only supports issues.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), false);
   } finally {
     nock.cleanAll();
     nock.enableNetConnect();

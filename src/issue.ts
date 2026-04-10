@@ -81,6 +81,7 @@ export async function handleIssueUpdate(context: CommandContext): Promise<IssueU
 
   try {
     const { rest } = await context.getGitHubClient();
+    await assertIssueUpdateTargetIsIssue(rest, context.repo.owner, context.repo.name, issueNumber);
     const response = await rest.issues.update({
       owner: context.repo.owner,
       repo: context.repo.name,
@@ -114,11 +115,45 @@ export async function handleIssueComment(context: CommandContext): Promise<Issue
   }
 }
 
+async function assertIssueUpdateTargetIsIssue(
+  rest: GitHubClients['rest'],
+  owner: string,
+  repo: string,
+  issueNumber: number,
+): Promise<void> {
+  await assertIssueTargetIsIssue(
+    rest,
+    owner,
+    repo,
+    issueNumber,
+    `Issue #${issueNumber} is a pull request. issue.update only supports issues.`,
+    mapIssueUpdateError,
+  );
+}
+
 async function assertIssueCommentTargetIsIssue(
   rest: GitHubClients['rest'],
   owner: string,
   repo: string,
   issueNumber: number,
+): Promise<void> {
+  await assertIssueTargetIsIssue(
+    rest,
+    owner,
+    repo,
+    issueNumber,
+    `Issue #${issueNumber} is a pull request. Use pr.comment instead.`,
+    mapIssueCommentError,
+  );
+}
+
+async function assertIssueTargetIsIssue(
+  rest: GitHubClients['rest'],
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  conflictMessage: string,
+  mapError: (error: unknown, issueNumber: number) => OrfeError,
 ): Promise<void> {
   try {
     const response = await rest.issues.get({
@@ -128,10 +163,10 @@ async function assertIssueCommentTargetIsIssue(
     });
 
     if (isObject((response.data as IssueGetResponseData).pull_request)) {
-      throw new OrfeError('github_conflict', `Issue #${issueNumber} is a pull request. Use pr.comment instead.`);
+      throw new OrfeError('github_conflict', conflictMessage);
     }
   } catch (error) {
-    throw mapIssueCommentError(error, issueNumber);
+    throw mapError(error, issueNumber);
   }
 }
 

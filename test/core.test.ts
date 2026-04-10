@@ -124,15 +124,32 @@ function mockIssueUpdateRequest(options: {
   requestBody: Record<string, unknown>;
   status?: number;
   responseBody?: Record<string, unknown>;
+  issueGetStatus?: number;
+  issueGetResponseBody?: Record<string, unknown>;
 }) {
   const issueNumber = options.issueNumber;
   const status = options.status ?? 200;
+  const issueGetStatus = options.issueGetStatus ?? 200;
 
   return nock('https://api.github.com')
     .get('/repos/throw-if-null/orfe/installation')
     .reply(200, { id: 42 })
     .post('/app/installations/42/access_tokens')
     .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/issues/${issueNumber}`)
+    .reply(
+      issueGetStatus,
+      options.issueGetResponseBody ?? {
+        number: issueNumber,
+        title: 'Updated title',
+        body: 'Updated body',
+        state: 'open',
+        state_reason: null,
+        labels: [{ name: 'bug' }, { name: 'needs-input' }],
+        assignees: [{ login: 'greg' }],
+        html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
+      },
+    )
     .patch(`/repos/throw-if-null/orfe/issues/${issueNumber}`, options.requestBody)
     .reply(
       status,
@@ -589,6 +606,56 @@ test('runOrfeCore maps issue.update auth failures clearly', async () => {
     );
 
     assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore rejects pull request targets for issue.update clearly', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockIssueUpdateRequest({
+      issueNumber: 46,
+      requestBody: { title: 'Updated title' },
+      issueGetResponseBody: {
+        number: 46,
+        title: 'Implement `orfe issue update`',
+        body: 'PR body',
+        state: 'open',
+        state_reason: null,
+        labels: [],
+        assignees: [],
+        html_url: 'https://github.com/throw-if-null/orfe/pull/46',
+        pull_request: {
+          url: 'https://api.github.com/repos/throw-if-null/orfe/pulls/46',
+        },
+      },
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'issue.update',
+          input: { issue_number: 46, title: 'Updated title' },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'github_conflict');
+        assert.equal(error.message, 'Issue #46 is a pull request. issue.update only supports issues.');
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), false);
   } finally {
     nock.cleanAll();
     nock.enableNetConnect();
