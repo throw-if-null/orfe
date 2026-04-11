@@ -11,6 +11,7 @@ Issue #14 builds the shared foundation only. The V1 leaf commands are registered
 
 Canonical product and architecture memory now lives under `docs/`.
 Start with `docs/README.md` for the documentation map and authoritative entrypoints.
+For operational workflow structure, also see `.github/ISSUE_TEMPLATE/feature.md` and `docs/project/handoffs.md`.
 
 ## Requirements
 

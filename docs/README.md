@@ -17,6 +17,10 @@ Use it to understand what the project is for, which constraints must hold, which
 ### Architecture constraints
 - `docs/architecture/invariants.md`
   - the architectural truths that future work must preserve
+- `docs/architecture/overview.md`
+  - the major runtime parts and how they fit together
+- `docs/architecture/auth-model.md`
+  - the current runtime auth model and transitional bot token path
 
 ### Decision history
 - `docs/architecture/adrs/`
@@ -25,6 +29,8 @@ Use it to understand what the project is for, which constraints must hold, which
 ### Known compromises
 - `docs/project/debt.md`
   - known documentation, architecture, or process debt that should stay visible
+- `docs/project/handoffs.md`
+  - standard templates for agent-to-agent workflow handoffs
 
 ## Detailed reference material
 
@@ -43,8 +49,11 @@ Use it to understand what the project is for, which constraints must hold, which
 
 - Product questions: start with `docs/product/vision.md`
 - Architecture guardrails: read `docs/architecture/invariants.md`
+- System shape: read `docs/architecture/overview.md`
+- Auth and bot identity model: read `docs/architecture/auth-model.md`
 - "Why is it designed this way?": read the ADRs
 - "What is intentionally imperfect right now?": read `docs/project/debt.md`
+- "How should agents hand work to each other?": read `docs/project/handoffs.md`
 - Detailed command/runtime behavior: read `docs/orfe/spec.md`
 
 If these docs drift from implementation, prefer the source code for observed behavior and record the mismatch in `docs/project/debt.md` or a follow-up issue.

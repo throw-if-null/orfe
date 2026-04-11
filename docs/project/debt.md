@@ -21,5 +21,10 @@ This file keeps known documentation, architecture, and process debt visible so i
 
 ### 4. Feature-level docs are still sparse
 - **Impact:** issue, PR, project, and auth flows are described mostly in the large spec rather than in smaller feature-oriented documents.
-- **Current treatment:** use the detailed spec for command semantics and the new docs for higher-level memory.
+- **Current treatment:** use the detailed spec for command semantics, the architecture overview/auth model docs for system context, and the new docs for higher-level memory.
 - **Follow-up direction:** add focused feature docs when those areas become active enough to justify their own durable references.
+
+### 5. Workflow structure now has templates, but enforcement is still lightweight
+- **Impact:** issue and handoff quality should improve, but the repo still depends on humans and agents consistently using the templates rather than enforcing them mechanically.
+- **Current treatment:** provide a standard issue template and documented handoff formats as the default path.
+- **Follow-up direction:** consider GitHub issue forms, additional automation, or skill-level enforcement if drift remains high.
