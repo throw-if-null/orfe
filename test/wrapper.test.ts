@@ -425,18 +425,10 @@ test('executeOrfeTool returns the shared success envelope for project.get-status
                   {
                     id: 'PVTI_lAHOABCD1234',
                     project: {
+                      id: 'PVT_project_1',
                       number: 1,
                       owner: {
                         login: 'throw-if-null',
-                      },
-                      fields: {
-                        nodes: [
-                          {
-                            __typename: 'ProjectV2SingleSelectField',
-                            id: 'PVTSSF_lAHOABCD1234',
-                            name: 'Status',
-                          },
-                        ],
                       },
                     },
                     fieldValueByName: {
@@ -451,6 +443,38 @@ test('executeOrfeTool returns the shared success envelope for project.get-status
                     },
                   },
                 ],
+                pageInfo: {
+                  hasNextPage: false,
+                  endCursor: null,
+                },
+              },
+            },
+          },
+        },
+      })
+      .post('/graphql', (body: unknown) => {
+        return (
+          typeof body === 'object' &&
+          body !== null &&
+          'query' in body &&
+          typeof (body as { query?: unknown }).query === 'string' &&
+          (body as { query: string }).query.includes('query ProjectStatusFields')
+        );
+      })
+      .reply(200, {
+        data: {
+          node: {
+            fields: {
+              nodes: [
+                {
+                  __typename: 'ProjectV2SingleSelectField',
+                  id: 'PVTSSF_lAHOABCD1234',
+                  name: 'Status',
+                },
+              ],
+              pageInfo: {
+                hasNextPage: false,
+                endCursor: null,
               },
             },
           },

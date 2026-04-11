@@ -393,6 +393,38 @@ function matchesProjectStatusLookup(body: unknown, options: { itemType: 'issue' 
   );
 }
 
+function matchesProjectStatusFields(body: unknown, options: { projectId: string; fieldsCursor?: string | null }): boolean {
+  return (
+    isObject(body) &&
+    typeof body.query === 'string' &&
+    body.query.includes('query ProjectStatusFields') &&
+    isObject(body.variables) &&
+    body.variables.projectId === options.projectId &&
+    body.variables.fieldsCursor === (options.fieldsCursor ?? null)
+  );
+}
+
+function createPageInfo(options?: { hasNextPage?: boolean; endCursor?: string | null }) {
+  return {
+    hasNextPage: options?.hasNextPage ?? false,
+    endCursor: options?.endCursor ?? null,
+  };
+}
+
+function createProjectItemsConnection(nodes: unknown[], options?: { hasNextPage?: boolean; endCursor?: string | null }) {
+  return {
+    nodes,
+    pageInfo: createPageInfo(options),
+  };
+}
+
+function createProjectFieldsConnection(nodes: unknown[], options?: { hasNextPage?: boolean; endCursor?: string | null }) {
+  return {
+    nodes,
+    pageInfo: createPageInfo(options),
+  };
+}
+
 function createProjectStatusFieldNode(options: { id: string; name: string }) {
   return {
     __typename: 'ProjectV2SingleSelectField',
@@ -416,6 +448,7 @@ function createProjectStatusValueNode(options: { fieldId: string; fieldName: str
 
 function createProjectItemNode(options: {
   id: string;
+  projectId?: string;
   projectOwner: string;
   projectNumber: number;
   fields?: unknown[];
@@ -424,6 +457,7 @@ function createProjectItemNode(options: {
   return {
     id: options.id,
     project: {
+      id: options.projectId ?? 'PVT_project_1',
       number: options.projectNumber,
       owner: {
         login: options.projectOwner,
@@ -442,20 +476,27 @@ function mockProjectGetStatusRequest(options: {
   statusFieldName?: string;
   graphqlStatus?: number;
   graphqlResponseBody?: Record<string, unknown>;
+  projectItemsCursor?: string | null;
+  includeAuth?: boolean;
 }) {
   const statusFieldName = options.statusFieldName ?? 'Status';
 
-  return nock('https://api.github.com')
-    .get('/repos/throw-if-null/orfe/installation')
-    .reply(200, { id: 42 })
-    .post('/app/installations/42/access_tokens')
-    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+  let scope = nock('https://api.github.com');
+  if (options.includeAuth !== false) {
+    scope = scope
+      .get('/repos/throw-if-null/orfe/installation')
+      .reply(200, { id: 42 })
+      .post('/app/installations/42/access_tokens')
+      .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' });
+  }
+
+  return scope
     .post('/graphql', (body: unknown) =>
       matchesProjectStatusLookup(body, {
         itemType: options.itemType,
         itemNumber: options.itemNumber,
         statusFieldName,
-      }),
+      }) && isObject(body) && isObject(body.variables) && body.variables.projectItemsCursor === (options.projectItemsCursor ?? null),
     )
     .reply(
       options.graphqlStatus ?? 200,
@@ -465,18 +506,39 @@ function mockProjectGetStatusRequest(options: {
             options.itemType === 'issue'
               ? {
                   issue: {
-                    projectItems: {
-                      nodes: [],
-                    },
+                    projectItems: createProjectItemsConnection([]),
                   },
                 }
               : {
                   pullRequest: {
-                    projectItems: {
-                      nodes: [],
-                    },
+                    projectItems: createProjectItemsConnection([]),
                   },
                 },
+        },
+      },
+    );
+}
+
+function mockProjectStatusFieldsRequest(options: {
+  projectId?: string;
+  fieldsCursor?: string | null;
+  graphqlStatus?: number;
+  graphqlResponseBody?: Record<string, unknown>;
+}) {
+  return nock('https://api.github.com')
+    .post('/graphql', (body: unknown) =>
+      matchesProjectStatusFields(body, {
+        projectId: options.projectId ?? 'PVT_project_1',
+        ...(options.fieldsCursor !== undefined ? { fieldsCursor: options.fieldsCursor } : {}),
+      }),
+    )
+    .reply(
+      options.graphqlStatus ?? 200,
+      options.graphqlResponseBody ?? {
+        data: {
+          node: {
+            fields: createProjectFieldsConnection([]),
+          },
         },
       },
     );
@@ -894,17 +956,17 @@ test('runCli prints structured success JSON for project.get-status', async () =>
   nock.disableNetConnect();
 
   try {
-    const api = mockProjectGetStatusRequest({
+    const itemApi = mockProjectGetStatusRequest({
       itemType: 'issue',
       itemNumber: 13,
       graphqlResponseBody: {
         data: {
           repository: {
             issue: {
-              projectItems: {
-                nodes: [
+              projectItems: createProjectItemsConnection([
                   createProjectItemNode({
                     id: 'PVTI_lAHOABCD1234',
+                    projectId: 'PVT_project_1',
                     projectOwner: 'throw-if-null',
                     projectNumber: 1,
                     fields: [createProjectStatusFieldNode({ id: 'PVTSSF_lAHOABCD1234', name: 'Status' })],
@@ -915,9 +977,20 @@ test('runCli prints structured success JSON for project.get-status', async () =>
                       name: 'In Progress',
                     }),
                   }),
-                ],
-              },
+                ]),
             },
+          },
+        },
+      },
+    });
+    const fieldsApi = mockProjectStatusFieldsRequest({
+      projectId: 'PVT_project_1',
+      graphqlResponseBody: {
+        data: {
+          node: {
+            fields: createProjectFieldsConnection([
+              createProjectStatusFieldNode({ id: 'PVTSSF_lAHOABCD1234', name: 'Status' }),
+            ]),
           },
         },
       },
@@ -949,7 +1022,88 @@ test('runCli prints structured success JSON for project.get-status', async () =>
         status: 'In Progress',
       },
     });
-    assert.equal(api.isDone(), true);
+    assert.equal(itemApi.isDone(), true);
+    assert.equal(fieldsApi.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured success JSON for project.get-status when the target is a pull request', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const itemApi = mockProjectGetStatusRequest({
+      itemType: 'pr',
+      itemNumber: 9,
+      graphqlResponseBody: {
+        data: {
+          repository: {
+            pullRequest: {
+              projectItems: createProjectItemsConnection([
+                createProjectItemNode({
+                  id: 'PVTI_pr1234',
+                  projectId: 'PVT_project_1',
+                  projectOwner: 'throw-if-null',
+                  projectNumber: 1,
+                  statusValue: createProjectStatusValueNode({
+                    fieldId: 'PVTSSF_lAHOABCD1234',
+                    fieldName: 'Status',
+                    optionId: 'f75ad846',
+                    name: 'In Progress',
+                  }),
+                }),
+              ]),
+            },
+          },
+        },
+      },
+    });
+    const fieldsApi = mockProjectStatusFieldsRequest({
+      projectId: 'PVT_project_1',
+      graphqlResponseBody: {
+        data: {
+          node: {
+            fields: createProjectFieldsConnection([
+              createProjectStatusFieldNode({ id: 'PVTSSF_lAHOABCD1234', name: 'Status' }),
+            ]),
+          },
+        },
+      },
+    });
+
+    const exitCode = await runCli(['project', 'get-status', '--item-type', 'pr', '--item-number', '9'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'project.get-status',
+      repo: 'throw-if-null/orfe',
+      data: {
+        project_owner: 'throw-if-null',
+        project_number: 1,
+        status_field_name: 'Status',
+        status_field_id: 'PVTSSF_lAHOABCD1234',
+        item_type: 'pr',
+        item_number: 9,
+        project_item_id: 'PVTI_pr1234',
+        status_option_id: 'f75ad846',
+        status: 'In Progress',
+      },
+    });
+    assert.equal(itemApi.isDone(), true);
+    assert.equal(fieldsApi.isDone(), true);
   } finally {
     nock.cleanAll();
     nock.enableNetConnect();
@@ -970,9 +1124,7 @@ test('runCli prints structured project-item-not-found failures for project.get-s
         data: {
           repository: {
             issue: {
-              projectItems: {
-                nodes: [],
-              },
+              projectItems: createProjectItemsConnection([]),
             },
           },
         },
@@ -1012,24 +1164,35 @@ test('runCli prints structured missing-status-field failures for project.get-sta
   nock.disableNetConnect();
 
   try {
-    const api = mockProjectGetStatusRequest({
+    const itemApi = mockProjectGetStatusRequest({
       itemType: 'issue',
       itemNumber: 13,
       graphqlResponseBody: {
         data: {
           repository: {
             issue: {
-              projectItems: {
-                nodes: [
+              projectItems: createProjectItemsConnection([
                   createProjectItemNode({
                     id: 'PVTI_lAHOABCD1234',
+                    projectId: 'PVT_project_1',
                     projectOwner: 'throw-if-null',
                     projectNumber: 1,
                     fields: [createProjectStatusFieldNode({ id: 'PVTSSF_delivery', name: 'Delivery' })],
                   }),
-                ],
-              },
+                ]),
             },
+          },
+        },
+      },
+    });
+    const fieldsApi = mockProjectStatusFieldsRequest({
+      projectId: 'PVT_project_1',
+      graphqlResponseBody: {
+        data: {
+          node: {
+            fields: createProjectFieldsConnection([
+              createProjectStatusFieldNode({ id: 'PVTSSF_delivery', name: 'Delivery' }),
+            ]),
           },
         },
       },
@@ -1054,7 +1217,8 @@ test('runCli prints structured missing-status-field failures for project.get-sta
         retryable: false,
       },
     });
-    assert.equal(api.isDone(), true);
+    assert.equal(itemApi.isDone(), true);
+    assert.equal(fieldsApi.isDone(), true);
   } finally {
     nock.cleanAll();
     nock.enableNetConnect();

@@ -26,6 +26,7 @@ interface ProjectStatusLookupResponse {
 interface ProjectTrackedNode {
   projectItems?: {
     nodes?: unknown;
+    pageInfo?: unknown;
   } | null;
 }
 
@@ -36,6 +37,7 @@ interface ProjectItemNode {
 }
 
 interface ProjectNode {
+  id?: unknown;
   number?: unknown;
   owner?: unknown;
   fields?: unknown;
@@ -47,6 +49,16 @@ interface ProjectOwnerNode {
 
 interface ProjectFieldsConnection {
   nodes?: unknown;
+  pageInfo?: unknown;
+}
+
+interface ProjectFieldsLookupResponse {
+  node?: unknown;
+}
+
+interface ProjectPageInfoNode {
+  hasNextPage?: unknown;
+  endCursor?: unknown;
 }
 
 interface ProjectSingleSelectFieldNode {
@@ -73,13 +85,14 @@ interface ProjectStatusValue {
 }
 
 const PROJECT_STATUS_FOR_ISSUE_QUERY = `
-  query ProjectStatusForIssue($owner: String!, $repo: String!, $itemNumber: Int!, $statusFieldName: String!) {
+  query ProjectStatusForIssue($owner: String!, $repo: String!, $itemNumber: Int!, $statusFieldName: String!, $projectItemsCursor: String) {
     repository(owner: $owner, name: $repo) {
       issue(number: $itemNumber) {
-        projectItems(first: 100) {
+        projectItems(first: 100, after: $projectItemsCursor) {
           nodes {
             id
             project {
+              id
               number
               owner {
                 ... on Organization {
@@ -87,15 +100,6 @@ const PROJECT_STATUS_FOR_ISSUE_QUERY = `
                 }
                 ... on User {
                   login
-                }
-              }
-              fields(first: 100) {
-                nodes {
-                  __typename
-                  ... on ProjectV2SingleSelectField {
-                    id
-                    name
-                  }
                 }
               }
             }
@@ -113,6 +117,10 @@ const PROJECT_STATUS_FOR_ISSUE_QUERY = `
               }
             }
           }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
         }
       }
     }
@@ -120,13 +128,14 @@ const PROJECT_STATUS_FOR_ISSUE_QUERY = `
 `;
 
 const PROJECT_STATUS_FOR_PULL_REQUEST_QUERY = `
-  query ProjectStatusForPullRequest($owner: String!, $repo: String!, $itemNumber: Int!, $statusFieldName: String!) {
+  query ProjectStatusForPullRequest($owner: String!, $repo: String!, $itemNumber: Int!, $statusFieldName: String!, $projectItemsCursor: String) {
     repository(owner: $owner, name: $repo) {
       pullRequest(number: $itemNumber) {
-        projectItems(first: 100) {
+        projectItems(first: 100, after: $projectItemsCursor) {
           nodes {
             id
             project {
+              id
               number
               owner {
                 ... on Organization {
@@ -134,15 +143,6 @@ const PROJECT_STATUS_FOR_PULL_REQUEST_QUERY = `
                 }
                 ... on User {
                   login
-                }
-              }
-              fields(first: 100) {
-                nodes {
-                  __typename
-                  ... on ProjectV2SingleSelectField {
-                    id
-                    name
-                  }
                 }
               }
             }
@@ -159,6 +159,32 @@ const PROJECT_STATUS_FOR_PULL_REQUEST_QUERY = `
                 }
               }
             }
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+        }
+      }
+    }
+  }
+`;
+
+const PROJECT_STATUS_FIELDS_QUERY = `
+  query ProjectStatusFields($projectId: ID!, $fieldsCursor: String) {
+    node(id: $projectId) {
+      ... on ProjectV2 {
+        fields(first: 100, after: $fieldsCursor) {
+          nodes {
+            __typename
+            ... on ProjectV2SingleSelectField {
+              id
+              name
+            }
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
           }
         }
       }
@@ -173,19 +199,18 @@ export async function handleProjectGetStatus(context: CommandContext): Promise<P
 
   try {
     const { graphql } = await context.getGitHubClient();
-    const response = await graphql<ProjectStatusLookupResponse>(
-      itemType === 'issue' ? PROJECT_STATUS_FOR_ISSUE_QUERY : PROJECT_STATUS_FOR_PULL_REQUEST_QUERY,
-      {
-        owner: context.repo.owner,
-        repo: context.repo.name,
-        itemNumber,
-        statusFieldName: projectConfig.statusFieldName,
-      },
+    const projectItem = await lookupProjectItem(
+      graphql,
+      context.repo.owner,
+      context.repo.name,
+      projectConfig.projectOwner,
+      projectConfig.projectNumber,
+      projectConfig.statusFieldName,
+      itemType,
+      itemNumber,
     );
-
-    const trackedNode = readTrackedNode(response, itemType, itemNumber);
-    const projectItem = selectProjectItem(trackedNode, projectConfig.projectOwner, projectConfig.projectNumber, itemType, itemNumber);
-    const statusField = readProjectStatusField(
+    const statusField = await lookupProjectStatusField(
+      graphql,
       projectItem,
       projectConfig.projectOwner,
       projectConfig.projectNumber,
@@ -214,6 +239,90 @@ export async function handleProjectGetStatus(context: CommandContext): Promise<P
   }
 }
 
+async function lookupProjectItem(
+  graphql: <TResponse>(query: string, variables?: Record<string, unknown>) => Promise<TResponse>,
+  owner: string,
+  repo: string,
+  projectOwner: string,
+  projectNumber: number,
+  statusFieldName: string,
+  itemType: ProjectItemType,
+  itemNumber: number,
+): Promise<ProjectItemNode> {
+  let projectItemsCursor: string | null = null;
+
+  while (true) {
+    const response = await graphql<ProjectStatusLookupResponse>(
+      itemType === 'issue' ? PROJECT_STATUS_FOR_ISSUE_QUERY : PROJECT_STATUS_FOR_PULL_REQUEST_QUERY,
+      {
+        owner,
+        repo,
+        itemNumber,
+        statusFieldName,
+        projectItemsCursor,
+      },
+    );
+
+    const trackedNode = readTrackedNode(response, itemType, itemNumber);
+    const projectItems = readTrackedProjectItems(trackedNode);
+    const projectItem = selectProjectItem(projectItems.nodes, projectOwner, projectNumber);
+
+    if (projectItem !== null) {
+      return projectItem;
+    }
+
+    const pageInfo = readPageInfo(projectItems.pageInfo, 'GitHub project status response is missing projectItems page info.');
+    if (!pageInfo.hasNextPage) {
+      break;
+    }
+
+    projectItemsCursor = pageInfo.endCursor;
+  }
+
+  throw new OrfeError(
+    'project_item_not_found',
+    `${itemType === 'issue' ? 'Issue' : 'Pull request'} #${itemNumber} is not present on GitHub Project ${projectOwner}/${projectNumber}.`,
+  );
+}
+
+async function lookupProjectStatusField(
+  graphql: <TResponse>(query: string, variables?: Record<string, unknown>) => Promise<TResponse>,
+  projectItem: ProjectItemNode,
+  projectOwner: string,
+  projectNumber: number,
+  statusFieldName: string,
+): Promise<ProjectStatusField> {
+  const project = readProject(projectItem);
+  const projectId = readProjectId(project, projectOwner, projectNumber);
+  let fieldsCursor: string | null = null;
+
+  while (true) {
+    const response = await graphql<ProjectFieldsLookupResponse>(PROJECT_STATUS_FIELDS_QUERY, {
+      projectId,
+      fieldsCursor,
+    });
+
+    const fields = readProjectFieldsConnection(response, projectOwner, projectNumber);
+    const statusField = selectProjectStatusField(fields.nodes, projectOwner, projectNumber, statusFieldName);
+
+    if (statusField !== null) {
+      return statusField;
+    }
+
+    const pageInfo = readPageInfo(fields.pageInfo, `GitHub Project ${projectOwner}/${projectNumber} is missing fields page info.`);
+    if (!pageInfo.hasNextPage) {
+      break;
+    }
+
+    fieldsCursor = pageInfo.endCursor;
+  }
+
+  throw new OrfeError(
+    'project_status_field_not_found',
+    `GitHub Project ${projectOwner}/${projectNumber} has no single-select field named "${statusFieldName}".`,
+  );
+}
+
 function readTrackedNode(response: ProjectStatusLookupResponse, itemType: ProjectItemType, itemNumber: number): ProjectTrackedNode {
   const repository = response.repository;
   if (!isObject(repository)) {
@@ -231,35 +340,34 @@ function readTrackedNode(response: ProjectStatusLookupResponse, itemType: Projec
   return trackedNode as ProjectTrackedNode;
 }
 
-function selectProjectItem(
-  trackedNode: ProjectTrackedNode,
-  projectOwner: string,
-  projectNumber: number,
-  itemType: ProjectItemType,
-  itemNumber: number,
-): ProjectItemNode {
+function readTrackedProjectItems(trackedNode: ProjectTrackedNode): { nodes: unknown[]; pageInfo?: unknown } {
   const projectItems = trackedNode.projectItems;
   if (!isObject(projectItems) || !Array.isArray(projectItems.nodes)) {
     throw new OrfeError('internal_error', 'GitHub project status response is missing projectItems nodes.');
   }
 
-  for (const rawNode of projectItems.nodes) {
+  return projectItems as { nodes: unknown[]; pageInfo?: unknown };
+}
+
+function selectProjectItem(
+  projectItemNodes: unknown[],
+  projectOwner: string,
+  projectNumber: number,
+): ProjectItemNode | null {
+  for (const rawNode of projectItemNodes) {
     if (!isObject(rawNode)) {
       continue;
     }
 
     const projectItem = rawNode as ProjectItemNode;
-    const projectItemId = readProjectItemId(projectItem);
-
-    const project = projectItem.project;
-    if (!isObject(project)) {
-      throw new OrfeError('internal_error', `GitHub project item ${projectItemId} is missing project metadata.`);
-    }
-
-    const observedProjectNumber = (project as ProjectNode).number;
-    const ownerNode = (project as ProjectNode).owner;
+    const project = readProject(projectItem);
+    const observedProjectNumber = project.number;
+    const ownerNode = project.owner;
     if (!isObject(ownerNode) || typeof (ownerNode as ProjectOwnerNode).login !== 'string') {
-      throw new OrfeError('internal_error', `GitHub project item ${projectItemId} is missing a valid project owner login.`);
+      throw new OrfeError(
+        'internal_error',
+        `GitHub project item ${readProjectItemId(projectItem)} is missing a valid project owner login.`,
+      );
     }
 
     if (observedProjectNumber === projectNumber && (ownerNode as ProjectOwnerNode).login === projectOwner) {
@@ -267,10 +375,7 @@ function selectProjectItem(
     }
   }
 
-  throw new OrfeError(
-    'project_item_not_found',
-    `${itemType === 'issue' ? 'Issue' : 'Pull request'} #${itemNumber} is not present on GitHub Project ${projectOwner}/${projectNumber}.`,
-  );
+  return null;
 }
 
 function readProjectItemId(projectItem: ProjectItemNode): string {
@@ -281,23 +386,46 @@ function readProjectItemId(projectItem: ProjectItemNode): string {
   return projectItem.id;
 }
 
-function readProjectStatusField(
-  projectItem: ProjectItemNode,
-  projectOwner: string,
-  projectNumber: number,
-  statusFieldName: string,
-): ProjectStatusField {
+function readProject(projectItem: ProjectItemNode): ProjectNode {
   const project = projectItem.project;
   if (!isObject(project)) {
-    throw new OrfeError('internal_error', `GitHub project item ${String(projectItem.id)} is missing project metadata.`);
+    throw new OrfeError('internal_error', `GitHub project item ${readProjectItemId(projectItem)} is missing project metadata.`);
   }
 
-  const fields = (project as ProjectNode).fields;
+  return project as ProjectNode;
+}
+
+function readProjectId(project: ProjectNode, projectOwner: string, projectNumber: number): string {
+  if (typeof project.id !== 'string' || project.id.length === 0) {
+    throw new OrfeError('internal_error', `GitHub Project ${projectOwner}/${projectNumber} returned an invalid id.`);
+  }
+
+  return project.id;
+}
+
+function readProjectFieldsConnection(
+  response: ProjectFieldsLookupResponse,
+  projectOwner: string,
+  projectNumber: number,
+): ProjectFieldsConnection {
+  if (!isObject(response.node)) {
+    throw new OrfeError('internal_error', `GitHub Project ${projectOwner}/${projectNumber} is missing fields metadata.`);
+  }
+
+  const fields = (response.node as ProjectNode).fields;
   if (!isObject(fields) || !Array.isArray((fields as ProjectFieldsConnection).nodes)) {
     throw new OrfeError('internal_error', `GitHub Project ${projectOwner}/${projectNumber} is missing fields metadata.`);
   }
 
-  const fieldNodes = (fields as ProjectFieldsConnection).nodes;
+  return fields as ProjectFieldsConnection;
+}
+
+function selectProjectStatusField(
+  fieldNodes: unknown,
+  projectOwner: string,
+  projectNumber: number,
+  statusFieldName: string,
+): ProjectStatusField | null {
   if (!Array.isArray(fieldNodes)) {
     throw new OrfeError('internal_error', `GitHub Project ${projectOwner}/${projectNumber} is missing fields nodes.`);
   }
@@ -327,10 +455,34 @@ function readProjectStatusField(
     }
   }
 
-  throw new OrfeError(
-    'project_status_field_not_found',
-    `GitHub Project ${projectOwner}/${projectNumber} has no single-select field named "${statusFieldName}".`,
-  );
+  return null;
+}
+
+function readPageInfo(rawPageInfo: unknown, missingMessage: string): { hasNextPage: boolean; endCursor: string | null } {
+  if (!isObject(rawPageInfo)) {
+    throw new OrfeError('internal_error', missingMessage);
+  }
+
+  const pageInfo = rawPageInfo as ProjectPageInfoNode;
+  if (typeof pageInfo.hasNextPage !== 'boolean') {
+    throw new OrfeError('internal_error', missingMessage);
+  }
+
+  if (pageInfo.hasNextPage) {
+    if (typeof pageInfo.endCursor !== 'string' || pageInfo.endCursor.length === 0) {
+      throw new OrfeError('internal_error', missingMessage);
+    }
+
+    return {
+      hasNextPage: true,
+      endCursor: pageInfo.endCursor,
+    };
+  }
+
+  return {
+    hasNextPage: false,
+    endCursor: null,
+  };
 }
 
 function readProjectStatusValue(
