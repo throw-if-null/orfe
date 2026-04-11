@@ -1,6 +1,7 @@
 import { getCommandContract } from './command-contracts.js';
 import { OrfeError, createNotImplementedError } from './errors.js';
 import { handleIssueComment, handleIssueCreate, handleIssueGet, handleIssueSetState, handleIssueUpdate } from './issue.js';
+import { handlePrGet } from './pr.js';
 import type { CommandContext, CommandInput, OrfeCommandGroup, OrfeCommandName } from './types.js';
 
 type OptionType = 'string' | 'number' | 'boolean' | 'enum' | 'string-array';
@@ -172,6 +173,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     successSummary: 'Prints a structured JSON pull request payload.',
     examples: ['orfe pr get --pr-number 9 --caller-name Greg'],
     options: [{ key: 'pr_number', flag: '--pr-number', description: 'Pull request number.', type: 'number', required: true }],
+    handler: handlePrGet,
   }),
   defineCommand({
     name: 'pr.get-or-create',

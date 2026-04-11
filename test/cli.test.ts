@@ -212,6 +212,35 @@ function mockIssueUpdateRequest(options: {
     );
 }
 
+function mockPullRequestGetRequest(options: {
+  prNumber: number;
+  status?: number;
+  responseBody?: Record<string, unknown>;
+}) {
+  const prNumber = options.prNumber;
+  const status = options.status ?? 200;
+
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/pulls/${prNumber}`)
+    .reply(
+      status,
+      options.responseBody ?? {
+        number: prNumber,
+        title: 'Design the `orfe` custom tool and CLI contract',
+        body: 'PR body',
+        state: 'open',
+        draft: false,
+        head: { ref: 'issues/orfe-13' },
+        base: { ref: 'main' },
+        html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}`,
+      },
+    );
+}
+
 function createIssueRestResponse(issueNumber: number, overrides: Record<string, unknown> = {}) {
   return {
     number: issueNumber,
@@ -582,6 +611,171 @@ test('runCli prints structured success JSON for issue.create', async () => {
     nock.cleanAll();
     nock.enableNetConnect();
   }
+});
+
+test('runCli prints structured success JSON for pr.get', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetRequest({ prNumber: 9 });
+
+    const exitCode = await runCli(['pr', 'get', '--pr-number', '9'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'pr.get',
+      repo: 'throw-if-null/orfe',
+      data: {
+        pr_number: 9,
+        title: 'Design the `orfe` custom tool and CLI contract',
+        body: 'PR body',
+        state: 'open',
+        draft: false,
+        head: 'issues/orfe-13',
+        base: 'main',
+        html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured not-found failures for pr.get', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetRequest({
+      prNumber: 404,
+      status: 404,
+      responseBody: { message: 'Not Found' },
+    });
+
+    const exitCode = await runCli(['pr', 'get', '--pr-number', '404'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'pr.get',
+      error: {
+        code: 'github_not_found',
+        message: 'Pull request #404 was not found.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured auth failures for pr.get', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetRequest({
+      prNumber: 9,
+      status: 403,
+      responseBody: { message: 'Resource not accessible by integration' },
+    });
+
+    const exitCode = await runCli(['pr', 'get', '--pr-number', '9'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'pr.get',
+      error: {
+        code: 'auth_failed',
+        message: 'GitHub App authentication failed while reading pull request #9.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli reports missing required options for pr.get as usage errors', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['pr', 'get'], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('internal_error', 'loadRepoConfigImpl should not run');
+    },
+  });
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /Missing required option "--pr-number"\./);
+  assert.match(stderr.output, /Usage: orfe pr get --pr-number <number>/);
+  assert.match(stderr.output, /See: orfe pr get --help/);
+});
+
+test('runCli prints structured config failures for pr.get', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['pr', 'get', '--pr-number', '9'], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('config_not_found', 'repo-local config not found at /tmp/.orfe/config.json.');
+    },
+  });
+
+  assert.equal(exitCode, 1);
+  assert.equal(stdout.output, '');
+  assert.deepEqual(JSON.parse(stderr.output), {
+    ok: false,
+    command: 'pr.get',
+    error: {
+      code: 'config_not_found',
+      message: 'repo-local config not found at /tmp/.orfe/config.json.',
+      retryable: false,
+    },
+  });
 });
 
 test('runCli prints structured auth failures for issue.create', async () => {
