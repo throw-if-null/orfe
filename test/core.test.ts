@@ -14,7 +14,8 @@ const UNIMPLEMENTED_COMMAND_NAMES = COMMAND_NAMES.filter(
     commandName !== 'issue.create' &&
     commandName !== 'issue.update' &&
     commandName !== 'issue.comment' &&
-    commandName !== 'issue.set-state',
+    commandName !== 'issue.set-state' &&
+    commandName !== 'pr.get',
 );
 
 function createRepoConfig() {
@@ -198,6 +199,35 @@ function mockIssueUpdateRequest(options: {
         labels: [{ name: 'bug' }, { name: 'needs-input' }],
         assignees: [{ login: 'greg' }],
         html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
+      },
+     );
+}
+
+function mockPullRequestGetRequest(options: {
+  prNumber: number;
+  status?: number;
+  responseBody?: Record<string, unknown>;
+}) {
+  const prNumber = options.prNumber;
+  const status = options.status ?? 200;
+
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/pulls/${prNumber}`)
+    .reply(
+      status,
+      options.responseBody ?? {
+        number: prNumber,
+        title: 'Design the `orfe` custom tool and CLI contract',
+        body: 'PR body',
+        state: 'open',
+        draft: false,
+        head: { ref: 'issues/orfe-13' },
+        base: { ref: 'main' },
+        html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}`,
       },
     );
 }
@@ -625,6 +655,123 @@ test('runOrfeCore maps issue.get auth failures clearly', async () => {
         assert(error instanceof OrfeError);
         assert.equal(error.code, 'auth_failed');
         assert.equal(error.message, 'GitHub App authentication failed while reading issue #14.');
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore reads a pull request and returns structured success output', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetRequest({ prNumber: 9 });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'pr.get',
+        input: { pr_number: 9 },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'pr.get',
+      repo: 'throw-if-null/orfe',
+      data: {
+        pr_number: 9,
+        title: 'Design the `orfe` custom tool and CLI contract',
+        body: 'PR body',
+        state: 'open',
+        draft: false,
+        head: 'issues/orfe-13',
+        base: 'main',
+        html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore maps pr.get not-found responses clearly', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetRequest({
+      prNumber: 999,
+      status: 404,
+      responseBody: { message: 'Not Found' },
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'pr.get',
+          input: { pr_number: 999 },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'github_not_found');
+        assert.equal(error.message, 'Pull request #999 was not found.');
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore maps pr.get auth failures clearly', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetRequest({
+      prNumber: 9,
+      status: 403,
+      responseBody: { message: 'Resource not accessible by integration' },
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'pr.get',
+          input: { pr_number: 9 },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'auth_failed');
+        assert.equal(error.message, 'GitHub App authentication failed while reading pull request #9.');
         return true;
       },
     );
