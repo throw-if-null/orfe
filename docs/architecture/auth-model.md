@@ -37,13 +37,9 @@ This is the intended v1 runtime auth model.
 
 The repository evolved from a smaller CLI named `tokenner` into the broader `orfe` runtime.
 
-Agents still use the workspace-root helper:
+Agents still use the workspace-root helper defined in `AGENTS.md`.
 
-```bash
-node /home/backsippan/gh/tin/orfe/dist/cli.js token --role <role> --repo throw-if-null/orfe --format json
-```
-
-That command remains necessary for bot-authenticated `gh` CLI operations performed by agents.
+That helper remains necessary for bot-authenticated `gh` CLI operations performed by agents.
 
 ## Why the workspace-root helper matters
 
@@ -54,14 +50,18 @@ This prevents worktree-local build drift from breaking bot-authenticated GitHub 
 
 ## Current two-path model
 
+These two paths are not peer product features.
+Path A is part of the `orfe` runtime architecture.
+Path B is repository operating procedure used by agents when they perform `gh` CLI operations outside direct runtime command execution.
+
 ### Path A: runtime command execution
 - used by `orfe` command behavior
 - auth is internal to the runtime
 - no external token provider shell-out for runtime command behavior
 
-### Path B: agent `gh` CLI operations
+### Path B: agent `gh` CLI operations (repository operating procedure)
 - used for GitHub issue, PR, project, and review actions outside direct runtime command execution
-- bot token is minted first via the workspace-root `tokenner` build
+- bot token is minted first via the workspace-root helper referenced in `AGENTS.md`
 - `gh` is then run with `GH_TOKEN`
 
 ## Future direction

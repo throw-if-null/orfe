@@ -28,18 +28,13 @@ assignees: ''
 
 ## Docs impact
 
-- [ ] none
-- [ ] update existing docs
-- [ ] add new durable docs
-
-Details:
+- Docs impact: none | update existing docs | add new durable docs
+- Details:
 
 ## ADR needed?
 
-- [ ] no
-- [ ] yes
-
-Details:
+- ADR needed: no | yes
+- Details:
 
 ## Dependencies / sequencing notes
 

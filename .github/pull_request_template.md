@@ -3,6 +3,10 @@ Ref: #<issue-number>
 ## Summary
 - ...
 
+## Workflow link
+- [ ] first line is `Ref: #<issue-number>`
+- [ ] does not use `Closes`, `Fixes`, or other auto-closing keywords
+
 ## Verification
 - [ ] npm test
 - [ ] npm run lint

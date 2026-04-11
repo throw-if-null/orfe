@@ -11,7 +11,7 @@ The design goal is to provide deterministic, reusable GitHub operations without 
 ## Major runtime parts
 
 ### 1. OpenCode wrapper
-Located at `.opencode/tools/orfe.ts`.
+Currently represented by `.opencode/tools/orfe.ts` and related wrapper code.
 
 Responsibilities:
 - expose the custom tool name
@@ -24,7 +24,7 @@ It must not:
 - pass raw OpenCode runtime objects into the core
 
 ### 2. CLI entrypoint
-Located under `src/cli.ts` and related CLI code.
+Currently represented by `src/cli.ts` and related CLI code.
 
 Responsibilities:
 - parse CLI arguments
@@ -33,7 +33,7 @@ Responsibilities:
 - print structured JSON success or structured errors
 
 ### 3. Core runtime
-Located under `src/core.ts` and related command/config/runtime code.
+Currently represented by `src/core.ts` and related command/config/runtime code.
 
 Responsibilities:
 - validate command input
@@ -47,7 +47,7 @@ Responsibilities:
 The core is runtime-agnostic and must remain callable from both CLI and wrapper entrypoints.
 
 ### 4. Config layer
-Main files include `src/config.ts` and `.orfe/config.json`.
+Current examples include `src/config.ts` and `.orfe/config.json`.
 
 Responsibilities:
 - hold repo-local non-secret configuration
@@ -55,7 +55,7 @@ Responsibilities:
 - define repository and project defaults
 
 ### 5. Auth layer
-Main file includes `src/github.ts` and machine-local auth config.
+Current examples include `src/github.ts` and machine-local auth config.
 
 Responsibilities:
 - load machine-local per-role GitHub App credentials
@@ -63,7 +63,7 @@ Responsibilities:
 - keep secret-bearing auth details outside repo-local config
 
 ### 6. GitHub adapter layer
-Main files include command handlers and client factories.
+Current examples include command handlers and client factories.
 
 Responsibilities:
 - use Octokit REST where appropriate for issue and PR behavior
@@ -93,6 +93,9 @@ OpenCode wrapper / CLI
 - machine-local auth config contains role credentials
 - command behavior uses Octokit, not `gh` shell-outs
 - repo workflow policy belongs above `orfe`, not inside it
+
+These file references are descriptive of the current layout, not a promise that file organization will never change.
+When files move, update this overview if the conceptual boundaries also need clarification.
 
 ## Related docs
 

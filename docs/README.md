@@ -29,8 +29,11 @@ Use it to understand what the project is for, which constraints must hold, which
 ### Known compromises
 - `docs/project/debt.md`
   - known documentation, architecture, or process debt that should stay visible
+
+## Workflow guidance
+
 - `docs/project/handoffs.md`
-  - standard templates for agent-to-agent workflow handoffs
+  - standard templates for agent-to-agent handoffs and their matching workflow events
 
 ## Detailed reference material
 
