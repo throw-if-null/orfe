@@ -70,6 +70,7 @@ Use when implementation work is being assigned.
 ## Greg → Klarissa
 
 Use when implementation is ready for QA review.
+Before opening or updating the PR, make sure the PR body starts with `Ref: #<issue-number>` so the canonical issue remains linked.
 
 ```md
 ## Implementation-ready handoff
