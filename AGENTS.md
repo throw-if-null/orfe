@@ -137,9 +137,11 @@ Do not invent new workflow states if an existing event fits.
 
 - Open a PR only for implementation/review work tied to a GitHub issue.
 - Keep PR scope aligned to the single issue branch.
-- Reference the canonical issue in the PR.
+- Every implementation PR must reference the canonical GitHub issue in the **first line** of the PR body using `Ref: #<issue-number>`.
+- Do **not** use `Closes`, `Fixes`, or similar auto-closing keywords by default; merge must not silently bypass the repository's explicit completion workflow.
 - Ensure implementation, tests, and verification are complete before requesting review.
 - Do not treat PR open/close state as the task source of truth.
+- A PR that does not reference the canonical issue correctly is not review-ready.
 
 ## Standard workflow
 
