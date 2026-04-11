@@ -432,6 +432,7 @@ At minimum, v1 must use these stable codes where applicable:
 - `github_not_found`
 - `github_conflict`
 - `project_item_not_found`
+- `project_status_field_not_found`
 - `project_status_option_not_found`
 - `not_implemented`
 
@@ -887,14 +888,17 @@ Resolution order:
   "project_owner": "throw-if-null",
   "project_number": 1,
   "status_field_name": "Status",
+  "status_field_id": "PVTSSF_lAHOABCD1234",
   "item_type": "issue",
   "item_number": 13,
+  "project_item_id": "PVTI_lAHOABCD1234",
+  "status_option_id": "f75ad846",
   "status": "In Progress"
 }
 ```
 
 **Side effects**: none  
-**Failure behavior**: `project_item_not_found` if the item is not on the project  
+**Failure behavior**: `project_item_not_found` if the item is not on the project; `project_status_field_not_found` if the configured Status field is missing on the project  
 **Idempotency**: yes
 
 ## 11.12 `project set-status`

@@ -41,6 +41,13 @@ function createRuntimeDependencies() {
       version: 1 as const,
       repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
       callerToGitHubRole: { Greg: 'greg' },
+      projects: {
+        default: {
+          owner: 'throw-if-null',
+          projectNumber: 1,
+          statusFieldName: 'Status',
+        },
+      },
     }),
     loadAuthConfigImpl: async () => ({
       configPath: '/tmp/auth.json',
@@ -371,6 +378,108 @@ function mockIssueSetStateRequest(options: {
   }
 
   return scope;
+}
+
+function matchesProjectStatusLookup(body: unknown, options: { itemType: 'issue' | 'pr'; itemNumber: number; statusFieldName: string }): boolean {
+  const expectedQueryName = options.itemType === 'issue' ? 'query ProjectStatusForIssue' : 'query ProjectStatusForPullRequest';
+
+  return (
+    isObject(body) &&
+    typeof body.query === 'string' &&
+    body.query.includes(expectedQueryName) &&
+    isObject(body.variables) &&
+    body.variables.itemNumber === options.itemNumber &&
+    body.variables.statusFieldName === options.statusFieldName
+  );
+}
+
+function createProjectStatusFieldNode(options: { id: string; name: string }) {
+  return {
+    __typename: 'ProjectV2SingleSelectField',
+    id: options.id,
+    name: options.name,
+  };
+}
+
+function createProjectStatusValueNode(options: { fieldId: string; fieldName: string; optionId: string; name: string }) {
+  return {
+    __typename: 'ProjectV2ItemFieldSingleSelectValue',
+    optionId: options.optionId,
+    name: options.name,
+    field: {
+      __typename: 'ProjectV2SingleSelectField',
+      id: options.fieldId,
+      name: options.fieldName,
+    },
+  };
+}
+
+function createProjectItemNode(options: {
+  id: string;
+  projectOwner: string;
+  projectNumber: number;
+  fields?: unknown[];
+  statusValue?: unknown;
+}) {
+  return {
+    id: options.id,
+    project: {
+      number: options.projectNumber,
+      owner: {
+        login: options.projectOwner,
+      },
+      fields: {
+        nodes: options.fields ?? [],
+      },
+    },
+    fieldValueByName: options.statusValue ?? null,
+  };
+}
+
+function mockProjectGetStatusRequest(options: {
+  itemType: 'issue' | 'pr';
+  itemNumber: number;
+  statusFieldName?: string;
+  graphqlStatus?: number;
+  graphqlResponseBody?: Record<string, unknown>;
+}) {
+  const statusFieldName = options.statusFieldName ?? 'Status';
+
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .post('/graphql', (body: unknown) =>
+      matchesProjectStatusLookup(body, {
+        itemType: options.itemType,
+        itemNumber: options.itemNumber,
+        statusFieldName,
+      }),
+    )
+    .reply(
+      options.graphqlStatus ?? 200,
+      options.graphqlResponseBody ?? {
+        data: {
+          repository:
+            options.itemType === 'issue'
+              ? {
+                  issue: {
+                    projectItems: {
+                      nodes: [],
+                    },
+                  },
+                }
+              : {
+                  pullRequest: {
+                    projectItems: {
+                      nodes: [],
+                    },
+                  },
+                },
+        },
+      },
+    );
 }
 
 test('runCli renders root help', async () => {
@@ -770,6 +879,246 @@ test('runCli prints structured config failures for pr.get', async () => {
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
     command: 'pr.get',
+    error: {
+      code: 'config_not_found',
+      message: 'repo-local config not found at /tmp/.orfe/config.json.',
+      retryable: false,
+    },
+  });
+});
+
+test('runCli prints structured success JSON for project.get-status', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      graphqlResponseBody: {
+        data: {
+          repository: {
+            issue: {
+              projectItems: {
+                nodes: [
+                  createProjectItemNode({
+                    id: 'PVTI_lAHOABCD1234',
+                    projectOwner: 'throw-if-null',
+                    projectNumber: 1,
+                    fields: [createProjectStatusFieldNode({ id: 'PVTSSF_lAHOABCD1234', name: 'Status' })],
+                    statusValue: createProjectStatusValueNode({
+                      fieldId: 'PVTSSF_lAHOABCD1234',
+                      fieldName: 'Status',
+                      optionId: 'f75ad846',
+                      name: 'In Progress',
+                    }),
+                  }),
+                ],
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const exitCode = await runCli(['project', 'get-status', '--item-type', 'issue', '--item-number', '13'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'project.get-status',
+      repo: 'throw-if-null/orfe',
+      data: {
+        project_owner: 'throw-if-null',
+        project_number: 1,
+        status_field_name: 'Status',
+        status_field_id: 'PVTSSF_lAHOABCD1234',
+        item_type: 'issue',
+        item_number: 13,
+        project_item_id: 'PVTI_lAHOABCD1234',
+        status_option_id: 'f75ad846',
+        status: 'In Progress',
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured project-item-not-found failures for project.get-status', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      graphqlResponseBody: {
+        data: {
+          repository: {
+            issue: {
+              projectItems: {
+                nodes: [],
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const exitCode = await runCli(['project', 'get-status', '--item-type', 'issue', '--item-number', '13'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'project.get-status',
+      error: {
+        code: 'project_item_not_found',
+        message: 'Issue #13 is not present on GitHub Project throw-if-null/1.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured missing-status-field failures for project.get-status', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      graphqlResponseBody: {
+        data: {
+          repository: {
+            issue: {
+              projectItems: {
+                nodes: [
+                  createProjectItemNode({
+                    id: 'PVTI_lAHOABCD1234',
+                    projectOwner: 'throw-if-null',
+                    projectNumber: 1,
+                    fields: [createProjectStatusFieldNode({ id: 'PVTSSF_delivery', name: 'Delivery' })],
+                  }),
+                ],
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const exitCode = await runCli(['project', 'get-status', '--item-type', 'issue', '--item-number', '13'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'project.get-status',
+      error: {
+        code: 'project_status_field_not_found',
+        message: 'GitHub Project throw-if-null/1 has no single-select field named "Status".',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured auth failures for project.get-status', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      graphqlStatus: 403,
+      graphqlResponseBody: { message: 'Resource not accessible by integration' },
+    });
+
+    const exitCode = await runCli(['project', 'get-status', '--item-type', 'issue', '--item-number', '13'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'project.get-status',
+      error: {
+        code: 'auth_failed',
+        message: 'GitHub App authentication failed while reading project status for issue #13.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured config failures for project.get-status', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['project', 'get-status', '--item-type', 'issue', '--item-number', '13'], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('config_not_found', 'repo-local config not found at /tmp/.orfe/config.json.');
+    },
+  });
+
+  assert.equal(exitCode, 1);
+  assert.equal(stdout.output, '');
+  assert.deepEqual(JSON.parse(stderr.output), {
+    ok: false,
+    command: 'project.get-status',
     error: {
       code: 'config_not_found',
       message: 'repo-local config not found at /tmp/.orfe/config.json.',
