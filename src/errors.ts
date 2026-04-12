@@ -2,6 +2,7 @@ import type { OrfeCommandName } from './types.js';
 
 export const ERROR_CODES = [
   'invalid_usage',
+  'invalid_input',
   'caller_context_missing',
   'caller_name_missing',
   'caller_name_unmapped',

@@ -423,6 +423,7 @@ Shared envelope:
 At minimum, v1 must use these stable codes where applicable:
 
 - `invalid_usage`
+- `invalid_input`
 - `caller_context_missing`
 - `caller_name_missing`
 - `caller_name_unmapped`
@@ -837,7 +838,7 @@ Rules:
 ```
 
 **Side effects**: creates and submits a review  
-**Failure behavior**: missing PR => `github_not_found`  
+**Failure behavior**: invalid `event` => `invalid_input`; missing PR => `github_not_found`  
 **Idempotency**: no
 
 ## 11.10 `pr reply`

@@ -192,6 +192,33 @@ function mockPullRequestReplyRequest(prNumber: number, commentId: number, body: 
     });
 }
 
+function mockPullRequestSubmitReviewRequest(
+  prNumber: number,
+  body: string,
+  event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT',
+) {
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/pulls/${prNumber}`)
+    .reply(200, {
+      number: prNumber,
+      title: 'Design the `orfe` custom tool and CLI contract',
+      body: 'PR body',
+      state: 'open',
+      draft: false,
+      head: { ref: 'issues/orfe-13' },
+      base: { ref: 'main' },
+      html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}`,
+    })
+    .post(`/repos/throw-if-null/orfe/pulls/${prNumber}/reviews`, { body, event })
+    .reply(200, {
+      id: 555,
+    });
+}
+
 function createProjectStatusFieldNode(options: { id: string; name: string; options?: Array<{ id: string; name: string }> }) {
   return {
     __typename: 'ProjectV2SingleSelectField',
@@ -673,6 +700,64 @@ test('executeOrfeTool returns the shared success envelope for pr.comment', async
         comment_id: 123456,
         html_url: 'https://github.com/throw-if-null/orfe/pull/9#issuecomment-123456',
         created: true,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('executeOrfeTool returns the shared success envelope for pr.submit-review', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestSubmitReviewRequest(9, 'Looks good', 'APPROVE');
+
+    const result = await executeOrfeTool(
+      {
+        command: 'pr.submit-review',
+        pr_number: 9,
+        event: 'approve',
+        body: 'Looks good',
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => ({
+          configPath: '/tmp/.orfe/config.json',
+          version: 1,
+          repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
+          callerToGitHubRole: { Greg: 'greg' },
+        }),
+        loadAuthConfigImpl: async () => ({
+          configPath: '/tmp/auth.json',
+          version: 1,
+          roles: {
+            greg: {
+              provider: 'github-app',
+              appId: 123,
+              appSlug: 'GR3G-BOT',
+              privateKeyPath: '/tmp/greg.pem',
+            },
+          },
+        }),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'pr.submit-review',
+      repo: 'throw-if-null/orfe',
+      data: {
+        pr_number: 9,
+        review_id: 555,
+        event: 'approve',
+        submitted: true,
       },
     });
     assert.equal(api.isDone(), true);
