@@ -295,6 +295,47 @@ function mockPullRequestGetOrCreateRequest(options: {
   return scope;
 }
 
+function mockPullRequestCommentRequest(options: {
+  prNumber: number;
+  body: string;
+  verifyStatus?: number;
+  verifyResponseBody?: Record<string, unknown>;
+  status?: number;
+  responseBody?: Record<string, unknown>;
+}) {
+  const prNumber = options.prNumber;
+  const verifyStatus = options.verifyStatus ?? 200;
+  const status = options.status ?? 201;
+
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/pulls/${prNumber}`)
+    .reply(
+      verifyStatus,
+      options.verifyResponseBody ?? {
+        number: prNumber,
+        title: 'Design the `orfe` custom tool and CLI contract',
+        body: 'PR body',
+        state: 'open',
+        draft: false,
+        head: { ref: 'issues/orfe-13' },
+        base: { ref: 'main' },
+        html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}`,
+      },
+    )
+    .post(`/repos/throw-if-null/orfe/issues/${prNumber}/comments`, { body: options.body })
+    .reply(
+      status,
+      options.responseBody ?? {
+        id: 123456,
+        html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}#issuecomment-123456`,
+      },
+    );
+}
+
 function createIssueRestResponse(issueNumber: number, overrides: Record<string, unknown> = {}) {
   return {
     number: issueNumber,
@@ -1236,6 +1277,83 @@ test('runCli prints structured config failures for pr.get-or-create', async () =
       retryable: false,
     },
   });
+});
+
+test('runCli prints structured success JSON for pr.comment', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestCommentRequest({ prNumber: 9, body: 'Hello from orfe' });
+
+    const exitCode = await runCli(['pr', 'comment', '--pr-number', '9', '--body', 'Hello from orfe'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'pr.comment',
+      repo: 'throw-if-null/orfe',
+      data: {
+        pr_number: 9,
+        comment_id: 123456,
+        html_url: 'https://github.com/throw-if-null/orfe/pull/9#issuecomment-123456',
+        created: true,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured not-found failures for pr.comment', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestCommentRequest({
+      prNumber: 404,
+      body: 'Hello from orfe',
+      verifyStatus: 404,
+      verifyResponseBody: { message: 'Not Found' },
+    });
+
+    const exitCode = await runCli(['pr', 'comment', '--pr-number', '404', '--body', 'Hello from orfe'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'pr.comment',
+      error: {
+        code: 'github_not_found',
+        message: 'Pull request #404 was not found.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), false);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
 });
 
 test('runCli prints structured success JSON for project.get-status', async () => {
