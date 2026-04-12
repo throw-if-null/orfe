@@ -923,16 +923,20 @@ Rules:
   "project_owner": "throw-if-null",
   "project_number": 1,
   "status_field_name": "Status",
+  "status_field_id": "PVTSSF_lAHOABCD1234",
   "item_type": "issue",
   "item_number": 13,
+  "project_item_id": "PVTI_lAHOABCD1234",
+  "status_option_id": "f75ad846",
   "status": "In Progress",
+  "previous_status_option_id": "f75ad845",
   "previous_status": "Todo",
   "changed": true
 }
 ```
 
 **Side effects**: mutates project field state  
-**Failure behavior**: invalid option => `project_status_option_not_found`  
+**Failure behavior**: `project_item_not_found` if the item is not on the project; `project_status_field_not_found` if the configured or overridden single-select status field does not exist on the project; invalid option => `project_status_option_not_found`  
 **Idempotency**: yes
 
 ## 12. Success/failure semantics for follow-up implementation

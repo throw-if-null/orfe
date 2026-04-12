@@ -100,6 +100,68 @@ function mockPullRequestGetRequest(prNumber: number) {
     });
 }
 
+function createProjectStatusFieldNode(options: { id: string; name: string; options?: Array<{ id: string; name: string }> }) {
+  return {
+    __typename: 'ProjectV2SingleSelectField',
+    id: options.id,
+    name: options.name,
+    options: options.options ?? [],
+  };
+}
+
+function createProjectStatusValueNode(options: { fieldId: string; fieldName: string; optionId: string; name: string }) {
+  return {
+    __typename: 'ProjectV2ItemFieldSingleSelectValue',
+    optionId: options.optionId,
+    name: options.name,
+    field: {
+      __typename: 'ProjectV2SingleSelectField',
+      id: options.fieldId,
+      name: options.fieldName,
+    },
+  };
+}
+
+function createProjectItemsConnection(nodes: unknown[]) {
+  return {
+    nodes,
+    pageInfo: {
+      hasNextPage: false,
+      endCursor: null,
+    },
+  };
+}
+
+function createProjectFieldsConnection(nodes: unknown[]) {
+  return {
+    nodes,
+    pageInfo: {
+      hasNextPage: false,
+      endCursor: null,
+    },
+  };
+}
+
+function createProjectItemNode(options: {
+  id: string;
+  projectId?: string;
+  projectOwner: string;
+  projectNumber: number;
+  statusValue?: unknown;
+}) {
+  return {
+    id: options.id,
+    project: {
+      id: options.projectId ?? 'PVT_project_1',
+      number: options.projectNumber,
+      owner: {
+        login: options.projectOwner,
+      },
+    },
+    fieldValueByName: options.statusValue ?? null,
+  };
+}
+
 test('resolveCallerNameFromContext accepts a string agent name', () => {
   assert.equal(resolveCallerNameFromContext({ agent: 'Greg' }), 'Greg');
 });
@@ -535,6 +597,211 @@ test('executeOrfeTool returns the shared success envelope for project.get-status
         project_item_id: 'PVTI_lAHOABCD1234',
         status_option_id: 'f75ad846',
         status: 'In Progress',
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('executeOrfeTool returns the shared success envelope for project.set-status', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = nock('https://api.github.com')
+      .get('/repos/throw-if-null/orfe/installation')
+      .reply(200, { id: 42 })
+      .post('/app/installations/42/access_tokens')
+      .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+      .post('/graphql', (body: unknown) => {
+        return (
+          typeof body === 'object' &&
+          body !== null &&
+          'query' in body &&
+          typeof (body as { query?: unknown }).query === 'string' &&
+          (body as { query: string }).query.includes('query ProjectStatusForIssue')
+        );
+      })
+      .reply(200, {
+        data: {
+          repository: {
+            issue: {
+              projectItems: createProjectItemsConnection([
+                createProjectItemNode({
+                  id: 'PVTI_lAHOABCD1234',
+                  projectId: 'PVT_project_1',
+                  projectOwner: 'throw-if-null',
+                  projectNumber: 1,
+                  statusValue: createProjectStatusValueNode({
+                    fieldId: 'PVTSSF_lAHOABCD1234',
+                    fieldName: 'Status',
+                    optionId: 'f75ad845',
+                    name: 'Todo',
+                  }),
+                }),
+              ]),
+            },
+          },
+        },
+      })
+      .post('/graphql', (body: unknown) => {
+        return (
+          typeof body === 'object' &&
+          body !== null &&
+          'query' in body &&
+          typeof (body as { query?: unknown }).query === 'string' &&
+          (body as { query: string }).query.includes('query ProjectStatusFields')
+        );
+      })
+      .reply(200, {
+        data: {
+          node: {
+            fields: createProjectFieldsConnection([
+              createProjectStatusFieldNode({
+                id: 'PVTSSF_lAHOABCD1234',
+                name: 'Status',
+                options: [
+                  { id: 'f75ad845', name: 'Todo' },
+                  { id: 'f75ad846', name: 'In Progress' },
+                ],
+              }),
+            ]),
+          },
+        },
+      })
+      .post('/graphql', (body: unknown) => {
+        return (
+          typeof body === 'object' &&
+          body !== null &&
+          'query' in body &&
+          typeof (body as { query?: unknown }).query === 'string' &&
+          (body as { query: string }).query.includes('mutation UpdateProjectStatus')
+        );
+      })
+      .reply(200, {
+        data: {
+          updateProjectV2ItemFieldValue: {
+            clientMutationId: null,
+          },
+        },
+      })
+      .post('/graphql', (body: unknown) => {
+        return (
+          typeof body === 'object' &&
+          body !== null &&
+          'query' in body &&
+          typeof (body as { query?: unknown }).query === 'string' &&
+          (body as { query: string }).query.includes('query ProjectStatusForIssue')
+        );
+      })
+      .reply(200, {
+        data: {
+          repository: {
+            issue: {
+              projectItems: createProjectItemsConnection([
+                createProjectItemNode({
+                  id: 'PVTI_lAHOABCD1234',
+                  projectId: 'PVT_project_1',
+                  projectOwner: 'throw-if-null',
+                  projectNumber: 1,
+                  statusValue: createProjectStatusValueNode({
+                    fieldId: 'PVTSSF_lAHOABCD1234',
+                    fieldName: 'Status',
+                    optionId: 'f75ad846',
+                    name: 'In Progress',
+                  }),
+                }),
+              ]),
+            },
+          },
+        },
+      })
+      .post('/graphql', (body: unknown) => {
+        return (
+          typeof body === 'object' &&
+          body !== null &&
+          'query' in body &&
+          typeof (body as { query?: unknown }).query === 'string' &&
+          (body as { query: string }).query.includes('query ProjectStatusFields')
+        );
+      })
+      .reply(200, {
+        data: {
+          node: {
+            fields: createProjectFieldsConnection([
+              createProjectStatusFieldNode({
+                id: 'PVTSSF_lAHOABCD1234',
+                name: 'Status',
+                options: [
+                  { id: 'f75ad845', name: 'Todo' },
+                  { id: 'f75ad846', name: 'In Progress' },
+                ],
+              }),
+            ]),
+          },
+        },
+      });
+
+    const result = await executeOrfeTool(
+      {
+        command: 'project.set-status',
+        item_type: 'issue',
+        item_number: 13,
+        status: 'In Progress',
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => ({
+          configPath: '/tmp/.orfe/config.json',
+          version: 1,
+          repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
+          callerToGitHubRole: { Greg: 'greg' },
+          projects: {
+            default: {
+              owner: 'throw-if-null',
+              projectNumber: 1,
+              statusFieldName: 'Status',
+            },
+          },
+        }),
+        loadAuthConfigImpl: async () => ({
+          configPath: '/tmp/auth.json',
+          version: 1,
+          roles: {
+            greg: {
+              provider: 'github-app',
+              appId: 123,
+              appSlug: 'GR3G-BOT',
+              privateKeyPath: '/tmp/greg.pem',
+            },
+          },
+        }),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'project.set-status',
+      repo: 'throw-if-null/orfe',
+      data: {
+        project_owner: 'throw-if-null',
+        project_number: 1,
+        status_field_name: 'Status',
+        status_field_id: 'PVTSSF_lAHOABCD1234',
+        item_type: 'issue',
+        item_number: 13,
+        project_item_id: 'PVTI_lAHOABCD1234',
+        status_option_id: 'f75ad846',
+        status: 'In Progress',
+        previous_status_option_id: 'f75ad845',
+        previous_status: 'Todo',
+        changed: true,
       },
     });
     assert.equal(api.isDone(), true);
