@@ -245,7 +245,54 @@ function mockPullRequestGetRequest(options: {
         base: { ref: 'main' },
         html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}`,
       },
-    );
+     );
+}
+
+function mockPullRequestGetOrCreateRequest(options: {
+  head: string;
+  base?: string;
+  existingPullRequests?: Record<string, unknown>[];
+  listStatus?: number;
+  listResponseBody?: unknown;
+  createRequestBody?: Record<string, unknown>;
+  createStatus?: number;
+  createResponseBody?: Record<string, unknown>;
+}) {
+  const head = options.head;
+  const base = options.base ?? 'main';
+  const scope = nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get('/repos/throw-if-null/orfe/pulls')
+    .query({ state: 'open', head: `throw-if-null:${head}`, base, per_page: 100 })
+    .reply(options.listStatus ?? 200, options.listResponseBody ?? options.existingPullRequests ?? []);
+
+  if (options.createStatus !== undefined || options.createResponseBody !== undefined || options.createRequestBody !== undefined) {
+    scope
+      .post('/repos/throw-if-null/orfe/pulls', options.createRequestBody ?? {
+        head,
+        base,
+        title: 'Design the `orfe` custom tool and CLI contract',
+        draft: false,
+      })
+      .reply(
+        options.createStatus ?? 201,
+        options.createResponseBody ?? {
+          number: 9,
+          title: 'Design the `orfe` custom tool and CLI contract',
+          body: 'PR body',
+          state: 'open',
+          draft: false,
+          head: { ref: head },
+          base: { ref: base },
+          html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+        },
+      );
+  }
+
+  return scope;
 }
 
 function createIssueRestResponse(issueNumber: number, overrides: Record<string, unknown> = {}) {
@@ -983,6 +1030,206 @@ test('runCli prints structured config failures for pr.get', async () => {
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
     command: 'pr.get',
+    error: {
+      code: 'config_not_found',
+      message: 'repo-local config not found at /tmp/.orfe/config.json.',
+      retryable: false,
+    },
+  });
+});
+
+test('runCli prints structured success JSON for pr.get-or-create when reusing a pull request', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetOrCreateRequest({
+      head: 'issues/orfe-13',
+      existingPullRequests: [
+        {
+          number: 9,
+          title: 'Design the `orfe` custom tool and CLI contract',
+          body: 'PR body',
+          state: 'open',
+          draft: false,
+          head: { ref: 'issues/orfe-13' },
+          base: { ref: 'main' },
+          html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+        },
+      ],
+    });
+
+    const exitCode = await runCli(['pr', 'get-or-create', '--head', 'issues/orfe-13', '--title', 'Design the `orfe` custom tool and CLI contract'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'pr.get-or-create',
+      repo: 'throw-if-null/orfe',
+      data: {
+        pr_number: 9,
+        html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+        head: 'issues/orfe-13',
+        base: 'main',
+        draft: false,
+        created: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured success JSON for pr.get-or-create when creating a pull request', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetOrCreateRequest({
+      head: 'issues/orfe-13',
+      existingPullRequests: [],
+      createRequestBody: {
+        head: 'issues/orfe-13',
+        base: 'main',
+        title: 'Design the `orfe` custom tool and CLI contract',
+        body: 'Ref: #13',
+        draft: true,
+      },
+      createResponseBody: {
+        number: 10,
+        title: 'Design the `orfe` custom tool and CLI contract',
+        body: 'Ref: #13',
+        state: 'open',
+        draft: true,
+        head: { ref: 'issues/orfe-13' },
+        base: { ref: 'main' },
+        html_url: 'https://github.com/throw-if-null/orfe/pull/10',
+      },
+    });
+
+    const exitCode = await runCli(
+      ['pr', 'get-or-create', '--head', 'issues/orfe-13', '--title', 'Design the `orfe` custom tool and CLI contract', '--body', 'Ref: #13', '--draft'],
+      {
+        stdout,
+        stderr,
+        env: { ORFE_CALLER_NAME: 'Greg' },
+        ...createRuntimeDependencies(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'pr.get-or-create',
+      repo: 'throw-if-null/orfe',
+      data: {
+        pr_number: 10,
+        html_url: 'https://github.com/throw-if-null/orfe/pull/10',
+        head: 'issues/orfe-13',
+        base: 'main',
+        draft: true,
+        created: true,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured auth failures for pr.get-or-create lookup', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetOrCreateRequest({
+      head: 'issues/orfe-13',
+      listStatus: 403,
+      listResponseBody: { message: 'Resource not accessible by integration' },
+    });
+
+    const exitCode = await runCli(['pr', 'get-or-create', '--head', 'issues/orfe-13', '--title', 'Design the `orfe` custom tool and CLI contract'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'pr.get-or-create',
+      error: {
+        code: 'auth_failed',
+        message: 'GitHub App authentication failed while looking up pull requests for head "issues/orfe-13" and base "main".',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli reports missing required options for pr.get-or-create as usage errors', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['pr', 'get-or-create', '--head', 'issues/orfe-13'], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('internal_error', 'loadRepoConfigImpl should not run');
+    },
+  });
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /Missing required option "--title"\./);
+  assert.match(stderr.output, /Usage: orfe pr get-or-create --head <branch> --title <text>/);
+  assert.match(stderr.output, /See: orfe pr get-or-create --help/);
+});
+
+test('runCli prints structured config failures for pr.get-or-create', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['pr', 'get-or-create', '--head', 'issues/orfe-13', '--title', 'Design the `orfe` custom tool and CLI contract'], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('config_not_found', 'repo-local config not found at /tmp/.orfe/config.json.');
+    },
+  });
+
+  assert.equal(exitCode, 1);
+  assert.equal(stdout.output, '');
+  assert.deepEqual(JSON.parse(stderr.output), {
+    ok: false,
+    command: 'pr.get-or-create',
     error: {
       code: 'config_not_found',
       message: 'repo-local config not found at /tmp/.orfe/config.json.',
