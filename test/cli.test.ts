@@ -1475,6 +1475,53 @@ test('runCli prints structured success JSON for project.set-status', async () =>
   }
 });
 
+test('runCli prints structured missing-project-item failures for project.set-status', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      graphqlResponseBody: {
+        data: {
+          repository: {
+            issue: {
+              projectItems: createProjectItemsConnection([]),
+            },
+          },
+        },
+      },
+    });
+
+    const exitCode = await runCli(['project', 'set-status', '--item-type', 'issue', '--item-number', '13', '--status', 'In Progress'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'project.set-status',
+      error: {
+        code: 'project_item_not_found',
+        message: 'Issue #13 is not present on GitHub Project throw-if-null/1.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
 test('runCli prints structured invalid-status failures for project.set-status', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();

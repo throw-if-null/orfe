@@ -936,7 +936,7 @@ Rules:
 ```
 
 **Side effects**: mutates project field state  
-**Failure behavior**: `project_item_not_found` if the item is not on the project; invalid option => `project_status_option_not_found`  
+**Failure behavior**: `project_item_not_found` if the item is not on the project; `project_status_field_not_found` if the configured or overridden single-select status field does not exist on the project; invalid option => `project_status_option_not_found`  
 **Idempotency**: yes
 
 ## 12. Success/failure semantics for follow-up implementation

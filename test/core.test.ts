@@ -1593,6 +1593,52 @@ test('runOrfeCore treats project.set-status as an idempotent no-op when the requ
   }
 });
 
+test('runOrfeCore fails clearly when project.set-status targets an item outside the configured project', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      graphqlResponseBody: {
+        data: {
+          repository: {
+            issue: {
+              projectItems: createProjectItemsConnection([]),
+            },
+          },
+        },
+      },
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'project.set-status',
+          input: { item_type: 'issue', item_number: 13, status: 'In Progress' },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'project_item_not_found');
+        assert.equal(error.message, 'Issue #13 is not present on GitHub Project throw-if-null/1.');
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
 test('runOrfeCore fails clearly when project.set-status receives an invalid status option', async () => {
   nock.disableNetConnect();
 
