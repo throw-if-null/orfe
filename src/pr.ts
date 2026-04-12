@@ -1,6 +1,13 @@
 import { OrfeError } from './errors.js';
 import type { CommandContext } from './types.js';
 
+interface PullRequestCommentData {
+  pr_number: number;
+  comment_id: number;
+  html_url: string;
+  created: true;
+}
+
 interface PullRequestGetData {
   pr_number: number;
   title: string;
@@ -33,6 +40,11 @@ interface PullRequestRefData {
   ref?: unknown;
 }
 
+interface PullRequestCommentResponseData {
+  id?: unknown;
+  html_url?: unknown;
+}
+
 interface PullRequestGetResponseData {
   number?: unknown;
   title?: unknown;
@@ -58,6 +70,25 @@ export async function handlePrGet(context: CommandContext): Promise<PullRequestG
     return normalizePullRequestGetResponse(response.data as PullRequestGetResponseData);
   } catch (error) {
     throw mapPullRequestGetError(error, prNumber);
+  }
+}
+
+export async function handlePrComment(context: CommandContext): Promise<PullRequestCommentData> {
+  const prNumber = context.input.pr_number as number;
+  const body = context.input.body as string;
+
+  try {
+    const { rest } = await context.getGitHubClient();
+    const response = await rest.issues.createComment({
+      owner: context.repo.owner,
+      repo: context.repo.name,
+      issue_number: prNumber,
+      body,
+    });
+
+    return normalizePullRequestCommentResponse(prNumber, response.data as PullRequestCommentResponseData);
+  } catch (error) {
+    throw mapPullRequestCommentError(error, prNumber);
   }
 }
 
@@ -131,6 +162,26 @@ export async function handlePrGetOrCreate(context: CommandContext): Promise<Pull
   } catch (error) {
     throw mapPullRequestCreateError(error, context.repo.fullName, head, base);
   }
+}
+
+function normalizePullRequestCommentResponse(
+  prNumber: number,
+  comment: PullRequestCommentResponseData,
+): PullRequestCommentData {
+  if (typeof comment.id !== 'number' || !Number.isInteger(comment.id)) {
+    throw new OrfeError('internal_error', `GitHub comment response for pull request #${prNumber} is missing a valid id.`);
+  }
+
+  if (typeof comment.html_url !== 'string' || comment.html_url.length === 0) {
+    throw new OrfeError('internal_error', `GitHub comment response for pull request #${prNumber} is missing a valid html_url.`);
+  }
+
+  return {
+    pr_number: prNumber,
+    comment_id: comment.id,
+    html_url: comment.html_url,
+    created: true,
+  };
 }
 
 function normalizePullRequestGetResponse(pullRequest: PullRequestGetResponseData): PullRequestGetData {
@@ -230,6 +281,37 @@ function mapPullRequestGetError(error: unknown, prNumber: number): OrfeError {
   }
 
   return new OrfeError('internal_error', 'Unknown GitHub pull request lookup failure.');
+}
+
+function mapPullRequestCommentError(error: unknown, prNumber: number): OrfeError {
+  if (error instanceof OrfeError) {
+    return error;
+  }
+
+  const status = getGitHubRequestStatus(error);
+  if (status !== undefined) {
+    if (status === 404) {
+      return new OrfeError('github_not_found', `Pull request #${prNumber} was not found.`);
+    }
+
+    if (status === 401 || status === 403) {
+      return new OrfeError('auth_failed', `GitHub App authentication failed while commenting on pull request #${prNumber}.`);
+    }
+
+    return new OrfeError(
+      'internal_error',
+      `GitHub API request failed with status ${status}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      {
+        retryable: status >= 500 || status === 429,
+      },
+    );
+  }
+
+  if (error instanceof Error) {
+    return new OrfeError('internal_error', error.message);
+  }
+
+  return new OrfeError('internal_error', 'Unknown GitHub pull request comment failure.');
 }
 
 function mapPullRequestLookupError(error: unknown, repoFullName: string, head: string, base: string): OrfeError {
