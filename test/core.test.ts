@@ -16,7 +16,8 @@ const UNIMPLEMENTED_COMMAND_NAMES = COMMAND_NAMES.filter(
     commandName !== 'issue.comment' &&
     commandName !== 'issue.set-state' &&
     commandName !== 'pr.get' &&
-    commandName !== 'project.get-status',
+    commandName !== 'project.get-status' &&
+    commandName !== 'project.set-status',
 );
 
 function createRepoConfig() {
@@ -326,6 +327,19 @@ function matchesProjectStatusFields(body: unknown, options: { projectId: string;
   );
 }
 
+function matchesProjectStatusUpdate(body: unknown, options: { projectId: string; itemId: string; fieldId: string; optionId: string }): boolean {
+  return (
+    isObject(body) &&
+    typeof body.query === 'string' &&
+    body.query.includes('mutation UpdateProjectStatus') &&
+    isObject(body.variables) &&
+    body.variables.projectId === options.projectId &&
+    body.variables.itemId === options.itemId &&
+    body.variables.fieldId === options.fieldId &&
+    body.variables.optionId === options.optionId
+  );
+}
+
 function createPageInfo(options?: { hasNextPage?: boolean; endCursor?: string | null }) {
   return {
     hasNextPage: options?.hasNextPage ?? false,
@@ -460,6 +474,35 @@ function mockProjectStatusFieldsRequest(options: {
         data: {
           node: {
             fields: createProjectFieldsConnection([]),
+          },
+        },
+      },
+    );
+}
+
+function mockProjectStatusUpdateRequest(options: {
+  projectId?: string;
+  itemId: string;
+  fieldId: string;
+  optionId: string;
+  graphqlStatus?: number;
+  graphqlResponseBody?: Record<string, unknown>;
+}) {
+  return nock('https://api.github.com')
+    .post('/graphql', (body: unknown) =>
+      matchesProjectStatusUpdate(body, {
+        projectId: options.projectId ?? 'PVT_project_1',
+        itemId: options.itemId,
+        fieldId: options.fieldId,
+        optionId: options.optionId,
+      }),
+    )
+    .reply(
+      options.graphqlStatus ?? 200,
+      options.graphqlResponseBody ?? {
+        data: {
+          updateProjectV2ItemFieldValue: {
+            clientMutationId: null,
           },
         },
       },
@@ -1305,12 +1348,510 @@ test('project.set-status pins its exact JSON success contract', () => {
     project_owner: 'throw-if-null',
     project_number: 1,
     status_field_name: 'Status',
+    status_field_id: 'PVTSSF_lAHOABCD1234',
     item_type: 'issue',
     item_number: 13,
+    project_item_id: 'PVTI_lAHOABCD1234',
+    status_option_id: 'f75ad846',
     status: 'In Progress',
+    previous_status_option_id: 'f75ad845',
     previous_status: 'Todo',
     changed: true,
   });
+});
+
+test('runOrfeCore sets project status for an issue and returns structured success output', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const itemApi = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      graphqlResponseBody: {
+        data: {
+          repository: {
+            issue: {
+              projectItems: createProjectItemsConnection([
+                createProjectItemNode({
+                  id: 'PVTI_lAHOABCD1234',
+                  projectId: 'PVT_project_1',
+                  projectOwner: 'throw-if-null',
+                  projectNumber: 1,
+                  statusValue: createProjectStatusValueNode({
+                    fieldId: 'PVTSSF_lAHOABCD1234',
+                    fieldName: 'Status',
+                    optionId: 'f75ad845',
+                    name: 'Todo',
+                  }),
+                }),
+              ]),
+            },
+          },
+        },
+      },
+    });
+    const fieldsApi = mockProjectStatusFieldsRequest({
+      projectId: 'PVT_project_1',
+      graphqlResponseBody: {
+        data: {
+          node: {
+            fields: createProjectFieldsConnection([
+              {
+                ...createProjectStatusFieldNode({ id: 'PVTSSF_lAHOABCD1234', name: 'Status' }),
+                options: [
+                  { id: 'f75ad845', name: 'Todo' },
+                  { id: 'f75ad846', name: 'In Progress' },
+                  { id: 'f75ad847', name: 'Done' },
+                ],
+              },
+            ]),
+          },
+        },
+      },
+    });
+    const mutationApi = mockProjectStatusUpdateRequest({
+      itemId: 'PVTI_lAHOABCD1234',
+      fieldId: 'PVTSSF_lAHOABCD1234',
+      optionId: 'f75ad846',
+    });
+    const observedItemApi = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      includeAuth: false,
+      graphqlResponseBody: {
+        data: {
+          repository: {
+            issue: {
+              projectItems: createProjectItemsConnection([
+                createProjectItemNode({
+                  id: 'PVTI_lAHOABCD1234',
+                  projectId: 'PVT_project_1',
+                  projectOwner: 'throw-if-null',
+                  projectNumber: 1,
+                  statusValue: createProjectStatusValueNode({
+                    fieldId: 'PVTSSF_lAHOABCD1234',
+                    fieldName: 'Status',
+                    optionId: 'f75ad846',
+                    name: 'In Progress',
+                  }),
+                }),
+              ]),
+            },
+          },
+        },
+      },
+    });
+    const observedFieldsApi = mockProjectStatusFieldsRequest({
+      projectId: 'PVT_project_1',
+      graphqlResponseBody: {
+        data: {
+          node: {
+            fields: createProjectFieldsConnection([
+              {
+                ...createProjectStatusFieldNode({ id: 'PVTSSF_lAHOABCD1234', name: 'Status' }),
+                options: [
+                  { id: 'f75ad845', name: 'Todo' },
+                  { id: 'f75ad846', name: 'In Progress' },
+                  { id: 'f75ad847', name: 'Done' },
+                ],
+              },
+            ]),
+          },
+        },
+      },
+    });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'project.set-status',
+        input: { item_type: 'issue', item_number: 13, status: 'In Progress' },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'project.set-status',
+      repo: 'throw-if-null/orfe',
+      data: {
+        project_owner: 'throw-if-null',
+        project_number: 1,
+        status_field_name: 'Status',
+        status_field_id: 'PVTSSF_lAHOABCD1234',
+        item_type: 'issue',
+        item_number: 13,
+        project_item_id: 'PVTI_lAHOABCD1234',
+        status_option_id: 'f75ad846',
+        status: 'In Progress',
+        previous_status_option_id: 'f75ad845',
+        previous_status: 'Todo',
+        changed: true,
+      },
+    });
+    assert.equal(itemApi.isDone(), true);
+    assert.equal(fieldsApi.isDone(), true);
+    assert.equal(mutationApi.isDone(), true);
+    assert.equal(observedItemApi.isDone(), true);
+    assert.equal(observedFieldsApi.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore treats project.set-status as an idempotent no-op when the requested status already matches', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const itemApi = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      graphqlResponseBody: {
+        data: {
+          repository: {
+            issue: {
+              projectItems: createProjectItemsConnection([
+                createProjectItemNode({
+                  id: 'PVTI_lAHOABCD1234',
+                  projectId: 'PVT_project_1',
+                  projectOwner: 'throw-if-null',
+                  projectNumber: 1,
+                  statusValue: createProjectStatusValueNode({
+                    fieldId: 'PVTSSF_lAHOABCD1234',
+                    fieldName: 'Status',
+                    optionId: 'f75ad846',
+                    name: 'In Progress',
+                  }),
+                }),
+              ]),
+            },
+          },
+        },
+      },
+    });
+    const fieldsApi = mockProjectStatusFieldsRequest({
+      projectId: 'PVT_project_1',
+      graphqlResponseBody: {
+        data: {
+          node: {
+            fields: createProjectFieldsConnection([
+              {
+                ...createProjectStatusFieldNode({ id: 'PVTSSF_lAHOABCD1234', name: 'Status' }),
+                options: [
+                  { id: 'f75ad845', name: 'Todo' },
+                  { id: 'f75ad846', name: 'In Progress' },
+                ],
+              },
+            ]),
+          },
+        },
+      },
+    });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'project.set-status',
+        input: { item_type: 'issue', item_number: 13, status: 'In Progress' },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'project.set-status',
+      repo: 'throw-if-null/orfe',
+      data: {
+        project_owner: 'throw-if-null',
+        project_number: 1,
+        status_field_name: 'Status',
+        status_field_id: 'PVTSSF_lAHOABCD1234',
+        item_type: 'issue',
+        item_number: 13,
+        project_item_id: 'PVTI_lAHOABCD1234',
+        status_option_id: 'f75ad846',
+        status: 'In Progress',
+        previous_status_option_id: 'f75ad846',
+        previous_status: 'In Progress',
+        changed: false,
+      },
+    });
+    assert.equal(itemApi.isDone(), true);
+    assert.equal(fieldsApi.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore fails clearly when project.set-status receives an invalid status option', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const itemApi = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      graphqlResponseBody: {
+        data: {
+          repository: {
+            issue: {
+              projectItems: createProjectItemsConnection([
+                createProjectItemNode({
+                  id: 'PVTI_lAHOABCD1234',
+                  projectId: 'PVT_project_1',
+                  projectOwner: 'throw-if-null',
+                  projectNumber: 1,
+                  statusValue: createProjectStatusValueNode({
+                    fieldId: 'PVTSSF_lAHOABCD1234',
+                    fieldName: 'Status',
+                    optionId: 'f75ad845',
+                    name: 'Todo',
+                  }),
+                }),
+              ]),
+            },
+          },
+        },
+      },
+    });
+    const fieldsApi = mockProjectStatusFieldsRequest({
+      projectId: 'PVT_project_1',
+      graphqlResponseBody: {
+        data: {
+          node: {
+            fields: createProjectFieldsConnection([
+              {
+                ...createProjectStatusFieldNode({ id: 'PVTSSF_lAHOABCD1234', name: 'Status' }),
+                options: [
+                  { id: 'f75ad845', name: 'Todo' },
+                  { id: 'f75ad846', name: 'In Progress' },
+                ],
+              },
+            ]),
+          },
+        },
+      },
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'project.set-status',
+          input: { item_type: 'issue', item_number: 13, status: 'Blocked' },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'project_status_option_not_found');
+        assert.equal(error.message, 'GitHub Project throw-if-null/1 field "Status" has no option named "Blocked".');
+        return true;
+      },
+    );
+
+    assert.equal(itemApi.isDone(), true);
+    assert.equal(fieldsApi.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore maps project.set-status auth failures clearly', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      graphqlStatus: 403,
+      graphqlResponseBody: { message: 'Resource not accessible by integration' },
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'project.set-status',
+          input: { item_type: 'issue', item_number: 13, status: 'In Progress' },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'auth_failed');
+        assert.equal(error.message, 'GitHub App authentication failed while setting project status for issue #13.');
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore supports explicit status field overrides for project.set-status', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const itemApi = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      statusFieldName: 'Delivery',
+      graphqlResponseBody: {
+        data: {
+          repository: {
+            issue: {
+              projectItems: createProjectItemsConnection([
+                createProjectItemNode({
+                  id: 'PVTI_lAHOABCD1234',
+                  projectId: 'PVT_project_1',
+                  projectOwner: 'throw-if-null',
+                  projectNumber: 1,
+                  statusValue: createProjectStatusValueNode({
+                    fieldId: 'PVTSSF_delivery',
+                    fieldName: 'Delivery',
+                    optionId: 'f75ad847',
+                    name: 'Queued',
+                  }),
+                }),
+              ]),
+            },
+          },
+        },
+      },
+    });
+    const fieldsApi = mockProjectStatusFieldsRequest({
+      projectId: 'PVT_project_1',
+      graphqlResponseBody: {
+        data: {
+          node: {
+            fields: createProjectFieldsConnection([
+              {
+                ...createProjectStatusFieldNode({ id: 'PVTSSF_delivery', name: 'Delivery' }),
+                options: [
+                  { id: 'f75ad847', name: 'Queued' },
+                  { id: 'f75ad848', name: 'Shipped' },
+                ],
+              },
+            ]),
+          },
+        },
+      },
+    });
+    const mutationApi = mockProjectStatusUpdateRequest({
+      itemId: 'PVTI_lAHOABCD1234',
+      fieldId: 'PVTSSF_delivery',
+      optionId: 'f75ad848',
+    });
+    const observedItemApi = mockProjectGetStatusRequest({
+      itemType: 'issue',
+      itemNumber: 13,
+      statusFieldName: 'Delivery',
+      includeAuth: false,
+      graphqlResponseBody: {
+        data: {
+          repository: {
+            issue: {
+              projectItems: createProjectItemsConnection([
+                createProjectItemNode({
+                  id: 'PVTI_lAHOABCD1234',
+                  projectId: 'PVT_project_1',
+                  projectOwner: 'throw-if-null',
+                  projectNumber: 1,
+                  statusValue: createProjectStatusValueNode({
+                    fieldId: 'PVTSSF_delivery',
+                    fieldName: 'Delivery',
+                    optionId: 'f75ad848',
+                    name: 'Shipped',
+                  }),
+                }),
+              ]),
+            },
+          },
+        },
+      },
+    });
+    const observedFieldsApi = mockProjectStatusFieldsRequest({
+      projectId: 'PVT_project_1',
+      graphqlResponseBody: {
+        data: {
+          node: {
+            fields: createProjectFieldsConnection([
+              {
+                ...createProjectStatusFieldNode({ id: 'PVTSSF_delivery', name: 'Delivery' }),
+                options: [
+                  { id: 'f75ad847', name: 'Queued' },
+                  { id: 'f75ad848', name: 'Shipped' },
+                ],
+              },
+            ]),
+          },
+        },
+      },
+    });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'project.set-status',
+        input: { item_type: 'issue', item_number: 13, status: 'Shipped', status_field_name: 'Delivery' },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'project.set-status',
+      repo: 'throw-if-null/orfe',
+      data: {
+        project_owner: 'throw-if-null',
+        project_number: 1,
+        status_field_name: 'Delivery',
+        status_field_id: 'PVTSSF_delivery',
+        item_type: 'issue',
+        item_number: 13,
+        project_item_id: 'PVTI_lAHOABCD1234',
+        status_option_id: 'f75ad848',
+        status: 'Shipped',
+        previous_status_option_id: 'f75ad847',
+        previous_status: 'Queued',
+        changed: true,
+      },
+    });
+    assert.equal(itemApi.isDone(), true);
+    assert.equal(fieldsApi.isDone(), true);
+    assert.equal(mutationApi.isDone(), true);
+    assert.equal(observedItemApi.isDone(), true);
+    assert.equal(observedFieldsApi.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
 });
 
 test('every command definition uses the independently pinned success contract', () => {
