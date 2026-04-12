@@ -2,7 +2,7 @@ import { getCommandContract } from './command-contracts.js';
 import { OrfeError, createNotImplementedError } from './errors.js';
 import { handleIssueComment, handleIssueCreate, handleIssueGet, handleIssueSetState, handleIssueUpdate } from './issue.js';
 import { handleProjectGetStatus, handleProjectSetStatus } from './project.js';
-import { handlePrComment, handlePrGet, handlePrGetOrCreate } from './pr.js';
+import { handlePrComment, handlePrGet, handlePrGetOrCreate, handlePrReply } from './pr.js';
 import type { CommandContext, CommandInput, OrfeCommandGroup, OrfeCommandName } from './types.js';
 
 type OptionType = 'string' | 'number' | 'boolean' | 'enum' | 'string-array';
@@ -233,6 +233,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
       { key: 'comment_id', flag: '--comment-id', description: 'Review comment id.', type: 'number', required: true },
       { key: 'body', flag: '--body', description: 'Reply body.', type: 'string', required: true },
     ],
+    handler: handlePrReply,
   }),
   defineCommand({
     name: 'project.get-status',
