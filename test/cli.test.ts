@@ -18,8 +18,9 @@ class MemoryStream {
   }
 }
 
-const COMMAND_GROUPS: readonly OrfeCommandGroup[] = ['issue', 'pr', 'project'];
+const COMMAND_GROUPS: readonly OrfeCommandGroup[] = ['auth', 'issue', 'pr', 'project'];
 const ALL_COMMANDS: readonly OrfeCommandName[] = [
+  'auth.token',
   'issue.get',
   'issue.create',
   'issue.update',
@@ -69,6 +70,24 @@ function createGitHubClientFactory() {
     readFileImpl: async () => 'private-key',
     jwtFactory: () => 'jwt-token',
   });
+}
+
+function mockAuthTokenMintRequest(options: { repo?: { owner: string; name: string }; installationStatus?: number; tokenStatus?: number }) {
+  const owner = options.repo?.owner ?? 'throw-if-null';
+  const repo = options.repo?.name ?? 'orfe';
+
+  const scope = nock('https://api.github.com').get(`/repos/${owner}/${repo}/installation`).reply(options.installationStatus ?? 200, {
+    id: 42,
+  });
+
+  if ((options.installationStatus ?? 200) === 200) {
+    scope.post('/app/installations/42/access_tokens').reply(options.tokenStatus ?? 201, {
+      token: 'ghs_123',
+      expires_at: '2026-04-06T12:00:00Z',
+    });
+  }
+
+  return scope;
 }
 
 function mockIssueGetRequest(options: {
@@ -848,6 +867,132 @@ test('runCli requires caller identity for CLI mode', async () => {
   assert.equal(stdout.output, '');
   assert.match(stderr.output, /CLI caller identity is required via --caller-name or ORFE_CALLER_NAME\./);
   assert.match(stderr.output, /See: orfe issue get --help/);
+});
+
+test('runCli does not require caller identity for auth.token', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockAuthTokenMintRequest({});
+
+    const exitCode = await runCli(['auth', 'token', '--role', 'greg', '--repo', 'throw-if-null/orfe'], {
+      stdout,
+      stderr,
+      env: {},
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'auth.token',
+      repo: 'throw-if-null/orfe',
+      data: {
+        role: 'greg',
+        app_slug: 'GR3G-BOT',
+        repo: 'throw-if-null/orfe',
+        token: 'ghs_123',
+        expires_at: '2026-04-06T12:00:00Z',
+        auth_mode: 'github-app',
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured auth failure for auth.token missing installation', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockAuthTokenMintRequest({ installationStatus: 404 });
+
+    const exitCode = await runCli(['auth', 'token', '--role', 'greg', '--repo', 'throw-if-null/orfe'], {
+      stdout,
+      stderr,
+      env: {},
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'auth.token',
+      error: {
+        code: 'auth_failed',
+        message: 'No GitHub App installation for throw-if-null/orfe was found for app GR3G-BOT.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured config failures for auth.token', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['auth', 'token', '--role', 'greg', '--repo', 'throw-if-null/orfe'], {
+    stdout,
+    stderr,
+    env: {},
+    loadRepoConfigImpl: async () => ({
+      configPath: '/tmp/.orfe/config.json',
+      version: 1 as const,
+      repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
+      callerToGitHubRole: { Greg: 'greg' },
+    }),
+    loadAuthConfigImpl: async () => {
+      throw new OrfeError('config_not_found', 'machine-local auth config not found at /tmp/auth.json.');
+    },
+  });
+
+  assert.equal(exitCode, 1);
+  assert.equal(stdout.output, '');
+  assert.deepEqual(JSON.parse(stderr.output), {
+    ok: false,
+    command: 'auth.token',
+    error: {
+      code: 'config_not_found',
+      message: 'machine-local auth config not found at /tmp/auth.json.',
+      retryable: false,
+    },
+  });
+});
+
+test('runCli reports missing required options for auth.token as usage errors', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['auth', 'token', '--role', 'greg'], {
+    stdout,
+    stderr,
+    env: {},
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('internal_error', 'loadRepoConfigImpl should not run');
+    },
+  });
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /Missing required option "--repo"\./);
+  assert.match(stderr.output, /Usage: orfe auth token --role <role> --repo <owner\/name>/);
+  assert.match(stderr.output, /See: orfe auth token --help/);
 });
 
 test('runCli prefers --caller-name over ORFE_CALLER_NAME', () => {

@@ -98,3 +98,42 @@ test('GitHubClientFactory reports missing installations clearly', async () => {
   nock.cleanAll();
   nock.enableNetConnect();
 });
+
+test('GitHubClientFactory can mint installation auth without constructing clients', async () => {
+  nock.disableNetConnect();
+
+  const api = nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' });
+
+  const factory = new GitHubClientFactory({
+    readFileImpl: async () => 'private-key',
+    jwtFactory: () => 'jwt-token',
+  });
+
+  const auth = await factory.createInstallationAuth(
+    'greg',
+    {
+      provider: 'github-app',
+      appId: 123458,
+      appSlug: 'GR3G-BOT',
+      privateKeyPath: '/tmp/greg.pem',
+    },
+    {
+      owner: 'throw-if-null',
+      name: 'orfe',
+      fullName: 'throw-if-null/orfe',
+    },
+  );
+
+  assert.deepEqual(auth, {
+    installationId: 42,
+    token: 'ghs_123',
+    expiresAt: '2026-04-06T12:00:00Z',
+  });
+  assert.equal(api.isDone(), true);
+  nock.cleanAll();
+  nock.enableNetConnect();
+});

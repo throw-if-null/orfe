@@ -6,6 +6,7 @@ export interface CommandContract {
 }
 
 export const COMMAND_NAMES = [
+  'auth.token',
   'issue.get',
   'issue.create',
   'issue.update',
@@ -21,6 +22,17 @@ export const COMMAND_NAMES = [
 ] as const satisfies readonly OrfeCommandName[];
 
 export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
+  'auth.token': {
+    validInput: { role: 'greg', repo: 'throw-if-null/orfe' },
+    successDataExample: {
+      role: 'greg',
+      app_slug: 'GR3G-BOT',
+      repo: 'throw-if-null/orfe',
+      token: 'ghs_123',
+      expires_at: '2026-04-06T12:00:00Z',
+      auth_mode: 'github-app',
+    },
+  },
   'issue.get': {
     validInput: { issue_number: 13 },
     successDataExample: {

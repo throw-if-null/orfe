@@ -259,6 +259,30 @@ test('getRoleAuthConfig reports missing caller-name to GitHub-role mappings wher
   assert.throws(() => getRoleAuthConfig(config, 'greg'), /has no entry for GitHub role "greg"/);
 });
 
+test('loadAuthConfig preserves config-derived app_slug metadata for roles', async () => {
+  const tempDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-auth-config-'));
+  const authConfigPath = path.join(tempDirectory, 'auth.json');
+
+  await writeFile(
+    authConfigPath,
+    JSON.stringify({
+      version: 1,
+      roles: {
+        greg: {
+          provider: 'github-app',
+          app_id: 123458,
+          app_slug: 'GR3G-BOT',
+          private_key_path: '/tmp/greg.pem',
+        },
+      },
+    }),
+  );
+
+  const config = await loadAuthConfig({ authConfigPath });
+
+  assert.equal(config.roles.greg?.appSlug, 'GR3G-BOT');
+});
+
 test('resolveRepository uses repo override when provided', async () => {
   const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
   await writeRepoConfig(

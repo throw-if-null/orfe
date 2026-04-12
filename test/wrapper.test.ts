@@ -13,6 +13,14 @@ function createGitHubClientFactory() {
   });
 }
 
+function mockAuthTokenMintRequest() {
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' });
+}
+
 function mockIssueGetRequest(issueNumber: number) {
   return nock('https://api.github.com')
     .get('/repos/throw-if-null/orfe/installation')
@@ -1194,6 +1202,84 @@ test('executeOrfeTool rejects missing caller context clearly', async () => {
       retryable: false,
     },
   });
+});
+
+test('executeOrfeTool still rejects missing caller context for caller-mapped commands', async () => {
+  const result = await executeOrfeTool(
+    {
+      command: 'issue.get',
+      issue_number: 14,
+    },
+    {},
+  );
+
+  assert.deepEqual(result, {
+    ok: false,
+    command: 'issue.get',
+    error: {
+      code: 'caller_context_missing',
+      message: 'OpenCode caller context is missing.',
+      retryable: false,
+    },
+  });
+});
+
+test('executeOrfeTool allows auth.token without caller context and returns shared success envelope', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockAuthTokenMintRequest();
+
+    const result = await executeOrfeTool(
+      {
+        command: 'auth.token',
+        role: 'greg',
+        repo: 'throw-if-null/orfe',
+      },
+      {
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => ({
+          configPath: '/tmp/.orfe/config.json',
+          version: 1,
+          repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
+          callerToGitHubRole: { Greg: 'greg' },
+        }),
+        loadAuthConfigImpl: async () => ({
+          configPath: '/tmp/auth.json',
+          version: 1,
+          roles: {
+            greg: {
+              provider: 'github-app',
+              appId: 123,
+              appSlug: 'GR3G-BOT',
+              privateKeyPath: '/tmp/greg.pem',
+            },
+          },
+        }),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'auth.token',
+      repo: 'throw-if-null/orfe',
+      data: {
+        role: 'greg',
+        app_slug: 'GR3G-BOT',
+        repo: 'throw-if-null/orfe',
+        token: 'ghs_123',
+        expires_at: '2026-04-06T12:00:00Z',
+        auth_mode: 'github-app',
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
 });
 
 test('executeOrfeTool rejects caller_name from tool input', async () => {

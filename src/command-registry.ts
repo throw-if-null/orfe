@@ -1,3 +1,4 @@
+import { handleAuthToken } from './auth.js';
 import { getCommandContract } from './command-contracts.js';
 import { OrfeError, createNotImplementedError } from './errors.js';
 import { handleIssueComment, handleIssueCreate, handleIssueGet, handleIssueSetState, handleIssueUpdate } from './issue.js';
@@ -58,6 +59,18 @@ const commonCliOptions: CommandOptionDefinition[] = [
 ];
 
 export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
+  defineCommand({
+    name: 'auth.token',
+    purpose: 'Mint a GitHub App installation token for a role and repository.',
+    usage: 'orfe auth token --role <role> --repo <owner/name> [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    successSummary: 'Prints structured JSON token metadata and the minted token.',
+    examples: ['orfe auth token --role greg --repo throw-if-null/orfe --caller-name Greg'],
+    options: [
+      { key: 'role', flag: '--role', description: 'GitHub role to mint for.', type: 'string', required: true },
+      { key: 'repo', flag: '--repo', description: 'Target repository as owner/name.', type: 'string', required: true },
+    ],
+    handler: handleAuthToken,
+  }),
   defineCommand({
     name: 'issue.get',
     purpose: 'Read one issue.',
@@ -298,16 +311,15 @@ export function validateCommandInput(definition: CommandDefinition, input: Comma
   const validatedInput: CommandInput = {};
   const allowedKeys = new Set(['repo', ...definition.options.map((option) => option.key)]);
 
+  if (input.repo !== undefined) {
+    validatedInput.repo = validateOptionValue({ key: 'repo', type: 'string' }, input.repo);
+  }
+
   for (const inputKey of Object.keys(input)) {
     if (!allowedKeys.has(inputKey)) {
       throw new OrfeError('invalid_usage', `Command "${definition.name}" does not accept input field "${inputKey}".`);
     }
   }
-
-  if (input.repo !== undefined) {
-    validatedInput.repo = validateOptionValue({ key: 'repo', type: 'string' }, input.repo);
-  }
-
   for (const option of definition.options) {
     const rawValue = input[option.key];
 

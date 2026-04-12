@@ -31,7 +31,7 @@ export async function executeOrfeTool(
       throw new OrfeError('invalid_usage', 'Tool input requires a non-empty command string.');
     }
 
-    const callerName = resolveCallerNameFromContext(context);
+    const callerName = requiresCallerContext(input.command) ? resolveCallerNameFromContext(context) : '';
     const rest = { ...input };
     delete rest.command;
 
@@ -47,6 +47,10 @@ export async function executeOrfeTool(
   } catch (error) {
     return createErrorResponse(command, error);
   }
+}
+
+function requiresCallerContext(command: string): boolean {
+  return command !== 'auth.token';
 }
 
 export function resolveCallerNameFromContext(context: OpenCodeToolContext): string {

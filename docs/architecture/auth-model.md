@@ -23,13 +23,13 @@ That would weaken auditability, confuse workflow ownership, and blur the distinc
 ## Runtime auth inside `orfe`
 
 For `orfe` command execution:
-1. caller identity is resolved
-2. repo-local config maps caller name to GitHub role
+1. the command resolves an explicit role input or caller identity, depending on the command contract
+2. the runtime resolves the effective GitHub role
 3. machine-local auth config provides per-role GitHub App credentials
 4. `orfe` mints the GitHub App JWT internally
 5. `orfe` resolves the installation internally
 6. `orfe` mints the installation token internally
-7. the runtime uses that token to build Octokit clients
+7. the runtime uses that token to build Octokit clients or returns it directly for `orfe auth token`
 
 This is the intended v1 runtime auth model.
 
@@ -58,6 +58,7 @@ Path B is repository operating procedure used by agents when they perform `gh` C
 - used by `orfe` command behavior
 - auth is internal to the runtime
 - no external token provider shell-out for runtime command behavior
+- includes native token minting via `orfe auth token`
 
 ### Path B: agent `gh` CLI operations (repository operating procedure)
 - used for GitHub issue, PR, project, and review actions outside direct runtime command execution
@@ -66,7 +67,7 @@ Path B is repository operating procedure used by agents when they perform `gh` C
 
 ## Future direction
 
-The long-term simplification path is to provide a native `orfe token` command or another first-class bot-token path, then retire the transitional `tokenner` dependency intentionally.
+The long-term simplification path is to adopt the native `orfe auth token` path for repository procedures intentionally, then retire the transitional `tokenner` dependency in follow-up migration work.
 
 Until that happens:
 - preserve the current helper path explicitly
