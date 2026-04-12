@@ -79,6 +79,7 @@ export async function handlePrComment(context: CommandContext): Promise<PullRequ
 
   try {
     const { rest } = await context.getGitHubClient();
+    await assertPrCommentTargetIsPullRequest(rest, context.repo.owner, context.repo.name, prNumber);
     const response = await rest.issues.createComment({
       owner: context.repo.owner,
       repo: context.repo.name,
@@ -161,6 +162,23 @@ export async function handlePrGetOrCreate(context: CommandContext): Promise<Pull
     };
   } catch (error) {
     throw mapPullRequestCreateError(error, context.repo.fullName, head, base);
+  }
+}
+
+async function assertPrCommentTargetIsPullRequest(
+  rest: Awaited<ReturnType<CommandContext['getGitHubClient']>>['rest'],
+  owner: string,
+  repo: string,
+  prNumber: number,
+): Promise<void> {
+  try {
+    await rest.pulls.get({
+      owner,
+      repo,
+      pull_number: prNumber,
+    });
+  } catch (error) {
+    throw mapPullRequestCommentError(error, prNumber);
   }
 }
 

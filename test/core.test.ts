@@ -293,10 +293,13 @@ function mockPullRequestGetOrCreateRequest(options: {
 function mockPullRequestCommentRequest(options: {
   prNumber: number;
   body: string;
+  verifyStatus?: number;
+  verifyResponseBody?: Record<string, unknown>;
   status?: number;
   responseBody?: Record<string, unknown>;
 }) {
   const prNumber = options.prNumber;
+  const verifyStatus = options.verifyStatus ?? 200;
   const status = options.status ?? 201;
 
   return nock('https://api.github.com')
@@ -304,6 +307,20 @@ function mockPullRequestCommentRequest(options: {
     .reply(200, { id: 42 })
     .post('/app/installations/42/access_tokens')
     .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/pulls/${prNumber}`)
+    .reply(
+      verifyStatus,
+      options.verifyResponseBody ?? {
+        number: prNumber,
+        title: 'Design the `orfe` custom tool and CLI contract',
+        body: 'PR body',
+        state: 'open',
+        draft: false,
+        head: { ref: 'issues/orfe-13' },
+        base: { ref: 'main' },
+        html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}`,
+      },
+    )
     .post(`/repos/throw-if-null/orfe/issues/${prNumber}/comments`, { body: options.body })
     .reply(
       status,
@@ -2404,6 +2421,45 @@ test('runOrfeCore maps pr.comment not-found responses clearly', async () => {
     );
 
     assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore maps plain-issue targets for pr.comment as not found', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestCommentRequest({
+      prNumber: 14,
+      body: 'Hello from orfe',
+      verifyStatus: 404,
+      verifyResponseBody: { message: 'Not Found' },
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'pr.comment',
+          input: { pr_number: 14, body: 'Hello from orfe' },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'github_not_found');
+        assert.equal(error.message, 'Pull request #14 was not found.');
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), false);
   } finally {
     nock.cleanAll();
     nock.enableNetConnect();
