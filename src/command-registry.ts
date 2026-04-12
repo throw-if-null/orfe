@@ -2,7 +2,7 @@ import { getCommandContract } from './command-contracts.js';
 import { OrfeError, createNotImplementedError } from './errors.js';
 import { handleIssueComment, handleIssueCreate, handleIssueGet, handleIssueSetState, handleIssueUpdate } from './issue.js';
 import { handleProjectGetStatus, handleProjectSetStatus } from './project.js';
-import { handlePrComment, handlePrGet, handlePrGetOrCreate, handlePrReply } from './pr.js';
+import { handlePrComment, handlePrGet, handlePrGetOrCreate, handlePrReply, handlePrSubmitReview } from './pr.js';
 import type { CommandContext, CommandInput, OrfeCommandGroup, OrfeCommandName } from './types.js';
 
 type OptionType = 'string' | 'number' | 'boolean' | 'enum' | 'string-array';
@@ -215,12 +215,17 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
         key: 'event',
         flag: '--event',
         description: 'Review event.',
-        type: 'enum',
-        enumValues: ['approve', 'request-changes', 'comment'],
+        type: 'string',
         required: true,
       },
       { key: 'body', flag: '--body', description: 'Review body.', type: 'string', required: true },
     ],
+    validate(input) {
+      if (!['approve', 'request-changes', 'comment'].includes(input.event as string)) {
+        throw new OrfeError('invalid_input', 'Review event must be one of: approve, request-changes, comment.');
+      }
+    },
+    handler: handlePrSubmitReview,
   }),
   defineCommand({
     name: 'pr.reply',

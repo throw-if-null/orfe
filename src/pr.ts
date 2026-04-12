@@ -15,6 +15,15 @@ interface PullRequestReplyData {
   created: true;
 }
 
+type PullRequestReviewEvent = 'approve' | 'request-changes' | 'comment';
+
+interface PullRequestSubmitReviewData {
+  pr_number: number;
+  review_id: number;
+  event: PullRequestReviewEvent;
+  submitted: true;
+}
+
 interface PullRequestGetData {
   pr_number: number;
   title: string;
@@ -55,6 +64,10 @@ interface PullRequestCommentResponseData {
 interface PullRequestReplyResponseData {
   id?: unknown;
   in_reply_to_id?: unknown;
+}
+
+interface PullRequestSubmitReviewResponseData {
+  id?: unknown;
 }
 
 interface PullRequestGetResponseData {
@@ -124,6 +137,28 @@ export async function handlePrReply(context: CommandContext): Promise<PullReques
     return normalizePullRequestReplyResponse(prNumber, commentId, response.data as PullRequestReplyResponseData);
   } catch (error) {
     throw mapPullRequestReplyError(error, prNumber, commentId);
+  }
+}
+
+export async function handlePrSubmitReview(context: CommandContext): Promise<PullRequestSubmitReviewData> {
+  const prNumber = context.input.pr_number as number;
+  const event = readPullRequestReviewEvent(context.input.event);
+  const body = context.input.body as string;
+
+  try {
+    const { rest } = await context.getGitHubClient();
+    await assertPrSubmitReviewTargetIsPullRequest(rest, context.repo.owner, context.repo.name, prNumber);
+    const response = await rest.pulls.createReview({
+      owner: context.repo.owner,
+      repo: context.repo.name,
+      pull_number: prNumber,
+      body,
+      event: mapPullRequestReviewEvent(event),
+    });
+
+    return normalizePullRequestSubmitReviewResponse(prNumber, event, response.data as PullRequestSubmitReviewResponseData);
+  } catch (error) {
+    throw mapPullRequestSubmitReviewError(error, prNumber);
   }
 }
 
@@ -217,6 +252,15 @@ async function assertPrReplyTargetIsPullRequest(
   await assertPrTargetIsPullRequest(rest, owner, repo, prNumber, mapPullRequestReplyTargetError);
 }
 
+async function assertPrSubmitReviewTargetIsPullRequest(
+  rest: Awaited<ReturnType<CommandContext['getGitHubClient']>>['rest'],
+  owner: string,
+  repo: string,
+  prNumber: number,
+): Promise<void> {
+  await assertPrTargetIsPullRequest(rest, owner, repo, prNumber, mapPullRequestSubmitReviewError);
+}
+
 async function assertPrTargetIsPullRequest(
   rest: Awaited<ReturnType<CommandContext['getGitHubClient']>>['rest'],
   owner: string,
@@ -283,6 +327,23 @@ function normalizePullRequestReplyResponse(
     comment_id: comment.id,
     in_reply_to_comment_id: comment.in_reply_to_id,
     created: true,
+  };
+}
+
+function normalizePullRequestSubmitReviewResponse(
+  prNumber: number,
+  event: PullRequestReviewEvent,
+  review: PullRequestSubmitReviewResponseData,
+): PullRequestSubmitReviewData {
+  if (typeof review.id !== 'number' || !Number.isInteger(review.id)) {
+    throw new OrfeError('internal_error', `GitHub review response for pull request #${prNumber} is missing a valid id.`);
+  }
+
+  return {
+    pr_number: prNumber,
+    review_id: review.id,
+    event,
+    submitted: true,
   };
 }
 
@@ -488,6 +549,37 @@ function mapPullRequestReplyError(error: unknown, prNumber: number, commentId: n
   return new OrfeError('internal_error', 'Unknown GitHub pull request reply failure.');
 }
 
+function mapPullRequestSubmitReviewError(error: unknown, prNumber: number): OrfeError {
+  if (error instanceof OrfeError) {
+    return error;
+  }
+
+  const status = getGitHubRequestStatus(error);
+  if (status !== undefined) {
+    if (status === 404) {
+      return new OrfeError('github_not_found', `Pull request #${prNumber} was not found.`);
+    }
+
+    if (status === 401 || status === 403) {
+      return new OrfeError('auth_failed', `GitHub App authentication failed while submitting a review on pull request #${prNumber}.`);
+    }
+
+    return new OrfeError(
+      'internal_error',
+      `GitHub API request failed with status ${status}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      {
+        retryable: status >= 500 || status === 429,
+      },
+    );
+  }
+
+  if (error instanceof Error) {
+    return new OrfeError('internal_error', error.message);
+  }
+
+  return new OrfeError('internal_error', 'Unknown GitHub pull request review submission failure.');
+}
+
 function mapPullRequestLookupError(error: unknown, repoFullName: string, head: string, base: string): OrfeError {
   if (error instanceof OrfeError) {
     return error;
@@ -558,6 +650,25 @@ function mapPullRequestCreateError(error: unknown, repoFullName: string, head: s
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function readPullRequestReviewEvent(value: unknown): PullRequestReviewEvent {
+  if (value === 'approve' || value === 'request-changes' || value === 'comment') {
+    return value;
+  }
+
+  throw new OrfeError('invalid_input', 'Review event must be one of: approve, request-changes, comment.');
+}
+
+function mapPullRequestReviewEvent(value: PullRequestReviewEvent): 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT' {
+  switch (value) {
+    case 'approve':
+      return 'APPROVE';
+    case 'request-changes':
+      return 'REQUEST_CHANGES';
+    case 'comment':
+      return 'COMMENT';
+  }
 }
 
 function getGitHubRequestStatus(error: unknown): number | undefined {

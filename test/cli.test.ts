@@ -379,6 +379,50 @@ function mockPullRequestReplyRequest(options: {
     );
 }
 
+function mockPullRequestSubmitReviewRequest(options: {
+  prNumber: number;
+  body: string;
+  event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT';
+  verifyStatus?: number;
+  verifyResponseBody?: Record<string, unknown>;
+  status?: number;
+  responseBody?: Record<string, unknown>;
+}) {
+  const prNumber = options.prNumber;
+  const verifyStatus = options.verifyStatus ?? 200;
+  const status = options.status ?? 200;
+
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/pulls/${prNumber}`)
+    .reply(
+      verifyStatus,
+      options.verifyResponseBody ?? {
+        number: prNumber,
+        title: 'Design the `orfe` custom tool and CLI contract',
+        body: 'PR body',
+        state: 'open',
+        draft: false,
+        head: { ref: 'issues/orfe-13' },
+        base: { ref: 'main' },
+        html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}`,
+      },
+    )
+    .post(`/repos/throw-if-null/orfe/pulls/${prNumber}/reviews`, {
+      body: options.body,
+      event: options.event,
+    })
+    .reply(
+      status,
+      options.responseBody ?? {
+        id: 555,
+      },
+    );
+}
+
 function createIssueRestResponse(issueNumber: number, overrides: Record<string, unknown> = {}) {
   return {
     number: issueNumber,
@@ -1397,6 +1441,180 @@ test('runCli prints structured not-found failures for pr.comment', async () => {
     nock.cleanAll();
     nock.enableNetConnect();
   }
+});
+
+test('runCli prints structured success JSON for pr.submit-review', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestSubmitReviewRequest({ prNumber: 9, body: 'Looks good', event: 'APPROVE' });
+
+    const exitCode = await runCli(['pr', 'submit-review', '--pr-number', '9', '--event', 'approve', '--body', 'Looks good'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'pr.submit-review',
+      repo: 'throw-if-null/orfe',
+      data: {
+        pr_number: 9,
+        review_id: 555,
+        event: 'approve',
+        submitted: true,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured not-found failures for pr.submit-review', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestSubmitReviewRequest({
+      prNumber: 404,
+      body: 'Looks good',
+      event: 'APPROVE',
+      verifyStatus: 404,
+      verifyResponseBody: { message: 'Not Found' },
+    });
+
+    const exitCode = await runCli(
+      ['pr', 'submit-review', '--pr-number', '404', '--event', 'approve', '--body', 'Looks good'],
+      {
+        stdout,
+        stderr,
+        env: { ORFE_CALLER_NAME: 'Greg' },
+        ...createRuntimeDependencies(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'pr.submit-review',
+      error: {
+        code: 'github_not_found',
+        message: 'Pull request #404 was not found.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), false);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured auth failures for pr.submit-review', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestSubmitReviewRequest({
+      prNumber: 9,
+      body: 'Looks good',
+      event: 'APPROVE',
+      status: 403,
+      responseBody: { message: 'Resource not accessible by integration' },
+    });
+
+    const exitCode = await runCli(['pr', 'submit-review', '--pr-number', '9', '--event', 'approve', '--body', 'Looks good'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'pr.submit-review',
+      error: {
+        code: 'auth_failed',
+        message: 'GitHub App authentication failed while submitting a review on pull request #9.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured config failures for pr.submit-review', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['pr', 'submit-review', '--pr-number', '9', '--event', 'approve', '--body', 'Looks good'], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('config_not_found', 'repo-local config not found at /tmp/.orfe/config.json.');
+    },
+  });
+
+  assert.equal(exitCode, 1);
+  assert.equal(stdout.output, '');
+  assert.deepEqual(JSON.parse(stderr.output), {
+    ok: false,
+    command: 'pr.submit-review',
+    error: {
+      code: 'config_not_found',
+      message: 'repo-local config not found at /tmp/.orfe/config.json.',
+      retryable: false,
+    },
+  });
+});
+
+test('runCli formats core invalid_input errors as structured failures for pr.submit-review', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['pr', 'submit-review', '--pr-number', '9', '--event', 'dismiss', '--body', 'Looks good'], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('internal_error', 'loadRepoConfigImpl should not run');
+    },
+  });
+
+  assert.equal(exitCode, 1);
+  assert.equal(stdout.output, '');
+  assert.deepEqual(JSON.parse(stderr.output), {
+    ok: false,
+    command: 'pr.submit-review',
+    error: {
+      code: 'invalid_input',
+      message: 'Review event must be one of: approve, request-changes, comment.',
+      retryable: false,
+    },
+  });
 });
 
 test('runCli prints structured success JSON for pr.reply', async () => {
@@ -3051,7 +3269,7 @@ test('runCli reports malformed numeric CLI option values as usage errors', async
   assert.match(stderr.output, /See: orfe issue get --help/);
 });
 
-test('runCli reports malformed enum CLI option values as usage errors', async () => {
+test('runCli reports malformed pr.submit-review event values as structured invalid_input failures', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3063,12 +3281,17 @@ test('runCli reports malformed enum CLI option values as usage errors', async ()
     },
   );
 
-  assert.equal(exitCode, 2);
+  assert.equal(exitCode, 1);
   assert.equal(stdout.output, '');
-  assert.match(stderr.output, /^Error: Option "--event" must be one of: approve, request-changes, comment\./);
-  assert.match(stderr.output, /Usage: orfe pr submit-review --pr-number <number> --event <approve\|request-changes\|comment>/);
-  assert.match(stderr.output, /Example: orfe pr submit-review --pr-number 9 --event approve --body "Looks good" --caller-name Greg/);
-  assert.match(stderr.output, /See: orfe pr submit-review --help/);
+  assert.deepEqual(JSON.parse(stderr.output), {
+    ok: false,
+    command: 'pr.submit-review',
+    error: {
+      code: 'invalid_input',
+      message: 'Review event must be one of: approve, request-changes, comment.',
+      retryable: false,
+    },
+  });
 });
 
 test('runCli reports malformed repo overrides as usage errors', async () => {
