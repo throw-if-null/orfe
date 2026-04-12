@@ -97,7 +97,51 @@ function mockPullRequestGetRequest(prNumber: number) {
       head: { ref: 'issues/orfe-13' },
       base: { ref: 'main' },
       html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}`,
-    });
+     });
+}
+
+function mockPullRequestGetOrCreateRequest(options: {
+  head: string;
+  base?: string;
+  existingPullRequests?: Record<string, unknown>[];
+  createRequestBody?: Record<string, unknown>;
+  createResponseBody?: Record<string, unknown>;
+}) {
+  const head = options.head;
+  const base = options.base ?? 'main';
+  const scope = nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get('/repos/throw-if-null/orfe/pulls')
+    .query({ state: 'open', head: `throw-if-null:${head}`, base, per_page: 100 })
+    .reply(200, options.existingPullRequests ?? []);
+
+  if (options.createRequestBody || options.createResponseBody) {
+    scope
+      .post('/repos/throw-if-null/orfe/pulls', options.createRequestBody ?? {
+        head,
+        base,
+        title: 'Design the `orfe` custom tool and CLI contract',
+        draft: false,
+      })
+      .reply(
+        201,
+        options.createResponseBody ?? {
+          number: 9,
+          title: 'Design the `orfe` custom tool and CLI contract',
+          body: 'PR body',
+          state: 'open',
+          draft: false,
+          head: { ref: head },
+          base: { ref: base },
+          html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+        },
+      );
+  }
+
+  return scope;
 }
 
 function createProjectStatusFieldNode(options: { id: string; name: string; options?: Array<{ id: string; name: string }> }) {
@@ -451,6 +495,79 @@ test('executeOrfeTool returns the shared success envelope for pr.get', async () 
         head: 'issues/orfe-13',
         base: 'main',
         html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('executeOrfeTool returns the shared success envelope for pr.get-or-create', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetOrCreateRequest({
+      head: 'issues/orfe-13',
+      existingPullRequests: [
+        {
+          number: 9,
+          title: 'Design the `orfe` custom tool and CLI contract',
+          body: 'PR body',
+          state: 'open',
+          draft: false,
+          head: { ref: 'issues/orfe-13' },
+          base: { ref: 'main' },
+          html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+        },
+      ],
+    });
+
+    const result = await executeOrfeTool(
+      {
+        command: 'pr.get-or-create',
+        head: 'issues/orfe-13',
+        title: 'Design the `orfe` custom tool and CLI contract',
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => ({
+          configPath: '/tmp/.orfe/config.json',
+          version: 1,
+          repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
+          callerToGitHubRole: { Greg: 'greg' },
+        }),
+        loadAuthConfigImpl: async () => ({
+          configPath: '/tmp/auth.json',
+          version: 1,
+          roles: {
+            greg: {
+              provider: 'github-app',
+              appId: 123,
+              appSlug: 'GR3G-BOT',
+              privateKeyPath: '/tmp/greg.pem',
+            },
+          },
+        }),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'pr.get-or-create',
+      repo: 'throw-if-null/orfe',
+      data: {
+        pr_number: 9,
+        html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+        head: 'issues/orfe-13',
+        base: 'main',
+        draft: false,
+        created: false,
       },
     });
     assert.equal(api.isDone(), true);

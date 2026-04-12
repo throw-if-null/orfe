@@ -2,7 +2,7 @@ import { getCommandContract } from './command-contracts.js';
 import { OrfeError, createNotImplementedError } from './errors.js';
 import { handleIssueComment, handleIssueCreate, handleIssueGet, handleIssueSetState, handleIssueUpdate } from './issue.js';
 import { handleProjectGetStatus, handleProjectSetStatus } from './project.js';
-import { handlePrGet } from './pr.js';
+import { handlePrGet, handlePrGetOrCreate } from './pr.js';
 import type { CommandContext, CommandInput, OrfeCommandGroup, OrfeCommandName } from './types.js';
 
 type OptionType = 'string' | 'number' | 'boolean' | 'enum' | 'string-array';
@@ -189,6 +189,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
       { key: 'base', flag: '--base', description: 'Base branch.', type: 'string' },
       { key: 'draft', flag: '--draft', description: 'Create as draft.', type: 'boolean' },
     ],
+    handler: handlePrGetOrCreate,
   }),
   defineCommand({
     name: 'pr.comment',
