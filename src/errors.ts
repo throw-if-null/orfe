@@ -11,6 +11,7 @@ export const ERROR_CODES = [
   'github_not_found',
   'github_conflict',
   'project_item_not_found',
+  'project_status_field_not_found',
   'project_status_option_not_found',
   'not_implemented',
   'internal_error',

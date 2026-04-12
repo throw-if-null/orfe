@@ -1,6 +1,7 @@
 import { getCommandContract } from './command-contracts.js';
 import { OrfeError, createNotImplementedError } from './errors.js';
 import { handleIssueComment, handleIssueCreate, handleIssueGet, handleIssueSetState, handleIssueUpdate } from './issue.js';
+import { handleProjectGetStatus } from './project.js';
 import { handlePrGet } from './pr.js';
 import type { CommandContext, CommandInput, OrfeCommandGroup, OrfeCommandName } from './types.js';
 
@@ -244,6 +245,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
       { key: 'project_number', flag: '--project-number', description: 'Project number.', type: 'number' },
       { key: 'status_field_name', flag: '--status-field-name', description: 'Status field name.', type: 'string' },
     ],
+    handler: handleProjectGetStatus,
   }),
   defineCommand({
     name: 'project.set-status',

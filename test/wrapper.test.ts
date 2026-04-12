@@ -398,6 +398,152 @@ test('executeOrfeTool returns the shared success envelope for pr.get', async () 
   }
 });
 
+test('executeOrfeTool returns the shared success envelope for project.get-status', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = nock('https://api.github.com')
+      .get('/repos/throw-if-null/orfe/installation')
+      .reply(200, { id: 42 })
+      .post('/app/installations/42/access_tokens')
+      .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+      .post('/graphql', (body: unknown) => {
+        return (
+          typeof body === 'object' &&
+          body !== null &&
+          'query' in body &&
+          typeof (body as { query?: unknown }).query === 'string' &&
+          (body as { query: string }).query.includes('query ProjectStatusForIssue')
+        );
+      })
+      .reply(200, {
+        data: {
+          repository: {
+            issue: {
+              projectItems: {
+                nodes: [
+                  {
+                    id: 'PVTI_lAHOABCD1234',
+                    project: {
+                      id: 'PVT_project_1',
+                      number: 1,
+                      owner: {
+                        login: 'throw-if-null',
+                      },
+                    },
+                    fieldValueByName: {
+                      __typename: 'ProjectV2ItemFieldSingleSelectValue',
+                      optionId: 'f75ad846',
+                      name: 'In Progress',
+                      field: {
+                        __typename: 'ProjectV2SingleSelectField',
+                        id: 'PVTSSF_lAHOABCD1234',
+                        name: 'Status',
+                      },
+                    },
+                  },
+                ],
+                pageInfo: {
+                  hasNextPage: false,
+                  endCursor: null,
+                },
+              },
+            },
+          },
+        },
+      })
+      .post('/graphql', (body: unknown) => {
+        return (
+          typeof body === 'object' &&
+          body !== null &&
+          'query' in body &&
+          typeof (body as { query?: unknown }).query === 'string' &&
+          (body as { query: string }).query.includes('query ProjectStatusFields')
+        );
+      })
+      .reply(200, {
+        data: {
+          node: {
+            fields: {
+              nodes: [
+                {
+                  __typename: 'ProjectV2SingleSelectField',
+                  id: 'PVTSSF_lAHOABCD1234',
+                  name: 'Status',
+                },
+              ],
+              pageInfo: {
+                hasNextPage: false,
+                endCursor: null,
+              },
+            },
+          },
+        },
+      });
+
+    const result = await executeOrfeTool(
+      {
+        command: 'project.get-status',
+        item_type: 'issue',
+        item_number: 13,
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => ({
+          configPath: '/tmp/.orfe/config.json',
+          version: 1,
+          repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
+          callerToGitHubRole: { Greg: 'greg' },
+          projects: {
+            default: {
+              owner: 'throw-if-null',
+              projectNumber: 1,
+              statusFieldName: 'Status',
+            },
+          },
+        }),
+        loadAuthConfigImpl: async () => ({
+          configPath: '/tmp/auth.json',
+          version: 1,
+          roles: {
+            greg: {
+              provider: 'github-app',
+              appId: 123,
+              appSlug: 'GR3G-BOT',
+              privateKeyPath: '/tmp/greg.pem',
+            },
+          },
+        }),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'project.get-status',
+      repo: 'throw-if-null/orfe',
+      data: {
+        project_owner: 'throw-if-null',
+        project_number: 1,
+        status_field_name: 'Status',
+        status_field_id: 'PVTSSF_lAHOABCD1234',
+        item_type: 'issue',
+        item_number: 13,
+        project_item_id: 'PVTI_lAHOABCD1234',
+        status_option_id: 'f75ad846',
+        status: 'In Progress',
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
 test('executeOrfeTool rejects missing caller context clearly', async () => {
   const result = await executeOrfeTool(
     {
