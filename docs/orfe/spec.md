@@ -862,7 +862,7 @@ orfe pr reply --pr-number <number> --comment-id <number> --body <text> [--repo <
 ```
 
 **Side effects**: creates a reply comment on a PR review thread  
-**Failure behavior**: missing parent comment => `github_not_found`  
+**Failure behavior**: missing PR or parent comment => `github_not_found`; invalid or non-repliable targets => `github_conflict`  
 **Idempotency**: no
 
 ## 11.11 `project get-status`
