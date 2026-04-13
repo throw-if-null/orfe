@@ -5,19 +5,63 @@
 - an installable CLI named `orfe`
 - an OpenCode custom tool wrapper also named `orfe`
 
-Issue #14 builds the shared foundation only. The V1 leaf commands are registered and routed, but command behavior is intentionally stubbed until follow-up issues implement real GitHub operations.
+`orfe` now ships the full v1 command surface. When repo-local config and machine-local GitHub App auth are in place, the CLI and OpenCode wrapper execute the documented GitHub operations directly.
+
+## Install the npm CLI package
+
+`orfe` can currently be installed from a locally built npm package artifact.
+
+- Supported now: package artifact installs created with `npm pack`
+- Not included yet: npm registry publication, release automation, or public-registry `npx orfe`
+
+Build the package artifact from the repo root:
+
+```bash
+npm pack
+```
+
+That command runs the package `prepack` build and writes `orfe-<version>.tgz`.
+
+### Local install from the package artifact
+
+Install the tarball into another project directory:
+
+```bash
+npm install /absolute/path/to/orfe-<version>.tgz
+PATH="$(pwd)/node_modules/.bin:$PATH" orfe --help
+```
+
+### Global install from the package artifact
+
+Install the same tarball globally:
+
+```bash
+npm install --global /absolute/path/to/orfe-<version>.tgz
+orfe --help
+```
+
+### Install boundary notes
+
+Package installation is separate from the other setup steps in this repo:
+
+- **Package installation** puts the `orfe` executable on disk
+- **npm publication/release automation** is not configured by this repository yet
+- **Repo-local config** is still a separate step for repositories that want to run GitHub commands through `orfe`
+- **Machine-local auth config** is still a separate step for machines that need GitHub App auth
+
+`orfe --help` works immediately after installation. Commands that talk to GitHub still require the repo-local and machine-local configuration described below.
 
 ## Documentation
 
 Canonical product and architecture memory now lives under `docs/`.
 Start with `docs/README.md` for the documentation map and authoritative entrypoints.
-For operational workflow structure, also see `.github/ISSUE_TEMPLATE/feature.md` and `docs/project/handoffs.md`.
+For operational workflow structure, also see `docs/project/handoffs.md`.
 
 ## Requirements
 
 - Node.js 22+
-- repo-local config at `.orfe/config.json`
-- machine-local GitHub App auth config at `~/.config/orfe/auth.json`
+- repo-local config at `.orfe/config.json` for GitHub-command execution
+- machine-local GitHub App auth config at `~/.config/orfe/auth.json` for GitHub-command execution
 
 ## Repo-local config
 
@@ -97,25 +141,7 @@ CLI caller resolution order:
 2. `ORFE_CALLER_NAME=<value>`
 3. fail with invalid usage
 
-Successful commands print structured JSON to stdout. Stubbed commands currently fail with a structured `not_implemented` error envelope on stderr.
-
-## Contract-test workflow for later implementation issues
-
-Issue #15 keeps trunk green by committing the command contracts in a non-breaking stub form.
-
-When a later issue implements a leaf command:
-
-1. keep the CLI shape, help text, and validation contract green
-2. update the command handler to return the documented `successDataExample` shape for real executions
-3. replace the placeholder `not_implemented` expectation only in tests that target that leaf command's runtime behavior
-4. keep shared wrapper/core, config, auth, and error-contract tests green
-5. add `nock`-backed command tests for the Octokit calls introduced by that implementation
-
-The contract source of truth for each leaf command lives in:
-
-- `src/command-registry.ts` for discovery/help/validation
-- `src/command-contracts.ts` for expected success payload shapes and valid stub inputs
-- `test/*.test.ts` for CLI, wrapper, config, auth, and placeholder behavior contracts
+Successful commands print structured JSON to stdout. Valid commands that fail at runtime print structured JSON errors to stderr.
 
 ## OpenCode wrapper
 

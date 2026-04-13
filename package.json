@@ -1,12 +1,33 @@
 {
   "name": "orfe",
   "version": "0.1.0",
-  "private": true,
+  "description": "Generic GitHub operations runtime for humans and agents",
+  "license": "UNLICENSED",
   "type": "module",
   "bin": {
-    "orfe": "dist/cli.js"
+    "orfe": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "docs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/throw-if-null/orfe.git"
+  },
+  "bugs": {
+    "url": "https://github.com/throw-if-null/orfe/issues"
+  },
+  "homepage": "https://github.com/throw-if-null/orfe#readme",
+  "keywords": [
+    "github",
+    "cli",
+    "automation",
+    "agents"
+  ],
   "scripts": {
+    "prepack": "npm run build",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
