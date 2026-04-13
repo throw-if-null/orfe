@@ -14,7 +14,6 @@ permission:
     "gh api*": allow
     "gh auth status*": allow
     "node *": allow
-    "orfe *": allow
   webfetch: allow
   websearch: allow
   codesearch: allow
@@ -44,10 +43,8 @@ You do **not** write or edit code. You work through the repository's GitHub-nati
 - If bot auth fails, stop, report it, and explicitly confirm any switch before proceeding
 
 ## GitHub auth operating procedure
-- **GitHub MCP**: the only supported OpenCode MCP path for your role is the local proxy-backed entry at `http://127.0.0.1:8787/zoran`. Configure that role endpoint in local `~/.config/opencode/opencode.json`, do not add a separate direct GitHub MCP entry there, and do not rely on direct upstream GitHub MCP access or ambient session auth for normal operation.
-- **`gh` CLI writes**: follow the bot-auth procedure in `AGENTS.md`, including the workspace-root token helper path.
-- Current bot impersonation depends on the workspace-root `dist/cli.js token` command from the legacy `tokenner` build until `orfe` grows a native `token` command.
-- Do not rewrite, remove, or simplify that token dependency without explicit human approval.
+- **Primary path**: use the OpenCode `orfe` tool for GitHub operations whenever it covers the needed action. Caller identity is provided automatically from `context.agent`; do not try to inject `ORFE_CALLER_NAME` inside tool execution.
+- **`gh` CLI writes only**: when you must perform a write through `gh`, mint the bot token with `ORFE_CALLER_NAME=Zoran orfe auth token --repo throw-if-null/orfe` and pass it explicitly to `gh`.
 - Do not use static PAT-based auth for normal GitHub operations in this repo.
 - If token minting fails, stop immediately and report an explicit bot-auth failure instead of falling back to session auth.
 - Role mapping for reference: `zoran` → `Z0R4N-BOT`.
