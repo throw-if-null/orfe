@@ -26,7 +26,7 @@ export interface RunCliDependencies extends OrfeCoreDependencies {
   stderr?: Pick<NodeJS.WriteStream, 'write'>;
 }
 
-const COMMAND_GROUPS: readonly OrfeCommandGroup[] = ['issue', 'pr', 'project'];
+const COMMAND_GROUPS: readonly OrfeCommandGroup[] = ['auth', 'issue', 'pr', 'project'];
 
 export function parseInvocationForCli(args: string[], env: NodeJS.ProcessEnv): ParsedInvocation {
   return parseInvocation(args, env);
@@ -88,8 +88,8 @@ function parseInvocation(args: string[], env: NodeJS.ProcessEnv): ParsedInvocati
   const [group, maybeLeaf, ...rest] = args;
   if (!group || !isCommandGroup(group)) {
     throw new CliUsageError(`Unknown command group "${group}".`, {
-      usage: 'orfe <issue|pr|project> <command> [options]',
-      example: 'orfe issue get --issue-number 14 --caller-name Greg',
+      usage: 'orfe <auth|issue|pr|project> <command> [options]',
+      example: 'orfe auth token --repo throw-if-null/orfe --caller-name Greg',
       see: 'orfe --help',
     });
   }
@@ -252,14 +252,14 @@ function renderRootHelp(): string {
     'orfe - generic GitHub operations runtime',
     '',
     'Usage:',
-    '  orfe <issue|pr|project> <command> [options]',
+    '  orfe <auth|issue|pr|project> <command> [options]',
     '  orfe --help',
     '',
     'Command groups:',
     ...COMMAND_GROUPS.map((group) => `  ${group}`),
     '',
     'Examples:',
-    '  orfe issue get --issue-number 14 --caller-name Greg',
+    '  orfe auth token --repo throw-if-null/orfe --caller-name Greg',
     '  orfe pr get-or-create --head issues/orfe-14 --title "Build orfe foundation" --caller-name Greg',
     '',
     'Run `orfe <group> --help` for group-specific help.',
@@ -285,7 +285,10 @@ function renderGroupHelp(group: OrfeCommandGroup): string {
 
 function renderLeafHelp(commandDefinition: CommandDefinition): string {
   const requiredOptions = commandDefinition.options.filter((option) => option.required);
-  const optionalOptions = [...commandDefinition.options.filter((option) => !option.required), ...getCliCommonOptions()];
+  const optionalOptions = dedupeOptionDefinitions([
+    ...commandDefinition.options.filter((option) => !option.required),
+    ...getCliCommonOptions().filter((option) => !requiredOptions.some((requiredOption) => requiredOption.flag === option.flag)),
+  ]);
 
   return [
     `${commandDefinition.name}`,
@@ -307,6 +310,19 @@ function renderLeafHelp(commandDefinition: CommandDefinition): string {
     'JSON success shape example:',
     `  ${JSON.stringify(commandDefinition.successDataExample)}`,
   ].join('\n');
+}
+
+function dedupeOptionDefinitions(optionDefinitions: CommandOptionDefinition[]): CommandOptionDefinition[] {
+  const seenFlags = new Set<string>();
+
+  return optionDefinitions.filter((optionDefinition) => {
+    if (seenFlags.has(optionDefinition.flag)) {
+      return false;
+    }
+
+    seenFlags.add(optionDefinition.flag);
+    return true;
+  });
 }
 
 function formatOptionLine(optionDefinition: CommandOptionDefinition): string {

@@ -19,6 +19,7 @@ See also:
 
 V1 exists to provide a deterministic, reusable contract for:
 
+- explicit GitHub App token minting
 - generic issue operations
 - generic pull request operations
 - GitHub Project Status field read/write operations
@@ -56,6 +57,7 @@ V1 exists to provide a deterministic, reusable contract for:
 - naming conventions
 - idempotency rules for applicable commands
 - these command groups only:
+  - `auth`
   - `issue`
   - `pr`
   - `project`
@@ -110,13 +112,13 @@ V1 auth is role-aware and internal to `orfe`.
 Auth flow:
 
 1. the wrapper or CLI provides `callerName`
-2. the core loads repo-local config and resolves `callerName -> github role`
+2. the core resolves `callerName -> github role`
 3. the auth adapter loads machine-local auth config for that GitHub role
 4. the auth adapter reads the GitHub App credentials and private key path for that role
 5. `orfe` creates a GitHub App JWT internally
 6. `orfe` resolves the repository installation for the target repo internally
 7. `orfe` mints a GitHub App installation token internally
-8. the core builds Octokit clients with that installation token
+8. the core builds Octokit clients with that installation token or returns token metadata directly for `auth.token`
 
 The auth adapter is part of the `orfe` runtime. It must not:
 
@@ -166,7 +168,7 @@ The core receives plain data only:
 
 ```ts
 interface OrfeCoreRequest {
-  callerName: string;
+  callerName?: string;
   command: OrfeCommandName;
   input: Record<string, unknown>;
   cwd?: string; // current working directory
@@ -184,7 +186,7 @@ The core must not depend on:
 
 ### 5.3 CLI caller resolution
 
-The CLI does not have `context.agent`, so direct CLI usage must provide caller identity explicitly.
+The CLI does not have `context.agent`, so direct CLI usage must provide caller identity explicitly for commands that resolve auth via caller mapping.
 
 Resolution order:
 
@@ -343,6 +345,8 @@ These options are available to every leaf command:
 
 `--repo` overrides `repository.owner/name` from config for issue and PR commands. If omitted, config repository values are used.
 
+`auth token` requires `--repo` explicitly because token minting targets a specific repository installation.
+
 Project commands use the same repo override for issue/PR item lookup and separate project-specific options for project owner/number.
 
 ### 8.2 Help behavior
@@ -475,6 +479,8 @@ The wrapper returns the same structured success/error object shape produced by t
 ## 10. CLI command hierarchy
 
 ```text
+orfe auth token
+
 orfe issue get
 orfe issue create
 orfe issue update
@@ -493,7 +499,48 @@ orfe project set-status
 
 ## 11. Command reference
 
-## 11.1 `issue get`
+## 11.1 `auth token`
+
+**Purpose**: Mint a GitHub App installation token for the resolved caller role and target repository.
+
+**CLI**:
+
+```text
+orfe auth token --repo <owner/name> [--caller-name <name>] [--config <path>] [--auth-config <path>]
+```
+
+**Tool input**:
+
+```json
+{ "command": "auth.token", "repo": "throw-if-null/orfe" }
+```
+
+**Success `data` shape**:
+
+```json
+{
+  "role": "greg",
+  "app_slug": "GR3G-BOT",
+  "repo": "throw-if-null/orfe",
+  "token": "ghs_123",
+  "expires_at": "2026-04-06T12:00:00Z",
+  "auth_mode": "github-app"
+}
+```
+
+Rules:
+
+- the caller identity is resolved normally through CLI or wrapper caller resolution
+- the command mints only for that resolved caller role; it is not a cross-role impersonation feature
+- `repo` is required and must be `owner/name`
+- `app_slug` is config-derived from the resolved role auth metadata, not looked up live from GitHub
+- the command must not silently fall back to session or ambient auth
+
+**Side effects**: mints an installation token  
+**Failure behavior**: unmapped caller => `caller_name_unmapped`; missing installation => `auth_failed`; config failures remain structured  
+**Idempotency**: no
+
+## 11.2 `issue get`
 
 **Purpose**: Read one issue.
 
@@ -528,7 +575,7 @@ orfe issue get --issue-number <number> [--repo <owner/name>] [--caller-name <nam
 **Failure behavior**: `github_not_found` if the issue does not exist  
 **Idempotency**: yes
 
-## 11.2 `issue create`
+## 11.3 `issue create`
 
 **Purpose**: Create a generic issue.
 
@@ -566,7 +613,7 @@ orfe issue create --title <text> [--body <text>] [--label <name> ...] [--assigne
 **Failure behavior**: `auth_failed`, `config_invalid`, or GitHub API error mapping  
 **Idempotency**: no
 
-## 11.3 `issue update`
+## 11.4 `issue update`
 
 **Purpose**: Update mutable issue fields without changing open/closed state.
 
@@ -600,7 +647,7 @@ Rules:
 **Failure behavior**: invalid field combinations => `invalid_usage`; missing issue => `github_not_found`  
 **Idempotency**: yes when the requested state already matches the current issue state
 
-## 11.4 `issue comment`
+## 11.5 `issue comment`
 
 **Purpose**: Add a top-level issue comment.
 
@@ -625,7 +672,7 @@ orfe issue comment --issue-number <number> --body <text> [--repo <owner/name>] [
 **Failure behavior**: missing issue => `github_not_found`  
 **Idempotency**: no
 
-## 11.5 `issue set-state`
+## 11.6 `issue set-state`
 
 **Purpose**: Set issue open/closed state.
 
@@ -720,7 +767,7 @@ For duplicate closure, the success payload must instead include the canonical is
 **Failure behavior**: invalid combination => `invalid_usage`; missing duplicate target => `github_not_found`  
 **Idempotency**: yes
 
-## 11.6 `pr get`
+## 11.7 `pr get`
 
 **Purpose**: Read one pull request.
 
@@ -749,7 +796,7 @@ orfe pr get --pr-number <number> [--repo <owner/name>] [--caller-name <name>] [-
 **Failure behavior**: missing PR => `github_not_found`  
 **Idempotency**: yes
 
-## 11.7 `pr get-or-create`
+## 11.8 `pr get-or-create`
 
 **Purpose**: Reuse an existing open PR for a branch pair or create one if none exists.
 
@@ -786,7 +833,7 @@ Rules:
 **Failure behavior**: `github_conflict` if the lookup is ambiguous  
 **Idempotency**: yes by lookup key
 
-## 11.8 `pr comment`
+## 11.9 `pr comment`
 
 **Purpose**: Add a top-level issue-style comment on a PR conversation.
 
@@ -811,7 +858,7 @@ orfe pr comment --pr-number <number> --body <text> [--repo <owner/name>] [--call
 **Failure behavior**: missing PR => `github_not_found`  
 **Idempotency**: no
 
-## 11.9 `pr submit-review`
+## 11.10 `pr submit-review`
 
 **Purpose**: Submit a completed PR review without line comments.
 
@@ -841,7 +888,7 @@ Rules:
 **Failure behavior**: invalid `event` => `invalid_input`; missing PR => `github_not_found`  
 **Idempotency**: no
 
-## 11.10 `pr reply`
+## 11.11 `pr reply`
 
 **Purpose**: Reply to an existing pull request review comment.
 
@@ -866,7 +913,7 @@ orfe pr reply --pr-number <number> --comment-id <number> --body <text> [--repo <
 **Failure behavior**: missing PR or parent comment => `github_not_found`; invalid or non-repliable targets => `github_conflict`  
 **Idempotency**: no
 
-## 11.11 `project get-status`
+## 11.12 `project get-status`
 
 **Purpose**: Read the current Status-field value for a project item.
 
@@ -902,7 +949,7 @@ Resolution order:
 **Failure behavior**: `project_item_not_found` if the item is not on the project; `project_status_field_not_found` if the configured Status field is missing on the project  
 **Idempotency**: yes
 
-## 11.12 `project set-status`
+## 11.13 `project set-status`
 
 **Purpose**: Set the Status-field value for a project item.
 

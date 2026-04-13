@@ -1,6 +1,7 @@
 import type { Octokit } from 'octokit';
 
 export const ORFE_COMMANDS = [
+  'auth.token',
   'issue.get',
   'issue.create',
   'issue.update',
@@ -16,7 +17,7 @@ export const ORFE_COMMANDS = [
 ] as const;
 
 export type OrfeCommandName = (typeof ORFE_COMMANDS)[number];
-export type OrfeCommandGroup = 'issue' | 'pr' | 'project';
+export type OrfeCommandGroup = 'auth' | 'issue' | 'pr' | 'project';
 export type CommandInput = Record<string, unknown>;
 
 export interface RepoRef {
@@ -107,4 +108,5 @@ export interface CommandContext {
   authConfig: MachineAuthConfig;
   roleAuth: GitHubAppRoleAuthConfig;
   getGitHubClient(): Promise<GitHubClients>;
+  getGitHubAuth(): Promise<GitHubClientAuthInfo>;
 }

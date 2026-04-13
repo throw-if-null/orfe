@@ -10,6 +10,7 @@ import { createRuntimeSnapshot, runOrfeCore } from '../src/core.js';
 
 const UNIMPLEMENTED_COMMAND_NAMES = COMMAND_NAMES.filter(
   (commandName) =>
+    commandName !== 'auth.token' &&
     commandName !== 'issue.get' &&
     commandName !== 'issue.create' &&
     commandName !== 'issue.update' &&
@@ -66,6 +67,24 @@ function createGitHubClientFactory() {
     readFileImpl: async () => 'private-key',
     jwtFactory: () => 'jwt-token',
   });
+}
+
+function mockAuthTokenMintRequest(options: { repo?: { owner: string; name: string }; installationStatus?: number; tokenStatus?: number }) {
+  const owner = options.repo?.owner ?? 'throw-if-null';
+  const repo = options.repo?.name ?? 'orfe';
+
+  const scope = nock('https://api.github.com').get(`/repos/${owner}/${repo}/installation`).reply(options.installationStatus ?? 200, {
+    id: 42,
+  });
+
+  if ((options.installationStatus ?? 200) === 200) {
+    scope.post('/app/installations/42/access_tokens').reply(options.tokenStatus ?? 201, {
+      token: 'ghs_123',
+      expires_at: '2026-04-06T12:00:00Z',
+    });
+  }
+
+  return scope;
 }
 
 function mockIssueGetRequest(options: {
@@ -921,6 +940,194 @@ test('project.get-status pins its exact JSON success contract', () => {
     status_option_id: 'f75ad846',
     status: 'In Progress',
   });
+});
+
+test('auth.token pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('auth.token').successDataExample, {
+    role: 'greg',
+    app_slug: 'GR3G-BOT',
+    repo: 'throw-if-null/orfe',
+    token: 'ghs_123',
+    expires_at: '2026-04-06T12:00:00Z',
+    auth_mode: 'github-app',
+  });
+});
+
+test('runOrfeCore mints an auth token for the resolved caller role', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockAuthTokenMintRequest({ repo: { owner: 'throw-if-null', name: 'orfe' } });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'auth.token',
+        input: {
+          repo: 'throw-if-null/orfe',
+        },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'auth.token',
+      repo: 'throw-if-null/orfe',
+      data: {
+        role: 'greg',
+        app_slug: 'GR3G-BOT',
+        repo: 'throw-if-null/orfe',
+        token: 'ghs_123',
+        expires_at: '2026-04-06T12:00:00Z',
+        auth_mode: 'github-app',
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore rejects role override input for auth.token', async () => {
+  await assert.rejects(
+    runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'auth.token',
+        input: { role: 'unknown', repo: 'throw-if-null/orfe' },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+      },
+    ),
+    (error: unknown) => {
+      assert(error instanceof OrfeError);
+      assert.equal(error.code, 'invalid_usage');
+      assert.equal(error.message, 'Command "auth.token" does not accept input field "role".');
+      return true;
+    },
+  );
+});
+
+test('runOrfeCore fails clearly for auth.token when the caller is unmapped', async () => {
+  await assert.rejects(
+    runOrfeCore(
+      {
+        callerName: 'Unknown Agent',
+        command: 'auth.token',
+        input: { repo: 'throw-if-null/orfe' },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+      },
+    ),
+    (error: unknown) => {
+      assert(error instanceof OrfeError);
+      assert.equal(error.code, 'caller_name_unmapped');
+      assert.match(error.message, /Caller name "Unknown Agent" is not mapped/);
+      return true;
+    },
+  );
+});
+
+test('runOrfeCore fails clearly for auth.token when the installation is missing', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockAuthTokenMintRequest({ installationStatus: 404 });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'auth.token',
+          input: { repo: 'throw-if-null/orfe' },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'auth_failed');
+        assert.equal(error.message, 'No GitHub App installation for throw-if-null/orfe was found for app GR3G-BOT.');
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore fails clearly for auth.token when token minting is rejected', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockAuthTokenMintRequest({ tokenStatus: 403 });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'auth.token',
+          input: { repo: 'throw-if-null/orfe' },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'auth_failed');
+        assert.equal(error.message, 'Failed to mint an installation token for role "greg" on throw-if-null/orfe.');
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore surfaces config failures for auth.token clearly', async () => {
+  await assert.rejects(
+    runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'auth.token',
+        input: { repo: 'throw-if-null/orfe' },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => {
+          throw new OrfeError('config_not_found', 'machine-local auth config not found at /tmp/auth.json.');
+        },
+      },
+    ),
+    (error: unknown) => {
+      assert(error instanceof OrfeError);
+      assert.equal(error.code, 'config_not_found');
+      assert.equal(error.message, 'machine-local auth config not found at /tmp/auth.json.');
+      return true;
+    },
+  );
 });
 
 test('runOrfeCore reads project status for an issue and returns structured success output', async () => {

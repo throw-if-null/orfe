@@ -28,6 +28,12 @@ export interface GitHubClientFactoryDependencies {
   jwtFactory?: (appId: number, privateKey: string) => string;
 }
 
+export interface GitHubInstallationAuth {
+  installationId: number;
+  token: string;
+  expiresAt: string;
+}
+
 export class GitHubClientFactory {
   private readonly readFileImpl: ReadFileText;
   private readonly octokitFactory: (auth?: string) => Octokit;
@@ -40,6 +46,28 @@ export class GitHubClientFactory {
   }
 
   async createClient(roleName: string, roleAuth: GitHubAppRoleAuthConfig, repo: RepoRef): Promise<GitHubClients> {
+    const auth = await this.createInstallationAuth(roleName, roleAuth, repo);
+    const octokit = this.octokitFactory(auth.token);
+
+    return {
+      octokit,
+      rest: octokit.rest,
+      graphql: octokit.graphql,
+      auth: {
+        roleName,
+        appSlug: roleAuth.appSlug,
+        installationId: auth.installationId,
+        token: auth.token,
+        expiresAt: auth.expiresAt,
+      },
+    };
+  }
+
+  async createInstallationAuth(
+    roleName: string,
+    roleAuth: GitHubAppRoleAuthConfig,
+    repo: RepoRef,
+  ): Promise<GitHubInstallationAuth> {
     const privateKey = await readPrivateKey(roleAuth.privateKeyPath, this.readFileImpl);
     const appJwt = this.jwtFactory(roleAuth.appId, privateKey);
     const appOctokit = this.octokitFactory(appJwt);
@@ -61,8 +89,6 @@ export class GitHubClientFactory {
       });
     }
 
-    let accessToken: AccessTokenResponse;
-
     try {
       const accessTokenResponse = await appOctokit.request('POST /app/installations/{installation_id}/access_tokens', {
         installation_id: installationId,
@@ -70,27 +96,18 @@ export class GitHubClientFactory {
           'X-GitHub-Api-Version': GITHUB_API_VERSION,
         },
       });
-      accessToken = accessTokenResponse.data as AccessTokenResponse;
+      const accessToken = accessTokenResponse.data as AccessTokenResponse;
+
+      return {
+        installationId,
+        token: accessToken.token,
+        expiresAt: accessToken.expires_at,
+      };
     } catch (error) {
       throw mapGitHubRequestError(error, {
         fallbackMessage: `Failed to mint an installation token for role "${roleName}" on ${repo.fullName}.`,
       });
     }
-
-    const octokit = this.octokitFactory(accessToken.token);
-
-    return {
-      octokit,
-      rest: octokit.rest,
-      graphql: octokit.graphql,
-      auth: {
-        roleName,
-        appSlug: roleAuth.appSlug,
-        installationId,
-        token: accessToken.token,
-        expiresAt: accessToken.expires_at,
-      },
-    };
   }
 }
 
