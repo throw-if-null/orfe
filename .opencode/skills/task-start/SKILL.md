@@ -12,7 +12,7 @@ Usually used by **Jelena** to move an assigned issue into active execution, crea
 
 ## Inputs
 - `issue-number` (required)
-- `next-owner` (required): the worker who should act next
+- `next-owner` (optional): the worker who should act next; default to `Greg` when omitted for a normal implementation handoff
 - `auth_mode` (optional): `bot` or `session`
 
 ## Read first
@@ -40,8 +40,9 @@ Example for issue `123` in this repo:
 2. Derive the issue branch and issue worktree from `AGENTS.md`.
 3. Create or reuse that branch/worktree locally.
 4. Move the issue's GitHub Project item to `In Progress`.
-5. Post the structured `[WORKFLOW]` issue comment shown below.
-6. Return the derived branch/worktree details.
+5. Resolve the next owner, defaulting to `Greg` when `next-owner` was omitted for a routine implementation start.
+6. Post the structured `[WORKFLOW]` issue comment shown below.
+7. Return the derived branch/worktree details.
 
 ## Preferred mechanisms
 - Use **GitHub MCP** as the preferred mechanism for GitHub state changes: issue lookup, project status changes, comments, and related metadata.
@@ -65,13 +66,16 @@ Example for issue `123` in this repo:
    - if the issue worktree already exists, reuse it
    - otherwise create the branch from the configured default branch and create the matching worktree
 5. Move the issue's project item to `In Progress` using GitHub MCP.
-6. Post the `[WORKFLOW]` comment on the issue.
-7. Return a short result including:
+6. Resolve `next-owner`:
+   - if `next-owner` was provided, use it
+   - if `next-owner` was omitted, default to `Greg` for the normal Jelena → Greg implementation handoff
+7. Post the `[WORKFLOW]` comment on the issue using the resolved next owner.
+8. Return a short result including:
    - issue number
    - branch name
    - worktree path
    - board status
-   - next owner
+   - resolved next owner
 
 ## Exact workflow comment template
 ```text
@@ -85,14 +89,16 @@ Next-Owner: <next-owner>
 - Re-running this skill should **reuse** the existing issue branch, issue worktree, and `In Progress` board state when they already exist.
 - Do not create duplicate worktrees or alternate branch names.
 - If a matching `[WORKFLOW]` start comment already exists, add a new one only when ownership or execution context changed materially.
+- Re-running without `next-owner` should keep using the default `Greg` handoff unless a different next owner is intentionally supplied.
 
 ## Should not
 - create a PR
-- run the implementation loop
-- run the QA loop
+- perform implementation or QA directly as part of this skill
 - mark the issue done
 
 ## Notes
 - The GitHub Issue is the canonical task record.
 - The GitHub Project is only the coarse-grained state tracker.
 - The PR is an implementation/review artifact and is not created by this skill.
+- This skill activates the issue; it does not end Jelena's orchestration responsibility.
+- Not performing implementation or QA directly does **not** mean Jelena should stop after activation; Jelena should normally continue by handing the issue to the resolved next owner.
