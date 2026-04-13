@@ -51,7 +51,7 @@ Derived naming convention:
 2. Verify the current branch and active worktree match that convention. If not, stop and reconcile first.
 3. Push the branch if needed.
 4. Create or reuse the PR for that branch.
-5. Ensure the PR references the canonical GitHub issue.
+5. Ensure the PR references the canonical GitHub issue with the exact first-line wording `Ref: #<issue-number>` required by `AGENTS.md`.
 6. Post the structured `[WORKFLOW]` issue comment shown below.
 7. Return PR number, URL, branch, and worktree details.
 
@@ -65,7 +65,7 @@ Derived naming convention:
 4. Check whether a PR for the branch already exists.
    - if yes, reuse it
    - if no, create it against the configured default branch
-5. Ensure the PR references the canonical issue, preferably with a line such as `Refs #<issue-number>` in the body.
+5. Ensure the PR references the canonical issue with the exact first-line wording `Ref: #<issue-number>`.
 6. Use a lean PR body. Keep it focused on:
    - linked issue
    - short summary
@@ -75,7 +75,7 @@ Derived naming convention:
 
 ## Lean PR body guidance
 ```md
-Refs #<issue-number>
+Ref: #<issue-number>
 
 ## Summary
 - <short implementation summary>
