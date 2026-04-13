@@ -7,17 +7,61 @@
 
 Issue #14 builds the shared foundation only. The V1 leaf commands are registered and routed, but command behavior is intentionally stubbed until follow-up issues implement real GitHub operations.
 
+## Install the npm CLI package
+
+`orfe` can currently be installed from a locally built npm package artifact.
+
+- Supported now: package artifact installs created with `npm pack`
+- Not included yet: npm registry publication, release automation, or public-registry `npx orfe`
+
+Build the package artifact from the repo root:
+
+```bash
+npm pack
+```
+
+That command runs the package `prepack` build and writes `orfe-<version>.tgz`.
+
+### Local install from the package artifact
+
+Install the tarball into another project directory:
+
+```bash
+npm install /absolute/path/to/orfe-<version>.tgz
+PATH="$(pwd)/node_modules/.bin:$PATH" orfe --help
+```
+
+### Global install from the package artifact
+
+Install the same tarball globally:
+
+```bash
+npm install --global /absolute/path/to/orfe-<version>.tgz
+orfe --help
+```
+
+### Install boundary notes
+
+Package installation is separate from the other setup steps in this repo:
+
+- **Package installation** puts the `orfe` executable on disk
+- **npm publication/release automation** is not configured by this repository yet
+- **Repo-local config** is still a separate step for repositories that want to run GitHub commands through `orfe`
+- **Machine-local auth config** is still a separate step for machines that need GitHub App auth
+
+`orfe --help` works immediately after installation. Commands that talk to GitHub still require the repo-local and machine-local configuration described below.
+
 ## Documentation
 
 Canonical product and architecture memory now lives under `docs/`.
 Start with `docs/README.md` for the documentation map and authoritative entrypoints.
-For operational workflow structure, also see `.github/ISSUE_TEMPLATE/feature.md` and `docs/project/handoffs.md`.
+For operational workflow structure, also see `docs/project/handoffs.md`.
 
 ## Requirements
 
 - Node.js 22+
-- repo-local config at `.orfe/config.json`
-- machine-local GitHub App auth config at `~/.config/orfe/auth.json`
+- repo-local config at `.orfe/config.json` for GitHub-command execution
+- machine-local GitHub App auth config at `~/.config/orfe/auth.json` for GitHub-command execution
 
 ## Repo-local config
 

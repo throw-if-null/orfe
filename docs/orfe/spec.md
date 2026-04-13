@@ -45,6 +45,15 @@ V1 exists to provide a deterministic, reusable contract for:
 
 ## 3. Scope
 
+### 3.1 Packaging and installation boundary
+
+- npm package name: `orfe`
+- installed executable name: `orfe`
+- package CLI entrypoint: package `bin.orfe -> dist/cli.js`
+- supported install workflows in this phase are package-artifact installs produced by `npm pack`
+- npm registry publication, release automation, and public-registry `npx orfe` remain out of scope
+- package installation does not create repo-local config or machine-local auth config; those remain separate operator-managed setup steps
+
 ### In scope for v1
 
 - package/runtime architecture
