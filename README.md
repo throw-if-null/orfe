@@ -5,7 +5,7 @@
 - an installable CLI named `orfe`
 - an OpenCode custom tool wrapper also named `orfe`
 
-Issue #14 builds the shared foundation only. The V1 leaf commands are registered and routed, but command behavior is intentionally stubbed until follow-up issues implement real GitHub operations.
+`orfe` now ships the full v1 command surface. When repo-local config and machine-local GitHub App auth are in place, the CLI and OpenCode wrapper execute the documented GitHub operations directly.
 
 ## Install the npm CLI package
 
@@ -141,25 +141,7 @@ CLI caller resolution order:
 2. `ORFE_CALLER_NAME=<value>`
 3. fail with invalid usage
 
-Successful commands print structured JSON to stdout. Stubbed commands currently fail with a structured `not_implemented` error envelope on stderr.
-
-## Contract-test workflow for later implementation issues
-
-Issue #15 keeps trunk green by committing the command contracts in a non-breaking stub form.
-
-When a later issue implements a leaf command:
-
-1. keep the CLI shape, help text, and validation contract green
-2. update the command handler to return the documented `successDataExample` shape for real executions
-3. replace the placeholder `not_implemented` expectation only in tests that target that leaf command's runtime behavior
-4. keep shared wrapper/core, config, auth, and error-contract tests green
-5. add `nock`-backed command tests for the Octokit calls introduced by that implementation
-
-The contract source of truth for each leaf command lives in:
-
-- `src/command-registry.ts` for discovery/help/validation
-- `src/command-contracts.ts` for expected success payload shapes and valid stub inputs
-- `test/*.test.ts` for CLI, wrapper, config, auth, and placeholder behavior contracts
+Successful commands print structured JSON to stdout. Valid commands that fail at runtime print structured JSON errors to stderr.
 
 ## OpenCode wrapper
 
