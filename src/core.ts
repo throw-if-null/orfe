@@ -15,12 +15,16 @@ export async function runOrfeCore(
   request: OrfeCoreRequest,
   dependencies: OrfeCoreDependencies = {},
 ): Promise<SuccessResponse<unknown>> {
+  const callerName = request.callerName.trim();
+  if (callerName.length === 0) {
+    throw new OrfeError('caller_name_missing', 'Caller name is required.');
+  }
+
   const loadRepoConfigImpl = dependencies.loadRepoConfigImpl ?? loadRepoConfig;
   const loadAuthConfigImpl = dependencies.loadAuthConfigImpl ?? loadAuthConfig;
   const githubClientFactory = dependencies.githubClientFactory ?? new GitHubClientFactory();
   const commandDefinition = getCommandDefinition(request.command);
   const validatedInput = validateCommandInput(commandDefinition, request.input);
-  const callerName = request.callerName?.trim() ?? '';
   const cwd = request.cwd ?? process.cwd();
 
   const repoConfig = await loadRepoConfigImpl({
@@ -32,8 +36,7 @@ export async function runOrfeCore(
     ...(request.authConfigPath ? { authConfigPath: request.authConfigPath } : {}),
   });
 
-  const requestedRole = commandDefinition.name === 'auth.token' ? (validatedInput.role as string) : undefined;
-  const callerRole = requestedRole ?? resolveRequiredCallerRole(repoConfig, callerName);
+  const callerRole = resolveRequiredCallerRole(repoConfig, callerName);
   const roleAuth = getRoleAuthConfig(authConfig, callerRole);
   const repo = resolveRepository(repoConfig, typeof validatedInput.repo === 'string' ? validatedInput.repo : undefined);
   let cachedGitHubClient: GitHubClients | undefined;
@@ -48,7 +51,6 @@ export async function runOrfeCore(
     repoConfig,
     authConfig,
     roleAuth,
-    ...(requestedRole ? { requestedRole } : {}),
     getGitHubClient: async () => {
       cachedGitHubClient ??= await githubClientFactory.createClient(callerRole, roleAuth, repo);
       return cachedGitHubClient;
@@ -100,7 +102,7 @@ export async function createRuntimeSnapshot(
     cwd,
     ...(request.authConfigPath ? { authConfigPath: request.authConfigPath } : {}),
   });
-  const callerRole = resolveRequiredCallerRole(repoConfig, request.callerName?.trim() ?? '');
+  const callerRole = resolveRequiredCallerRole(repoConfig, request.callerName.trim());
   getRoleAuthConfig(authConfig, callerRole);
 
   return {

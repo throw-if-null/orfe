@@ -23,13 +23,15 @@ That would weaken auditability, confuse workflow ownership, and blur the distinc
 ## Runtime auth inside `orfe`
 
 For `orfe` command execution:
-1. the command resolves an explicit role input or caller identity, depending on the command contract
-2. the runtime resolves the effective GitHub role
+1. caller identity is resolved
+2. the runtime resolves that caller to a configured GitHub role
 3. machine-local auth config provides per-role GitHub App credentials
 4. `orfe` mints the GitHub App JWT internally
 5. `orfe` resolves the installation internally
 6. `orfe` mints the installation token internally
 7. the runtime uses that token to build Octokit clients or returns it directly for `orfe auth token`
+
+`orfe auth token` follows the same self-identity path. It is not a cross-role impersonation command and does not accept a role override.
 
 This is the intended v1 runtime auth model.
 

@@ -111,8 +111,8 @@ V1 auth is role-aware and internal to `orfe`.
 
 Auth flow:
 
-1. the wrapper or CLI provides either `callerName` or an explicit role input, depending on the command contract
-2. the core resolves the effective GitHub role
+1. the wrapper or CLI provides `callerName`
+2. the core resolves `callerName -> github role`
 3. the auth adapter loads machine-local auth config for that GitHub role
 4. the auth adapter reads the GitHub App credentials and private key path for that role
 5. `orfe` creates a GitHub App JWT internally
@@ -193,10 +193,6 @@ Resolution order:
 1. `--caller-name <value>`
 2. `ORFE_CALLER_NAME=<value>`
 3. fail with `caller_name_missing`
-
-Exception:
-
-- `orfe auth token` uses explicit `--role` input and therefore does not require caller identity.
 
 ## 6. Repo-local config model
 
@@ -474,8 +470,7 @@ Rules:
 - `command` is required.
 - command-specific fields use `snake_case`.
 - `caller_name` is **not** accepted from tool input.
-- the wrapper injects `callerName` from `context.agent` for caller-mapped commands.
-- `auth.token` is the exception: it uses explicit `role` input and does not require caller context.
+- the wrapper injects `callerName` from `context.agent`.
 
 ### 9.2 Tool output
 
@@ -506,18 +501,18 @@ orfe project set-status
 
 ## 11.1 `auth token`
 
-**Purpose**: Mint a GitHub App installation token for an explicit role and target repository.
+**Purpose**: Mint a GitHub App installation token for the resolved caller role and target repository.
 
 **CLI**:
 
 ```text
-orfe auth token --role <role> --repo <owner/name> [--config <path>] [--auth-config <path>]
+orfe auth token --repo <owner/name> [--caller-name <name>] [--config <path>] [--auth-config <path>]
 ```
 
 **Tool input**:
 
 ```json
-{ "command": "auth.token", "role": "greg", "repo": "throw-if-null/orfe" }
+{ "command": "auth.token", "repo": "throw-if-null/orfe" }
 ```
 
 **Success `data` shape**:
@@ -535,13 +530,14 @@ orfe auth token --role <role> --repo <owner/name> [--config <path>] [--auth-conf
 
 Rules:
 
-- `role` is required and must match a configured machine-local auth role
+- the caller identity is resolved normally through CLI or wrapper caller resolution
+- the command mints only for that resolved caller role; it is not a cross-role impersonation feature
 - `repo` is required and must be `owner/name`
-- `app_slug` is config-derived from the selected role auth metadata, not looked up live from GitHub
+- `app_slug` is config-derived from the resolved role auth metadata, not looked up live from GitHub
 - the command must not silently fall back to session or ambient auth
 
 **Side effects**: mints an installation token  
-**Failure behavior**: unknown role => `auth_failed`; missing installation => `auth_failed`; config failures remain structured  
+**Failure behavior**: unmapped caller => `caller_name_unmapped`; missing installation => `auth_failed`; config failures remain structured  
 **Idempotency**: no
 
 ## 11.2 `issue get`

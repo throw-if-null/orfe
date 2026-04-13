@@ -61,14 +61,11 @@ const commonCliOptions: CommandOptionDefinition[] = [
 export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
   defineCommand({
     name: 'auth.token',
-    purpose: 'Mint a GitHub App installation token for a role and repository.',
-    usage: 'orfe auth token --role <role> --repo <owner/name> [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    purpose: 'Mint a GitHub App installation token for the resolved caller role and repository.',
+    usage: 'orfe auth token --repo <owner/name> [--caller-name <name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints structured JSON token metadata and the minted token.',
-    examples: ['orfe auth token --role greg --repo throw-if-null/orfe --caller-name Greg'],
-    options: [
-      { key: 'role', flag: '--role', description: 'GitHub role to mint for.', type: 'string', required: true },
-      { key: 'repo', flag: '--repo', description: 'Target repository as owner/name.', type: 'string', required: true },
-    ],
+    examples: ['orfe auth token --repo throw-if-null/orfe --caller-name Greg'],
+    options: [{ key: 'repo', flag: '--repo', description: 'Target repository as owner/name.', type: 'string', required: true }],
     handler: handleAuthToken,
   }),
   defineCommand({

@@ -869,7 +869,7 @@ test('runCli requires caller identity for CLI mode', async () => {
   assert.match(stderr.output, /See: orfe issue get --help/);
 });
 
-test('runCli does not require caller identity for auth.token', async () => {
+test('runCli requires caller identity and mints auth.token for that caller role', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -878,7 +878,7 @@ test('runCli does not require caller identity for auth.token', async () => {
   try {
     const api = mockAuthTokenMintRequest({});
 
-    const exitCode = await runCli(['auth', 'token', '--role', 'greg', '--repo', 'throw-if-null/orfe'], {
+    const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe', '--caller-name', 'Greg'], {
       stdout,
       stderr,
       env: {},
@@ -908,6 +908,22 @@ test('runCli does not require caller identity for auth.token', async () => {
   }
 });
 
+test('runCli rejects role override for auth.token as invalid usage', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe', '--role', 'greg', '--caller-name', 'Greg'], {
+    stdout,
+    stderr,
+    env: {},
+  });
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /Unknown option "--role"\./);
+  assert.match(stderr.output, /See: orfe auth token --help/);
+});
+
 test('runCli prints structured auth failure for auth.token missing installation', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
@@ -917,7 +933,7 @@ test('runCli prints structured auth failure for auth.token missing installation'
   try {
     const api = mockAuthTokenMintRequest({ installationStatus: 404 });
 
-    const exitCode = await runCli(['auth', 'token', '--role', 'greg', '--repo', 'throw-if-null/orfe'], {
+    const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe', '--caller-name', 'Greg'], {
       stdout,
       stderr,
       env: {},
@@ -947,7 +963,7 @@ test('runCli prints structured config failures for auth.token', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
-  const exitCode = await runCli(['auth', 'token', '--role', 'greg', '--repo', 'throw-if-null/orfe'], {
+  const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe', '--caller-name', 'Greg'], {
     stdout,
     stderr,
     env: {},
@@ -979,7 +995,7 @@ test('runCli reports missing required options for auth.token as usage errors', a
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
-  const exitCode = await runCli(['auth', 'token', '--role', 'greg'], {
+  const exitCode = await runCli(['auth', 'token', '--caller-name', 'Greg'], {
     stdout,
     stderr,
     env: {},
@@ -991,7 +1007,23 @@ test('runCli reports missing required options for auth.token as usage errors', a
   assert.equal(exitCode, 2);
   assert.equal(stdout.output, '');
   assert.match(stderr.output, /Missing required option "--repo"\./);
-  assert.match(stderr.output, /Usage: orfe auth token --role <role> --repo <owner\/name>/);
+  assert.match(stderr.output, /Usage: orfe auth token --repo <owner\/name>/);
+  assert.match(stderr.output, /See: orfe auth token --help/);
+});
+
+test('runCli reports missing caller identity for auth.token', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe'], {
+    stdout,
+    stderr,
+    env: {},
+  });
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /CLI caller identity is required via --caller-name or ORFE_CALLER_NAME\./);
   assert.match(stderr.output, /See: orfe auth token --help/);
 });
 

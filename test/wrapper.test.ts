@@ -1224,7 +1224,7 @@ test('executeOrfeTool still rejects missing caller context for caller-mapped com
   });
 });
 
-test('executeOrfeTool allows auth.token without caller context and returns shared success envelope', async () => {
+test('executeOrfeTool resolves auth.token from context.agent and returns shared success envelope', async () => {
   nock.disableNetConnect();
 
   try {
@@ -1233,10 +1233,10 @@ test('executeOrfeTool allows auth.token without caller context and returns share
     const result = await executeOrfeTool(
       {
         command: 'auth.token',
-        role: 'greg',
         repo: 'throw-if-null/orfe',
       },
       {
+        agent: 'Greg',
         cwd: '/tmp/repo',
       },
       {
@@ -1280,6 +1280,30 @@ test('executeOrfeTool allows auth.token without caller context and returns share
     nock.cleanAll();
     nock.enableNetConnect();
   }
+});
+
+test('executeOrfeTool rejects role override input for auth.token', async () => {
+  const result = await executeOrfeTool(
+    {
+      command: 'auth.token',
+      role: 'greg',
+      repo: 'throw-if-null/orfe',
+    },
+    {
+      agent: 'Greg',
+      cwd: '/tmp/repo',
+    },
+  );
+
+  assert.deepEqual(result, {
+    ok: false,
+    command: 'auth.token',
+    error: {
+      code: 'invalid_usage',
+      message: 'Command "auth.token" does not accept input field "role".',
+      retryable: false,
+    },
+  });
 });
 
 test('executeOrfeTool rejects caller_name from tool input', async () => {

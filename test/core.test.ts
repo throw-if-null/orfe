@@ -953,7 +953,7 @@ test('auth.token pins its exact JSON success contract', () => {
   });
 });
 
-test('runOrfeCore mints an auth token for an explicit role without caller identity', async () => {
+test('runOrfeCore mints an auth token for the resolved caller role', async () => {
   nock.disableNetConnect();
 
   try {
@@ -961,9 +961,9 @@ test('runOrfeCore mints an auth token for an explicit role without caller identi
 
     const result = await runOrfeCore(
       {
+        callerName: 'Greg',
         command: 'auth.token',
         input: {
-          role: 'greg',
           repo: 'throw-if-null/orfe',
         },
       },
@@ -994,10 +994,11 @@ test('runOrfeCore mints an auth token for an explicit role without caller identi
   }
 });
 
-test('runOrfeCore fails clearly for auth.token when the role is unknown', async () => {
+test('runOrfeCore rejects role override input for auth.token', async () => {
   await assert.rejects(
     runOrfeCore(
       {
+        callerName: 'Greg',
         command: 'auth.token',
         input: { role: 'unknown', repo: 'throw-if-null/orfe' },
       },
@@ -1008,8 +1009,30 @@ test('runOrfeCore fails clearly for auth.token when the role is unknown', async 
     ),
     (error: unknown) => {
       assert(error instanceof OrfeError);
-      assert.equal(error.code, 'auth_failed');
-      assert.equal(error.message, 'Auth config at /tmp/auth.json has no entry for GitHub role "unknown".');
+      assert.equal(error.code, 'invalid_usage');
+      assert.equal(error.message, 'Command "auth.token" does not accept input field "role".');
+      return true;
+    },
+  );
+});
+
+test('runOrfeCore fails clearly for auth.token when the caller is unmapped', async () => {
+  await assert.rejects(
+    runOrfeCore(
+      {
+        callerName: 'Unknown Agent',
+        command: 'auth.token',
+        input: { repo: 'throw-if-null/orfe' },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+      },
+    ),
+    (error: unknown) => {
+      assert(error instanceof OrfeError);
+      assert.equal(error.code, 'caller_name_unmapped');
+      assert.match(error.message, /Caller name "Unknown Agent" is not mapped/);
       return true;
     },
   );
@@ -1024,8 +1047,9 @@ test('runOrfeCore fails clearly for auth.token when the installation is missing'
     await assert.rejects(
       runOrfeCore(
         {
+          callerName: 'Greg',
           command: 'auth.token',
-          input: { role: 'greg', repo: 'throw-if-null/orfe' },
+          input: { repo: 'throw-if-null/orfe' },
         },
         {
           loadRepoConfigImpl: async () => createRepoConfig(),
@@ -1057,8 +1081,9 @@ test('runOrfeCore fails clearly for auth.token when token minting is rejected', 
     await assert.rejects(
       runOrfeCore(
         {
+          callerName: 'Greg',
           command: 'auth.token',
-          input: { role: 'greg', repo: 'throw-if-null/orfe' },
+          input: { repo: 'throw-if-null/orfe' },
         },
         {
           loadRepoConfigImpl: async () => createRepoConfig(),
@@ -1085,8 +1110,9 @@ test('runOrfeCore surfaces config failures for auth.token clearly', async () => 
   await assert.rejects(
     runOrfeCore(
       {
+        callerName: 'Greg',
         command: 'auth.token',
-        input: { role: 'greg', repo: 'throw-if-null/orfe' },
+        input: { repo: 'throw-if-null/orfe' },
       },
       {
         loadRepoConfigImpl: async () => createRepoConfig(),

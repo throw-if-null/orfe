@@ -89,7 +89,7 @@ function parseInvocation(args: string[], env: NodeJS.ProcessEnv): ParsedInvocati
   if (!group || !isCommandGroup(group)) {
     throw new CliUsageError(`Unknown command group "${group}".`, {
       usage: 'orfe <auth|issue|pr|project> <command> [options]',
-      example: 'orfe auth token --role greg --repo throw-if-null/orfe --caller-name Greg',
+      example: 'orfe auth token --repo throw-if-null/orfe --caller-name Greg',
       see: 'orfe --help',
     });
   }
@@ -178,7 +178,7 @@ function parseLeafOptions(
     }
   }
 
-  if (requiresCliCallerIdentity(commandDefinition) && (!callerName || callerName.trim().length === 0)) {
+  if (!callerName || callerName.trim().length === 0) {
     throw createLeafUsageError(commandDefinition, 'CLI caller identity is required via --caller-name or ORFE_CALLER_NAME.');
   }
 
@@ -190,7 +190,7 @@ function parseLeafOptions(
 
   return {
     input,
-    callerName: callerName ?? '',
+    callerName,
     ...(configPath ? { configPath } : {}),
     ...(authConfigPath ? { authConfigPath } : {}),
   };
@@ -259,7 +259,7 @@ function renderRootHelp(): string {
     ...COMMAND_GROUPS.map((group) => `  ${group}`),
     '',
     'Examples:',
-    '  orfe auth token --role greg --repo throw-if-null/orfe --caller-name Greg',
+    '  orfe auth token --repo throw-if-null/orfe --caller-name Greg',
     '  orfe pr get-or-create --head issues/orfe-14 --title "Build orfe foundation" --caller-name Greg',
     '',
     'Run `orfe <group> --help` for group-specific help.',
@@ -327,10 +327,6 @@ function dedupeOptionDefinitions(optionDefinitions: CommandOptionDefinition[]): 
 
 function formatOptionLine(optionDefinition: CommandOptionDefinition): string {
   return `  ${optionDefinition.flag} - ${optionDefinition.description}`;
-}
-
-function requiresCliCallerIdentity(commandDefinition: CommandDefinition): boolean {
-  return commandDefinition.name !== 'auth.token';
 }
 
 function createLeafUsageError(commandDefinition: CommandDefinition, message: string): CliUsageError {

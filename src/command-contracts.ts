@@ -23,7 +23,7 @@ export const COMMAND_NAMES = [
 
 export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
   'auth.token': {
-    validInput: { role: 'greg', repo: 'throw-if-null/orfe' },
+    validInput: { repo: 'throw-if-null/orfe' },
     successDataExample: {
       role: 'greg',
       app_slug: 'GR3G-BOT',

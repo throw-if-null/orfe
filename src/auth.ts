@@ -11,14 +11,14 @@ interface AuthTokenData {
 }
 
 export async function handleAuthToken(context: CommandContext): Promise<AuthTokenData> {
-  if (!context.requestedRole || !context.getGitHubAuth) {
-    throw new OrfeError('internal_error', 'auth.token requires explicit role auth context.');
+  if (context.command !== 'auth.token') {
+    throw new OrfeError('internal_error', 'auth.token handler received an unexpected command context.');
   }
 
   const auth = await context.getGitHubAuth();
 
   return {
-    role: context.requestedRole,
+    role: context.callerRole,
     app_slug: context.roleAuth.appSlug,
     repo: context.repo.fullName,
     token: auth.token,

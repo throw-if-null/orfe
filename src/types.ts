@@ -73,7 +73,7 @@ export interface GitHubClients {
 }
 
 export interface OrfeCoreRequest {
-  callerName?: string;
+  callerName: string;
   command: OrfeCommandName | string;
   input: CommandInput;
   cwd?: string;
@@ -107,7 +107,6 @@ export interface CommandContext {
   repoConfig: RepoLocalConfig;
   authConfig: MachineAuthConfig;
   roleAuth: GitHubAppRoleAuthConfig;
-  requestedRole?: string;
   getGitHubClient(): Promise<GitHubClients>;
-  getGitHubAuth?(): Promise<GitHubClientAuthInfo>;
+  getGitHubAuth(): Promise<GitHubClientAuthInfo>;
 }
