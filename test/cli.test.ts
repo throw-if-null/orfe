@@ -865,7 +865,7 @@ test('runCli requires caller identity for CLI mode', async () => {
 
   assert.equal(exitCode, 2);
   assert.equal(stdout.output, '');
-  assert.match(stderr.output, /CLI caller identity is required via --caller-name or ORFE_CALLER_NAME\./);
+  assert.match(stderr.output, /CLI caller identity is required via ORFE_CALLER_NAME\./);
   assert.match(stderr.output, /See: orfe issue get --help/);
 });
 
@@ -878,10 +878,10 @@ test('runCli requires caller identity and mints auth.token for that caller role'
   try {
     const api = mockAuthTokenMintRequest({});
 
-    const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe', '--caller-name', 'Greg'], {
+    const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe'], {
       stdout,
       stderr,
-      env: {},
+      env: { ORFE_CALLER_NAME: 'Greg' },
       ...createRuntimeDependencies(),
       githubClientFactory: createGitHubClientFactory(),
     });
@@ -912,10 +912,10 @@ test('runCli rejects role override for auth.token as invalid usage', async () =>
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
-  const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe', '--role', 'greg', '--caller-name', 'Greg'], {
+  const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe', '--role', 'greg'], {
     stdout,
     stderr,
-    env: {},
+    env: { ORFE_CALLER_NAME: 'Greg' },
   });
 
   assert.equal(exitCode, 2);
@@ -933,10 +933,10 @@ test('runCli prints structured auth failure for auth.token missing installation'
   try {
     const api = mockAuthTokenMintRequest({ installationStatus: 404 });
 
-    const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe', '--caller-name', 'Greg'], {
+    const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe'], {
       stdout,
       stderr,
-      env: {},
+      env: { ORFE_CALLER_NAME: 'Greg' },
       ...createRuntimeDependencies(),
       githubClientFactory: createGitHubClientFactory(),
     });
@@ -963,10 +963,10 @@ test('runCli prints structured config failures for auth.token', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
-  const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe', '--caller-name', 'Greg'], {
+  const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe'], {
     stdout,
     stderr,
-    env: {},
+    env: { ORFE_CALLER_NAME: 'Greg' },
     loadRepoConfigImpl: async () => ({
       configPath: '/tmp/.orfe/config.json',
       version: 1 as const,
@@ -995,10 +995,10 @@ test('runCli reports missing required options for auth.token as usage errors', a
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
-  const exitCode = await runCli(['auth', 'token', '--caller-name', 'Greg'], {
+  const exitCode = await runCli(['auth', 'token'], {
     stdout,
     stderr,
-    env: {},
+    env: { ORFE_CALLER_NAME: 'Greg' },
     loadRepoConfigImpl: async () => {
       throw new OrfeError('internal_error', 'loadRepoConfigImpl should not run');
     },
@@ -1023,20 +1023,49 @@ test('runCli reports missing caller identity for auth.token', async () => {
 
   assert.equal(exitCode, 2);
   assert.equal(stdout.output, '');
-  assert.match(stderr.output, /CLI caller identity is required via --caller-name or ORFE_CALLER_NAME\./);
+  assert.match(stderr.output, /CLI caller identity is required via ORFE_CALLER_NAME\./);
   assert.match(stderr.output, /See: orfe auth token --help/);
 });
 
-test('runCli prefers --caller-name over ORFE_CALLER_NAME', () => {
-  const invocation = parseInvocationForCli(
-    ['issue', 'get', '--issue-number', '14', '--caller-name', 'Jelena'],
-    { ORFE_CALLER_NAME: 'Greg' },
-  );
+test('runCli uses ORFE_CALLER_NAME for CLI caller identity', () => {
+  const invocation = parseInvocationForCli(['issue', 'get', '--issue-number', '14'], { ORFE_CALLER_NAME: 'Greg' });
 
   assert.equal(invocation.kind, 'leaf');
   if (invocation.kind === 'leaf') {
-    assert.equal(invocation.callerName, 'Jelena');
+    assert.equal(invocation.callerName, 'Greg');
   }
+});
+
+test('runCli rejects removed --caller-name option as unknown usage', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['issue', 'get', '--issue-number', '14', '--caller-name', 'Jelena'], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+  });
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /Unknown option "--caller-name"\./);
+  assert.match(stderr.output, /See: orfe issue get --help/);
+});
+
+test('runCli rejects removed --caller-name override for auth.token', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe', '--caller-name', 'Jelena'], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+  });
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /Unknown option "--caller-name"\./);
+  assert.match(stderr.output, /See: orfe auth token --help/);
 });
 
 test('runCli uses ORFE_CALLER_NAME and prints structured success JSON', async () => {
@@ -3352,7 +3381,7 @@ test('runCli formats core invalid_usage errors as CLI usage failures for issue.c
   assert.equal(stdout.output, '');
   assert.match(stderr.output, /Option "body" must be a non-empty string\./);
   assert.match(stderr.output, /Usage: orfe issue comment --issue-number <number> --body <text>/);
-  assert.match(stderr.output, /Example: orfe issue comment --issue-number 14 --body "hello" --caller-name Greg/);
+  assert.match(stderr.output, /Example: ORFE_CALLER_NAME=Greg orfe issue comment --issue-number 14 --body "hello"/);
   assert.match(stderr.output, /See: orfe issue comment --help/);
 });
 
@@ -3425,7 +3454,7 @@ test('runCli formats core invalid_usage errors as CLI usage failures', async () 
   assert.equal(stdout.output, '');
   assert.match(stderr.output, /state_reason/);
   assert.match(stderr.output, /Usage: orfe issue set-state/);
-  assert.match(stderr.output, /Example: orfe issue set-state --issue-number 14 --state closed --state-reason completed --caller-name Greg/);
+  assert.match(stderr.output, /Example: ORFE_CALLER_NAME=Greg orfe issue set-state --issue-number 14 --state closed --state-reason completed/);
   assert.match(stderr.output, /See: orfe issue set-state --help/);
 });
 
@@ -3433,16 +3462,17 @@ test('runCli reports malformed numeric CLI option values as usage errors', async
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
-  const exitCode = await runCli(['issue', 'get', '--issue-number', 'nope', '--caller-name', 'Greg'], {
+  const exitCode = await runCli(['issue', 'get', '--issue-number', 'nope'], {
     stdout,
     stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
   });
 
   assert.equal(exitCode, 2);
   assert.equal(stdout.output, '');
   assert.match(stderr.output, /^Error: Option "--issue-number" expects an integer\./);
   assert.match(stderr.output, /Usage: orfe issue get --issue-number <number>/);
-  assert.match(stderr.output, /Example: orfe issue get --issue-number 14 --caller-name Greg/);
+  assert.match(stderr.output, /Example: ORFE_CALLER_NAME=Greg orfe issue get --issue-number 14/);
   assert.match(stderr.output, /See: orfe issue get --help/);
 });
 
@@ -3451,10 +3481,11 @@ test('runCli reports malformed pr.submit-review event values as structured inval
   const stderr = new MemoryStream();
 
   const exitCode = await runCli(
-    ['pr', 'submit-review', '--pr-number', '9', '--event', 'nope', '--body', 'ok', '--caller-name', 'Greg'],
+    ['pr', 'submit-review', '--pr-number', '9', '--event', 'nope', '--body', 'ok'],
     {
       stdout,
       stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
     },
   );
 
@@ -3475,9 +3506,10 @@ test('runCli reports malformed repo overrides as usage errors', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
-  const exitCode = await runCli(['issue', 'get', '--issue-number', '14', '--repo', 'bad', '--caller-name', 'Greg'], {
+  const exitCode = await runCli(['issue', 'get', '--issue-number', '14', '--repo', 'bad'], {
     stdout,
     stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
     ...createRuntimeDependencies(),
   });
 

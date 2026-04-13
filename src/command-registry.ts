@@ -33,12 +33,6 @@ export interface CommandDefinition {
 
 const commonCliOptions: CommandOptionDefinition[] = [
   {
-    key: 'caller_name',
-    flag: '--caller-name',
-    description: 'Caller identity for CLI mode.',
-    type: 'string',
-  },
-  {
     key: 'config',
     flag: '--config',
     description: 'Override the repo-local config path.',
@@ -62,27 +56,27 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
   defineCommand({
     name: 'auth.token',
     purpose: 'Mint a GitHub App installation token for the resolved caller role and repository.',
-    usage: 'orfe auth token --repo <owner/name> [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage: 'orfe auth token --repo <owner/name> [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints structured JSON token metadata and the minted token.',
-    examples: ['orfe auth token --repo throw-if-null/orfe --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe auth token --repo throw-if-null/orfe'],
     options: [{ key: 'repo', flag: '--repo', description: 'Target repository as owner/name.', type: 'string', required: true }],
     handler: handleAuthToken,
   }),
   defineCommand({
     name: 'issue.get',
     purpose: 'Read one issue.',
-    usage: 'orfe issue get --issue-number <number> [--repo <owner/name>] [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage: 'orfe issue get --issue-number <number> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON issue payload.',
-    examples: ['orfe issue get --issue-number 14 --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe issue get --issue-number 14'],
     options: [{ key: 'issue_number', flag: '--issue-number', description: 'Issue number.', type: 'number', required: true }],
     handler: handleIssueGet,
   }),
   defineCommand({
     name: 'issue.create',
     purpose: 'Create a generic issue.',
-    usage: 'orfe issue create --title <text> [--body <text>] [--label <name> ...] [--assignee <login> ...] [--repo <owner/name>] [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage: 'orfe issue create --title <text> [--body <text>] [--label <name> ...] [--assignee <login> ...] [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON create result.',
-    examples: ['orfe issue create --title "New issue" --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe issue create --title "New issue"'],
     options: [
       { key: 'title', flag: '--title', description: 'Issue title.', type: 'string', required: true },
       { key: 'body', flag: '--body', description: 'Issue body.', type: 'string' },
@@ -94,9 +88,10 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
   defineCommand({
     name: 'issue.update',
     purpose: 'Update mutable issue fields without changing state.',
-    usage: 'orfe issue update --issue-number <number> [--title <text>] [--body <text>] [--label <name> ...] [--assignee <login> ...] [--clear-labels] [--clear-assignees] [--repo <owner/name>] [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage:
+      'orfe issue update --issue-number <number> [--title <text>] [--body <text>] [--label <name> ...] [--assignee <login> ...] [--clear-labels] [--clear-assignees] [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON update result.',
-    examples: ['orfe issue update --issue-number 14 --title "Updated title" --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe issue update --issue-number 14 --title "Updated title"'],
     options: [
       { key: 'issue_number', flag: '--issue-number', description: 'Issue number.', type: 'number', required: true },
       { key: 'title', flag: '--title', description: 'Updated title.', type: 'string' },
@@ -131,9 +126,9 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
   defineCommand({
     name: 'issue.comment',
     purpose: 'Add a top-level issue comment.',
-    usage: 'orfe issue comment --issue-number <number> --body <text> [--repo <owner/name>] [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage: 'orfe issue comment --issue-number <number> --body <text> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON comment result.',
-    examples: ['orfe issue comment --issue-number 14 --body "hello" --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe issue comment --issue-number 14 --body "hello"'],
     options: [
       { key: 'issue_number', flag: '--issue-number', description: 'Issue number.', type: 'number', required: true },
       { key: 'body', flag: '--body', description: 'Comment body.', type: 'string', required: true },
@@ -143,9 +138,10 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
   defineCommand({
     name: 'issue.set-state',
     purpose: 'Set issue open or closed state.',
-    usage: 'orfe issue set-state --issue-number <number> --state <open|closed> [--state-reason <completed|not_planned|duplicate>] [--duplicate-of <issue-number>] [--repo <owner/name>] [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage:
+      'orfe issue set-state --issue-number <number> --state <open|closed> [--state-reason <completed|not_planned|duplicate>] [--duplicate-of <issue-number>] [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON state-change result.',
-    examples: ['orfe issue set-state --issue-number 14 --state closed --state-reason completed --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe issue set-state --issue-number 14 --state closed --state-reason completed'],
     options: [
       { key: 'issue_number', flag: '--issue-number', description: 'Issue number.', type: 'number', required: true },
       { key: 'state', flag: '--state', description: 'Target state.', type: 'enum', enumValues: ['open', 'closed'], required: true },
@@ -180,18 +176,18 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
   defineCommand({
     name: 'pr.get',
     purpose: 'Read one pull request.',
-    usage: 'orfe pr get --pr-number <number> [--repo <owner/name>] [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage: 'orfe pr get --pr-number <number> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON pull request payload.',
-    examples: ['orfe pr get --pr-number 9 --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe pr get --pr-number 9'],
     options: [{ key: 'pr_number', flag: '--pr-number', description: 'Pull request number.', type: 'number', required: true }],
     handler: handlePrGet,
   }),
   defineCommand({
     name: 'pr.get-or-create',
     purpose: 'Reuse or create a pull request for a branch pair.',
-    usage: 'orfe pr get-or-create --head <branch> --title <text> [--body <text>] [--base <branch>] [--draft] [--repo <owner/name>] [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage: 'orfe pr get-or-create --head <branch> --title <text> [--body <text>] [--base <branch>] [--draft] [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON pull request result.',
-    examples: ['orfe pr get-or-create --head issues/orfe-14 --title "Build orfe foundation" --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe pr get-or-create --head issues/orfe-14 --title "Build orfe foundation"'],
     options: [
       { key: 'head', flag: '--head', description: 'Head branch.', type: 'string', required: true },
       { key: 'title', flag: '--title', description: 'Pull request title.', type: 'string', required: true },
@@ -204,9 +200,9 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
   defineCommand({
     name: 'pr.comment',
     purpose: 'Add a top-level pull request comment.',
-    usage: 'orfe pr comment --pr-number <number> --body <text> [--repo <owner/name>] [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage: 'orfe pr comment --pr-number <number> --body <text> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON comment result.',
-    examples: ['orfe pr comment --pr-number 9 --body "hello" --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe pr comment --pr-number 9 --body "hello"'],
     options: [
       { key: 'pr_number', flag: '--pr-number', description: 'Pull request number.', type: 'number', required: true },
       { key: 'body', flag: '--body', description: 'Comment body.', type: 'string', required: true },
@@ -216,9 +212,9 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
   defineCommand({
     name: 'pr.submit-review',
     purpose: 'Submit a completed pull request review.',
-    usage: 'orfe pr submit-review --pr-number <number> --event <approve|request-changes|comment> --body <text> [--repo <owner/name>] [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage: 'orfe pr submit-review --pr-number <number> --event <approve|request-changes|comment> --body <text> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON review result.',
-    examples: ['orfe pr submit-review --pr-number 9 --event approve --body "Looks good" --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe pr submit-review --pr-number 9 --event approve --body "Looks good"'],
     options: [
       { key: 'pr_number', flag: '--pr-number', description: 'Pull request number.', type: 'number', required: true },
       {
@@ -240,9 +236,9 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
   defineCommand({
     name: 'pr.reply',
     purpose: 'Reply to an existing pull request review comment.',
-    usage: 'orfe pr reply --pr-number <number> --comment-id <number> --body <text> [--repo <owner/name>] [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage: 'orfe pr reply --pr-number <number> --comment-id <number> --body <text> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON reply result.',
-    examples: ['orfe pr reply --pr-number 9 --comment-id 123 --body "ack" --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe pr reply --pr-number 9 --comment-id 123 --body "ack"'],
     options: [
       { key: 'pr_number', flag: '--pr-number', description: 'Pull request number.', type: 'number', required: true },
       { key: 'comment_id', flag: '--comment-id', description: 'Review comment id.', type: 'number', required: true },
@@ -253,9 +249,10 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
   defineCommand({
     name: 'project.get-status',
     purpose: 'Read the current Status field value for a project item.',
-    usage: 'orfe project get-status --item-type <issue|pr> --item-number <number> [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--repo <owner/name>] [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage:
+      'orfe project get-status --item-type <issue|pr> --item-number <number> [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON project status payload.',
-    examples: ['orfe project get-status --item-type issue --item-number 14 --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe project get-status --item-type issue --item-number 14'],
     options: [
       { key: 'item_type', flag: '--item-type', description: 'Item type.', type: 'enum', enumValues: ['issue', 'pr'], required: true },
       { key: 'item_number', flag: '--item-number', description: 'Item number.', type: 'number', required: true },
@@ -268,9 +265,10 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
   defineCommand({
     name: 'project.set-status',
     purpose: 'Set the Status field value for a project item.',
-    usage: 'orfe project set-status --item-type <issue|pr> --item-number <number> --status <value> [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--repo <owner/name>] [--caller-name <name>] [--config <path>] [--auth-config <path>]',
+    usage:
+      'orfe project set-status --item-type <issue|pr> --item-number <number> --status <value> [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON project status mutation result.',
-    examples: ['orfe project set-status --item-type issue --item-number 14 --status "In Progress" --caller-name Greg'],
+    examples: ['ORFE_CALLER_NAME=Greg orfe project set-status --item-type issue --item-number 14 --status "In Progress"'],
     options: [
       { key: 'item_type', flag: '--item-type', description: 'Item type.', type: 'enum', enumValues: ['issue', 'pr'], required: true },
       { key: 'item_number', flag: '--item-number', description: 'Item number.', type: 'number', required: true },

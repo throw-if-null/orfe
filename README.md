@@ -137,9 +137,8 @@ orfe issue get --help
 
 CLI caller resolution order:
 
-1. `--caller-name <value>`
-2. `ORFE_CALLER_NAME=<value>`
-3. fail with invalid usage
+1. `ORFE_CALLER_NAME=<value>`
+2. fail with invalid usage
 
 Successful commands print structured JSON to stdout. Valid commands that fail at runtime print structured JSON errors to stderr.
 
