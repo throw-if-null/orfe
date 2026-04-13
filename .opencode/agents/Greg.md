@@ -9,6 +9,8 @@ permission:
   bash:
     "*": allow
     "node *": allow
+    "orfe *": allow
+    
     # Issue branch push guidance
     "git push* issues/*": allow
     "git push* origin issues/*": allow

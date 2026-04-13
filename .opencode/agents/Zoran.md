@@ -14,6 +14,7 @@ permission:
     "gh api*": allow
     "gh auth status*": allow
     "node *": allow
+    "orfe *": allow
   webfetch: allow
   websearch: allow
   codesearch: allow

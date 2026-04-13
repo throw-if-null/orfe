@@ -9,6 +9,8 @@ permission:
   bash:
     "*": deny
 
+    "orfe *": allow
+
     # Read-only git inspection
     "git status": allow
     "git diff*": allow
