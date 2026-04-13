@@ -89,7 +89,7 @@ function parseInvocation(args: string[], env: NodeJS.ProcessEnv): ParsedInvocati
   if (!group || !isCommandGroup(group)) {
     throw new CliUsageError(`Unknown command group "${group}".`, {
       usage: 'orfe <auth|issue|pr|project> <command> [options]',
-      example: 'orfe auth token --repo throw-if-null/orfe --caller-name Greg',
+      example: 'ORFE_CALLER_NAME=Greg orfe auth token --repo throw-if-null/orfe',
       see: 'orfe --help',
     });
   }
@@ -136,7 +136,7 @@ function parseLeafOptions(
   const allOptions = [...commandDefinition.options, ...getCliCommonOptions()];
   const byFlag = new Map(allOptions.map((option) => [option.flag, option]));
   const input: CommandInput = {};
-  let callerName = env.ORFE_CALLER_NAME;
+  const callerName = env.ORFE_CALLER_NAME;
   let configPath: string | undefined;
   let authConfigPath: string | undefined;
 
@@ -157,9 +157,6 @@ function parseLeafOptions(
     }
 
     switch (optionDefinition.key) {
-      case 'caller_name':
-        callerName = value as string;
-        break;
       case 'config':
         configPath = value as string;
         break;
@@ -179,7 +176,7 @@ function parseLeafOptions(
   }
 
   if (!callerName || callerName.trim().length === 0) {
-    throw createLeafUsageError(commandDefinition, 'CLI caller identity is required via --caller-name or ORFE_CALLER_NAME.');
+    throw createLeafUsageError(commandDefinition, 'CLI caller identity is required via ORFE_CALLER_NAME.');
   }
 
   for (const optionDefinition of commandDefinition.options) {
@@ -259,8 +256,8 @@ function renderRootHelp(): string {
     ...COMMAND_GROUPS.map((group) => `  ${group}`),
     '',
     'Examples:',
-    '  orfe auth token --repo throw-if-null/orfe --caller-name Greg',
-    '  orfe pr get-or-create --head issues/orfe-14 --title "Build orfe foundation" --caller-name Greg',
+    '  ORFE_CALLER_NAME=Greg orfe auth token --repo throw-if-null/orfe',
+    '  ORFE_CALLER_NAME=Greg orfe pr get-or-create --head issues/orfe-14 --title "Build orfe foundation"',
     '',
     'Run `orfe <group> --help` for group-specific help.',
   ].join('\n');

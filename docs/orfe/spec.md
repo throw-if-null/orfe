@@ -199,9 +199,8 @@ The CLI does not have `context.agent`, so direct CLI usage must provide caller i
 
 Resolution order:
 
-1. `--caller-name <value>`
-2. `ORFE_CALLER_NAME=<value>`
-3. fail with `caller_name_missing`
+1. `ORFE_CALLER_NAME=<value>`
+2. fail with `caller_name_missing`
 
 ## 6. Repo-local config model
 
@@ -332,7 +331,7 @@ The config file does not define:
 ### 7.3 CLI options
 
 - CLI flags use kebab-case
-- examples: `--caller-name`, `--issue-number`, `--project-number`
+- examples: `--issue-number`, `--project-number`
 
 ### 7.4 Standard verbs
 
@@ -346,7 +345,6 @@ The config file does not define:
 
 These options are available to every leaf command:
 
-- `--caller-name <name>`
 - `--config <path>`
 - `--auth-config <path>`
 - `--repo <owner/name>`
@@ -515,7 +513,7 @@ orfe project set-status
 **CLI**:
 
 ```text
-orfe auth token --repo <owner/name> [--caller-name <name>] [--config <path>] [--auth-config <path>]
+orfe auth token --repo <owner/name> [--config <path>] [--auth-config <path>]
 ```
 
 **Tool input**:
@@ -556,7 +554,7 @@ Rules:
 **CLI**:
 
 ```text
-orfe issue get --issue-number <number> [--repo <owner/name>] [--caller-name <name>] [--config <path>]
+orfe issue get --issue-number <number> [--repo <owner/name>] [--config <path>]
 ```
 
 **Tool input**:
@@ -591,7 +589,7 @@ orfe issue get --issue-number <number> [--repo <owner/name>] [--caller-name <nam
 **CLI**:
 
 ```text
-orfe issue create --title <text> [--body <text>] [--label <name> ...] [--assignee <login> ...] [--repo <owner/name>] [--caller-name <name>] [--config <path>]
+orfe issue create --title <text> [--body <text>] [--label <name> ...] [--assignee <login> ...] [--repo <owner/name>] [--config <path>]
 ```
 
 **Tool input**:
@@ -629,7 +627,7 @@ orfe issue create --title <text> [--body <text>] [--label <name> ...] [--assigne
 **CLI**:
 
 ```text
-orfe issue update --issue-number <number> [--title <text>] [--body <text>] [--label <name> ...] [--assignee <login> ...] [--clear-labels] [--clear-assignees] [--repo <owner/name>] [--caller-name <name>] [--config <path>]
+orfe issue update --issue-number <number> [--title <text>] [--body <text>] [--label <name> ...] [--assignee <login> ...] [--clear-labels] [--clear-assignees] [--repo <owner/name>] [--config <path>]
 ```
 
 Rules:
@@ -663,7 +661,7 @@ Rules:
 **CLI**:
 
 ```text
-orfe issue comment --issue-number <number> --body <text> [--repo <owner/name>] [--caller-name <name>] [--config <path>]
+orfe issue comment --issue-number <number> --body <text> [--repo <owner/name>] [--config <path>]
 ```
 
 **Success `data` shape**:
@@ -688,7 +686,7 @@ orfe issue comment --issue-number <number> --body <text> [--repo <owner/name>] [
 **CLI**:
 
 ```text
-orfe issue set-state --issue-number <number> --state <open|closed> [--state-reason <completed|not_planned|duplicate>] [--duplicate-of <issue-number>] [--repo <owner/name>] [--caller-name <name>] [--config <path>]
+orfe issue set-state --issue-number <number> --state <open|closed> [--state-reason <completed|not_planned|duplicate>] [--duplicate-of <issue-number>] [--repo <owner/name>] [--config <path>]
 ```
 
 Rules:
@@ -783,7 +781,7 @@ For duplicate closure, the success payload must instead include the canonical is
 **CLI**:
 
 ```text
-orfe pr get --pr-number <number> [--repo <owner/name>] [--caller-name <name>] [--config <path>]
+orfe pr get --pr-number <number> [--repo <owner/name>] [--config <path>]
 ```
 
 **Success `data` shape**:
@@ -812,7 +810,7 @@ orfe pr get --pr-number <number> [--repo <owner/name>] [--caller-name <name>] [-
 **CLI**:
 
 ```text
-orfe pr get-or-create --head <branch> --title <text> [--body <text>] [--base <branch>] [--draft] [--repo <owner/name>] [--caller-name <name>] [--config <path>]
+orfe pr get-or-create --head <branch> --title <text> [--body <text>] [--base <branch>] [--draft] [--repo <owner/name>] [--config <path>]
 ```
 
 Rules:
@@ -849,7 +847,7 @@ Rules:
 **CLI**:
 
 ```text
-orfe pr comment --pr-number <number> --body <text> [--repo <owner/name>] [--caller-name <name>] [--config <path>]
+orfe pr comment --pr-number <number> --body <text> [--repo <owner/name>] [--config <path>]
 ```
 
 **Success `data` shape**:
@@ -874,7 +872,7 @@ orfe pr comment --pr-number <number> --body <text> [--repo <owner/name>] [--call
 **CLI**:
 
 ```text
-orfe pr submit-review --pr-number <number> --event <approve|request-changes|comment> --body <text> [--repo <owner/name>] [--caller-name <name>] [--config <path>]
+orfe pr submit-review --pr-number <number> --event <approve|request-changes|comment> --body <text> [--repo <owner/name>] [--config <path>]
 ```
 
 Rules:
@@ -904,7 +902,7 @@ Rules:
 **CLI**:
 
 ```text
-orfe pr reply --pr-number <number> --comment-id <number> --body <text> [--repo <owner/name>] [--caller-name <name>] [--config <path>]
+orfe pr reply --pr-number <number> --comment-id <number> --body <text> [--repo <owner/name>] [--config <path>]
 ```
 
 **Success `data` shape**:
@@ -929,7 +927,7 @@ orfe pr reply --pr-number <number> --comment-id <number> --body <text> [--repo <
 **CLI**:
 
 ```text
-orfe project get-status --item-type <issue|pr> --item-number <number> [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--repo <owner/name>] [--caller-name <name>] [--config <path>]
+orfe project get-status --item-type <issue|pr> --item-number <number> [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--repo <owner/name>] [--config <path>]
 ```
 
 Resolution order:
@@ -965,7 +963,7 @@ Resolution order:
 **CLI**:
 
 ```text
-orfe project set-status --item-type <issue|pr> --item-number <number> --status <value> [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--repo <owner/name>] [--caller-name <name>] [--config <path>]
+orfe project set-status --item-type <issue|pr> --item-number <number> --status <value> [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--repo <owner/name>] [--config <path>]
 ```
 
 Rules:
