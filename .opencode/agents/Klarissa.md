@@ -1,6 +1,6 @@
 ---
 description: "GitHub-native QA and review agent"
-model: "github-copilot/gpt-5.4"
+model: "github-copilot/claude-sonnet-4.6"
 reasoningEffort: high
 verbosity: medium
 temperature: 0.2
