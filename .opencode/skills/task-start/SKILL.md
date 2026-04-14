@@ -39,7 +39,7 @@ Example for issue `123` in this repo:
 1. Confirm the GitHub issue exists.
 2. Derive the issue branch and issue worktree from `AGENTS.md`.
 3. Create or reuse that branch/worktree locally.
-4. Move the issue's GitHub Project item to `In Progress`.
+4. Move the issue's GitHub Project item to `In Progress` when a project item exists; otherwise note that the issue has no project item and continue.
 5. Resolve the next owner, defaulting to `Greg` when `next-owner` was omitted for a routine implementation start.
 6. Post the structured `[WORKFLOW]` issue comment shown below.
 7. Return the derived branch/worktree details.
@@ -59,13 +59,16 @@ Example for issue `123` in this repo:
    - issue branch: `issues/<project-acronym>-<issue-number>`
    - issue worktree: `<worktree_root>/<project-acronym>-<issue-number>`
 2. Verify the GitHub issue exists in the configured repository.
-3. Verify the issue is represented on the configured GitHub Project. If the issue or project item cannot be found, stop and report it.
+3. Check whether the issue is represented on the configured GitHub Project.
+   - If the issue itself cannot be found, stop and report it.
+   - If the issue exists but no project item exists yet, treat that as a non-fatal path: note that the issue is not currently on the project and continue.
+   - If project metadata cannot be read for some other reason, stop and report that failure.
 4. Prepare local git state for the issue branch/worktree:
    - fetch latest refs
    - if the issue branch already exists, reuse it
    - if the issue worktree already exists, reuse it
    - otherwise create the branch from the configured default branch and create the matching worktree
-5. Move the issue's project item to `In Progress` using GitHub MCP.
+5. If a project item exists, move it to `In Progress` using GitHub MCP. Otherwise skip the project update and continue.
 6. Resolve `next-owner`:
    - if `next-owner` was provided, use it
    - if `next-owner` was omitted, default to `Greg` for the normal Jelena → Greg implementation handoff
@@ -74,7 +77,7 @@ Example for issue `123` in this repo:
    - issue number
    - branch name
    - worktree path
-   - board status
+   - board status, or a note that no project item exists
    - resolved next owner
 
 ## Exact workflow comment template
@@ -90,6 +93,7 @@ Next-Owner: <next-owner>
 - Do not create duplicate worktrees or alternate branch names.
 - If a matching `[WORKFLOW]` start comment already exists, add a new one only when ownership or execution context changed materially.
 - Re-running without `next-owner` should keep using the default `Greg` handoff unless a different next owner is intentionally supplied.
+- If no project item exists, re-running should continue to succeed without treating that missing item as a fatal error.
 
 ## Should not
 - create a PR
