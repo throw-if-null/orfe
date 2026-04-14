@@ -303,7 +303,7 @@ test('executeOrfeTool reads caller identity from context.agent and passes plain 
 
   const result = await executeOrfeTool(
     {
-      command: 'issue.get',
+      command: 'issue get',
       issue_number: 14,
     },
     {
@@ -317,7 +317,7 @@ test('executeOrfeTool reads caller identity from context.agent and passes plain 
 
         return {
           ok: true,
-          command: 'issue.get',
+          command: 'issue get',
           repo: 'throw-if-null/orfe',
           data: { issue_number: 14 },
         } satisfies SuccessResponse<Record<string, unknown>>;
@@ -327,20 +327,20 @@ test('executeOrfeTool reads caller identity from context.agent and passes plain 
 
   assert.deepEqual(result, {
     ok: true,
-    command: 'issue.get',
+    command: 'issue get',
     repo: 'throw-if-null/orfe',
     data: { issue_number: 14 },
   });
   assert.deepEqual(capturedRequest, {
     callerName: 'Greg',
-    command: 'issue.get',
+    command: 'issue get',
     input: { issue_number: 14 },
     cwd: '/tmp/repo',
   });
   assert.equal(receivedAgentInCore, false);
 });
 
-test('executeOrfeTool returns the shared success envelope for issue.get', async () => {
+test('executeOrfeTool returns the shared success envelope for issue get', async () => {
   nock.disableNetConnect();
 
   try {
@@ -348,7 +348,7 @@ test('executeOrfeTool returns the shared success envelope for issue.get', async 
 
     const result = await executeOrfeTool(
       {
-        command: 'issue.get',
+        command: 'issue get',
         issue_number: 14,
       },
       {
@@ -380,7 +380,7 @@ test('executeOrfeTool returns the shared success envelope for issue.get', async 
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.get',
+      command: 'issue get',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -400,7 +400,7 @@ test('executeOrfeTool returns the shared success envelope for issue.get', async 
   }
 });
 
-test('executeOrfeTool returns the shared success envelope for issue.update', async () => {
+test('executeOrfeTool returns the shared success envelope for issue update', async () => {
   nock.disableNetConnect();
 
   try {
@@ -411,7 +411,7 @@ test('executeOrfeTool returns the shared success envelope for issue.update', asy
 
     const result = await executeOrfeTool(
       {
-        command: 'issue.update',
+        command: 'issue update',
         issue_number: 14,
         title: 'Updated title',
         labels: ['bug'],
@@ -445,7 +445,7 @@ test('executeOrfeTool returns the shared success envelope for issue.update', asy
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.update',
+      command: 'issue update',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -462,7 +462,7 @@ test('executeOrfeTool returns the shared success envelope for issue.update', asy
   }
 });
 
-test('executeOrfeTool returns the shared success envelope for issue.create', async () => {
+test('executeOrfeTool returns the shared success envelope for issue create', async () => {
   nock.disableNetConnect();
 
   try {
@@ -475,7 +475,7 @@ test('executeOrfeTool returns the shared success envelope for issue.create', asy
 
     const result = await executeOrfeTool(
       {
-        command: 'issue.create',
+        command: 'issue create',
         title: 'New issue title',
         body: 'Body text',
         labels: ['needs-input'],
@@ -510,7 +510,7 @@ test('executeOrfeTool returns the shared success envelope for issue.create', asy
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.create',
+      command: 'issue create',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 21,
@@ -527,7 +527,7 @@ test('executeOrfeTool returns the shared success envelope for issue.create', asy
   }
 });
 
-test('executeOrfeTool returns the shared success envelope for pr.get', async () => {
+test('executeOrfeTool returns the shared success envelope for pr get', async () => {
   nock.disableNetConnect();
 
   try {
@@ -535,7 +535,7 @@ test('executeOrfeTool returns the shared success envelope for pr.get', async () 
 
     const result = await executeOrfeTool(
       {
-        command: 'pr.get',
+        command: 'pr get',
         pr_number: 9,
       },
       {
@@ -567,7 +567,7 @@ test('executeOrfeTool returns the shared success envelope for pr.get', async () 
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'pr.get',
+      command: 'pr get',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -587,7 +587,7 @@ test('executeOrfeTool returns the shared success envelope for pr.get', async () 
   }
 });
 
-test('executeOrfeTool returns the shared success envelope for pr.get-or-create', async () => {
+test('executeOrfeTool returns the shared success envelope for pr get-or-create', async () => {
   nock.disableNetConnect();
 
   try {
@@ -609,7 +609,7 @@ test('executeOrfeTool returns the shared success envelope for pr.get-or-create',
 
     const result = await executeOrfeTool(
       {
-        command: 'pr.get-or-create',
+        command: 'pr get-or-create',
         head: 'issues/orfe-13',
         title: 'Design the `orfe` custom tool and CLI contract',
       },
@@ -642,7 +642,7 @@ test('executeOrfeTool returns the shared success envelope for pr.get-or-create',
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'pr.get-or-create',
+      command: 'pr get-or-create',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -660,7 +660,7 @@ test('executeOrfeTool returns the shared success envelope for pr.get-or-create',
   }
 });
 
-test('executeOrfeTool returns the shared success envelope for pr.comment', async () => {
+test('executeOrfeTool returns the shared success envelope for pr comment', async () => {
   nock.disableNetConnect();
 
   try {
@@ -668,7 +668,7 @@ test('executeOrfeTool returns the shared success envelope for pr.comment', async
 
     const result = await executeOrfeTool(
       {
-        command: 'pr.comment',
+        command: 'pr comment',
         pr_number: 9,
         body: 'Hello from orfe',
       },
@@ -701,7 +701,7 @@ test('executeOrfeTool returns the shared success envelope for pr.comment', async
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'pr.comment',
+      command: 'pr comment',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -717,7 +717,7 @@ test('executeOrfeTool returns the shared success envelope for pr.comment', async
   }
 });
 
-test('executeOrfeTool returns the shared success envelope for pr.submit-review', async () => {
+test('executeOrfeTool returns the shared success envelope for pr submit-review', async () => {
   nock.disableNetConnect();
 
   try {
@@ -725,7 +725,7 @@ test('executeOrfeTool returns the shared success envelope for pr.submit-review',
 
     const result = await executeOrfeTool(
       {
-        command: 'pr.submit-review',
+        command: 'pr submit-review',
         pr_number: 9,
         event: 'approve',
         body: 'Looks good',
@@ -759,7 +759,7 @@ test('executeOrfeTool returns the shared success envelope for pr.submit-review',
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'pr.submit-review',
+      command: 'pr submit-review',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -775,7 +775,7 @@ test('executeOrfeTool returns the shared success envelope for pr.submit-review',
   }
 });
 
-test('executeOrfeTool returns the shared success envelope for pr.reply', async () => {
+test('executeOrfeTool returns the shared success envelope for pr reply', async () => {
   nock.disableNetConnect();
 
   try {
@@ -783,7 +783,7 @@ test('executeOrfeTool returns the shared success envelope for pr.reply', async (
 
     const result = await executeOrfeTool(
       {
-        command: 'pr.reply',
+        command: 'pr reply',
         pr_number: 9,
         comment_id: 123456,
         body: 'ack',
@@ -817,7 +817,7 @@ test('executeOrfeTool returns the shared success envelope for pr.reply', async (
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'pr.reply',
+      command: 'pr reply',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -833,7 +833,7 @@ test('executeOrfeTool returns the shared success envelope for pr.reply', async (
   }
 });
 
-test('executeOrfeTool returns the shared success envelope for project.get-status', async () => {
+test('executeOrfeTool returns the shared success envelope for project get-status', async () => {
   nock.disableNetConnect();
 
   try {
@@ -918,7 +918,7 @@ test('executeOrfeTool returns the shared success envelope for project.get-status
 
     const result = await executeOrfeTool(
       {
-        command: 'project.get-status',
+        command: 'project get-status',
         item_type: 'issue',
         item_number: 13,
       },
@@ -958,7 +958,7 @@ test('executeOrfeTool returns the shared success envelope for project.get-status
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'project.get-status',
+      command: 'project get-status',
       repo: 'throw-if-null/orfe',
       data: {
         project_owner: 'throw-if-null',
@@ -979,7 +979,7 @@ test('executeOrfeTool returns the shared success envelope for project.get-status
   }
 });
 
-test('executeOrfeTool returns the shared success envelope for project.set-status', async () => {
+test('executeOrfeTool returns the shared success envelope for project set-status', async () => {
   nock.disableNetConnect();
 
   try {
@@ -1119,7 +1119,7 @@ test('executeOrfeTool returns the shared success envelope for project.set-status
 
     const result = await executeOrfeTool(
       {
-        command: 'project.set-status',
+        command: 'project set-status',
         item_type: 'issue',
         item_number: 13,
         status: 'In Progress',
@@ -1160,7 +1160,7 @@ test('executeOrfeTool returns the shared success envelope for project.set-status
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'project.set-status',
+      command: 'project set-status',
       repo: 'throw-if-null/orfe',
       data: {
         project_owner: 'throw-if-null',
@@ -1187,7 +1187,7 @@ test('executeOrfeTool returns the shared success envelope for project.set-status
 test('executeOrfeTool rejects missing caller context clearly', async () => {
   const result = await executeOrfeTool(
     {
-      command: 'issue.get',
+      command: 'issue get',
       issue_number: 14,
     },
     {},
@@ -1195,7 +1195,7 @@ test('executeOrfeTool rejects missing caller context clearly', async () => {
 
   assert.deepEqual(result, {
     ok: false,
-    command: 'issue.get',
+    command: 'issue get',
     error: {
       code: 'caller_context_missing',
       message: 'OpenCode caller context is missing.',
@@ -1207,7 +1207,7 @@ test('executeOrfeTool rejects missing caller context clearly', async () => {
 test('executeOrfeTool still rejects missing caller context for caller-mapped commands', async () => {
   const result = await executeOrfeTool(
     {
-      command: 'issue.get',
+      command: 'issue get',
       issue_number: 14,
     },
     {},
@@ -1215,7 +1215,7 @@ test('executeOrfeTool still rejects missing caller context for caller-mapped com
 
   assert.deepEqual(result, {
     ok: false,
-    command: 'issue.get',
+    command: 'issue get',
     error: {
       code: 'caller_context_missing',
       message: 'OpenCode caller context is missing.',
@@ -1224,7 +1224,7 @@ test('executeOrfeTool still rejects missing caller context for caller-mapped com
   });
 });
 
-test('executeOrfeTool resolves auth.token from context.agent and returns shared success envelope', async () => {
+test('executeOrfeTool resolves auth token from context.agent and returns shared success envelope', async () => {
   nock.disableNetConnect();
 
   try {
@@ -1232,7 +1232,7 @@ test('executeOrfeTool resolves auth.token from context.agent and returns shared 
 
     const result = await executeOrfeTool(
       {
-        command: 'auth.token',
+        command: 'auth token',
         repo: 'throw-if-null/orfe',
       },
       {
@@ -1264,7 +1264,7 @@ test('executeOrfeTool resolves auth.token from context.agent and returns shared 
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'auth.token',
+      command: 'auth token',
       repo: 'throw-if-null/orfe',
       data: {
         role: 'greg',
@@ -1282,10 +1282,10 @@ test('executeOrfeTool resolves auth.token from context.agent and returns shared 
   }
 });
 
-test('executeOrfeTool rejects role override input for auth.token', async () => {
+test('executeOrfeTool rejects role override input for auth token', async () => {
   const result = await executeOrfeTool(
     {
-      command: 'auth.token',
+      command: 'auth token',
       role: 'greg',
       repo: 'throw-if-null/orfe',
     },
@@ -1297,10 +1297,10 @@ test('executeOrfeTool rejects role override input for auth.token', async () => {
 
   assert.deepEqual(result, {
     ok: false,
-    command: 'auth.token',
+    command: 'auth token',
     error: {
       code: 'invalid_usage',
-      message: 'Command "auth.token" does not accept input field "role".',
+      message: 'Command "auth token" does not accept input field "role".',
       retryable: false,
     },
   });
@@ -1309,7 +1309,7 @@ test('executeOrfeTool rejects role override input for auth.token', async () => {
 test('executeOrfeTool rejects caller_name from tool input', async () => {
   const result = await executeOrfeTool(
     {
-      command: 'issue.get',
+      command: 'issue get',
       caller_name: 'Greg',
       issue_number: 14,
     },
@@ -1320,7 +1320,7 @@ test('executeOrfeTool rejects caller_name from tool input', async () => {
 
   assert.deepEqual(result, {
     ok: false,
-    command: 'issue.get',
+    command: 'issue get',
     error: {
       code: 'invalid_usage',
       message: 'Tool input does not accept caller_name; caller identity comes from context.agent.',
