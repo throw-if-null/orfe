@@ -260,7 +260,7 @@ async function assertIssueUpdateTargetIsIssue(
     owner,
     repo,
     issueNumber,
-    `Issue #${issueNumber} is a pull request. issue.update only supports issues.`,
+    `Issue #${issueNumber} is a pull request. issue update only supports issues.`,
     mapIssueUpdateError,
   );
 }
@@ -276,7 +276,7 @@ async function assertIssueCommentTargetIsIssue(
     owner,
     repo,
     issueNumber,
-    `Issue #${issueNumber} is a pull request. Use pr.comment instead.`,
+    `Issue #${issueNumber} is a pull request. Use pr comment instead.`,
     mapIssueCommentError,
   );
 }
@@ -292,7 +292,7 @@ async function assertIssueSetStateTargetIsIssue(
     owner,
     repo,
     issueNumber,
-    `Issue #${issueNumber} is a pull request. issue.set-state only supports issues.`,
+    `Issue #${issueNumber} is a pull request. issue set-state only supports issues.`,
     mapIssueSetStateError,
   );
 }

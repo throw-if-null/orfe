@@ -34,7 +34,7 @@ const orfeTool: ToolDefinition = tool({
   async execute(args, context) {
     const result = await executeOrfeTool(args, {
       agent: context.agent,
-      cwd: context.directory,
+      ...(context.directory ? { cwd: context.directory } : {}),
     });
 
     return JSON.stringify(result);

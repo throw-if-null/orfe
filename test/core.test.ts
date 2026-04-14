@@ -10,19 +10,19 @@ import { createRuntimeSnapshot, runOrfeCore } from '../src/core.js';
 
 const UNIMPLEMENTED_COMMAND_NAMES = COMMAND_NAMES.filter(
   (commandName) =>
-    commandName !== 'auth.token' &&
-    commandName !== 'issue.get' &&
-    commandName !== 'issue.create' &&
-    commandName !== 'issue.update' &&
-    commandName !== 'issue.comment' &&
-    commandName !== 'issue.set-state' &&
-    commandName !== 'pr.get' &&
-    commandName !== 'pr.get-or-create' &&
-    commandName !== 'pr.comment' &&
-    commandName !== 'pr.submit-review' &&
-    commandName !== 'pr.reply' &&
-    commandName !== 'project.get-status' &&
-    commandName !== 'project.set-status',
+    commandName !== 'auth token' &&
+    commandName !== 'issue get' &&
+    commandName !== 'issue create' &&
+    commandName !== 'issue update' &&
+    commandName !== 'issue comment' &&
+    commandName !== 'issue set-state' &&
+    commandName !== 'pr get' &&
+    commandName !== 'pr get-or-create' &&
+    commandName !== 'pr comment' &&
+    commandName !== 'pr submit-review' &&
+    commandName !== 'pr reply' &&
+    commandName !== 'project get-status' &&
+    commandName !== 'project set-status',
 );
 
 function createRepoConfig() {
@@ -825,8 +825,8 @@ test('listCommandNames exposes the agreed V1 command surface', () => {
   assert.deepEqual(listCommandNames(), COMMAND_NAMES);
 });
 
-test('issue.get pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('issue.get').successDataExample, {
+test('issue get pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('issue get').successDataExample, {
     issue_number: 13,
     title: 'Design the `orfe` custom tool and CLI contract',
     body: '...',
@@ -838,8 +838,8 @@ test('issue.get pins its exact JSON success contract', () => {
   });
 });
 
-test('issue.create pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('issue.create').successDataExample, {
+test('issue create pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('issue create').successDataExample, {
     issue_number: 21,
     title: 'New issue title',
     state: 'open',
@@ -848,8 +848,8 @@ test('issue.create pins its exact JSON success contract', () => {
   });
 });
 
-test('issue.update pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('issue.update').successDataExample, {
+test('issue update pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('issue update').successDataExample, {
     issue_number: 13,
     title: 'Updated title',
     state: 'open',
@@ -858,8 +858,8 @@ test('issue.update pins its exact JSON success contract', () => {
   });
 });
 
-test('issue.comment pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('issue.comment').successDataExample, {
+test('issue comment pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('issue comment').successDataExample, {
     issue_number: 13,
     comment_id: 123456,
     html_url: 'https://github.com/throw-if-null/orfe/issues/13#issuecomment-123456',
@@ -867,8 +867,8 @@ test('issue.comment pins its exact JSON success contract', () => {
   });
 });
 
-test('issue.set-state pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('issue.set-state').successDataExample, {
+test('issue set-state pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('issue set-state').successDataExample, {
     issue_number: 13,
     state: 'closed',
     state_reason: 'completed',
@@ -877,8 +877,8 @@ test('issue.set-state pins its exact JSON success contract', () => {
   });
 });
 
-test('pr.get pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('pr.get').successDataExample, {
+test('pr get pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('pr get').successDataExample, {
     pr_number: 9,
     title: 'Design the `orfe` custom tool and CLI contract',
     body: '...',
@@ -890,8 +890,8 @@ test('pr.get pins its exact JSON success contract', () => {
   });
 });
 
-test('pr.get-or-create pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('pr.get-or-create').successDataExample, {
+test('pr get-or-create pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('pr get-or-create').successDataExample, {
     pr_number: 9,
     html_url: 'https://github.com/throw-if-null/orfe/pull/9',
     head: 'issues/orfe-13',
@@ -901,8 +901,8 @@ test('pr.get-or-create pins its exact JSON success contract', () => {
   });
 });
 
-test('pr.comment pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('pr.comment').successDataExample, {
+test('pr comment pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('pr comment').successDataExample, {
     pr_number: 9,
     comment_id: 123456,
     html_url: 'https://github.com/throw-if-null/orfe/pull/9#issuecomment-123456',
@@ -910,8 +910,8 @@ test('pr.comment pins its exact JSON success contract', () => {
   });
 });
 
-test('pr.submit-review pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('pr.submit-review').successDataExample, {
+test('pr submit-review pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('pr submit-review').successDataExample, {
     pr_number: 9,
     review_id: 555,
     event: 'approve',
@@ -919,8 +919,8 @@ test('pr.submit-review pins its exact JSON success contract', () => {
   });
 });
 
-test('pr.reply pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('pr.reply').successDataExample, {
+test('pr reply pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('pr reply').successDataExample, {
     pr_number: 9,
     comment_id: 123999,
     in_reply_to_comment_id: 123456,
@@ -928,8 +928,8 @@ test('pr.reply pins its exact JSON success contract', () => {
   });
 });
 
-test('project.get-status pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('project.get-status').successDataExample, {
+test('project get-status pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('project get-status').successDataExample, {
     project_owner: 'throw-if-null',
     project_number: 1,
     status_field_name: 'Status',
@@ -942,8 +942,8 @@ test('project.get-status pins its exact JSON success contract', () => {
   });
 });
 
-test('auth.token pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('auth.token').successDataExample, {
+test('auth token pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('auth token').successDataExample, {
     role: 'greg',
     app_slug: 'GR3G-BOT',
     repo: 'throw-if-null/orfe',
@@ -962,7 +962,7 @@ test('runOrfeCore mints an auth token for the resolved caller role', async () =>
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'auth.token',
+        command: 'auth token',
         input: {
           repo: 'throw-if-null/orfe',
         },
@@ -976,7 +976,7 @@ test('runOrfeCore mints an auth token for the resolved caller role', async () =>
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'auth.token',
+      command: 'auth token',
       repo: 'throw-if-null/orfe',
       data: {
         role: 'greg',
@@ -994,12 +994,12 @@ test('runOrfeCore mints an auth token for the resolved caller role', async () =>
   }
 });
 
-test('runOrfeCore rejects role override input for auth.token', async () => {
+test('runOrfeCore rejects role override input for auth token', async () => {
   await assert.rejects(
     runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'auth.token',
+        command: 'auth token',
         input: { role: 'unknown', repo: 'throw-if-null/orfe' },
       },
       {
@@ -1010,18 +1010,18 @@ test('runOrfeCore rejects role override input for auth.token', async () => {
     (error: unknown) => {
       assert(error instanceof OrfeError);
       assert.equal(error.code, 'invalid_usage');
-      assert.equal(error.message, 'Command "auth.token" does not accept input field "role".');
+      assert.equal(error.message, 'Command "auth token" does not accept input field "role".');
       return true;
     },
   );
 });
 
-test('runOrfeCore fails clearly for auth.token when the caller is unmapped', async () => {
+test('runOrfeCore fails clearly for auth token when the caller is unmapped', async () => {
   await assert.rejects(
     runOrfeCore(
       {
         callerName: 'Unknown Agent',
-        command: 'auth.token',
+        command: 'auth token',
         input: { repo: 'throw-if-null/orfe' },
       },
       {
@@ -1038,7 +1038,7 @@ test('runOrfeCore fails clearly for auth.token when the caller is unmapped', asy
   );
 });
 
-test('runOrfeCore fails clearly for auth.token when the installation is missing', async () => {
+test('runOrfeCore fails clearly for auth token when the installation is missing', async () => {
   nock.disableNetConnect();
 
   try {
@@ -1048,7 +1048,7 @@ test('runOrfeCore fails clearly for auth.token when the installation is missing'
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'auth.token',
+          command: 'auth token',
           input: { repo: 'throw-if-null/orfe' },
         },
         {
@@ -1072,7 +1072,7 @@ test('runOrfeCore fails clearly for auth.token when the installation is missing'
   }
 });
 
-test('runOrfeCore fails clearly for auth.token when token minting is rejected', async () => {
+test('runOrfeCore fails clearly for auth token when token minting is rejected', async () => {
   nock.disableNetConnect();
 
   try {
@@ -1082,7 +1082,7 @@ test('runOrfeCore fails clearly for auth.token when token minting is rejected', 
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'auth.token',
+          command: 'auth token',
           input: { repo: 'throw-if-null/orfe' },
         },
         {
@@ -1106,12 +1106,12 @@ test('runOrfeCore fails clearly for auth.token when token minting is rejected', 
   }
 });
 
-test('runOrfeCore surfaces config failures for auth.token clearly', async () => {
+test('runOrfeCore surfaces config failures for auth token clearly', async () => {
   await assert.rejects(
     runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'auth.token',
+        command: 'auth token',
         input: { repo: 'throw-if-null/orfe' },
       },
       {
@@ -1177,7 +1177,7 @@ test('runOrfeCore reads project status for an issue and returns structured succe
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'project.get-status',
+        command: 'project get-status',
         input: { item_type: 'issue', item_number: 13 },
       },
       {
@@ -1189,7 +1189,7 @@ test('runOrfeCore reads project status for an issue and returns structured succe
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'project.get-status',
+      command: 'project get-status',
       repo: 'throw-if-null/orfe',
       data: {
         project_owner: 'throw-if-null',
@@ -1282,7 +1282,7 @@ test('runOrfeCore paginates project items so later matching items are found', as
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'project.get-status',
+        command: 'project get-status',
         input: { item_type: 'issue', item_number: 13 },
       },
       {
@@ -1375,7 +1375,7 @@ test('runOrfeCore paginates project fields so later matching fields are found', 
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'project.get-status',
+        command: 'project get-status',
         input: { item_type: 'issue', item_number: 13 },
       },
       {
@@ -1454,7 +1454,7 @@ test('runOrfeCore reads project status for a pull request and returns structured
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'project.get-status',
+        command: 'project get-status',
         input: { item_type: 'pr', item_number: 9 },
       },
       {
@@ -1466,7 +1466,7 @@ test('runOrfeCore reads project status for a pull request and returns structured
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'project.get-status',
+      command: 'project get-status',
       repo: 'throw-if-null/orfe',
       data: {
         project_owner: 'throw-if-null',
@@ -1517,7 +1517,7 @@ test('runOrfeCore fails clearly when the target issue is not on the configured p
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'project.get-status',
+          command: 'project get-status',
           input: { item_type: 'issue', item_number: 13 },
         },
         {
@@ -1583,7 +1583,7 @@ test('runOrfeCore fails clearly when the configured project is missing the Statu
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'project.get-status',
+          command: 'project get-status',
           input: { item_type: 'issue', item_number: 13 },
         },
         {
@@ -1608,7 +1608,7 @@ test('runOrfeCore fails clearly when the configured project is missing the Statu
   }
 });
 
-test('runOrfeCore maps project.get-status auth failures clearly', async () => {
+test('runOrfeCore maps project get-status auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -1623,7 +1623,7 @@ test('runOrfeCore maps project.get-status auth failures clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'project.get-status',
+          command: 'project get-status',
           input: { item_type: 'issue', item_number: 13 },
         },
         {
@@ -1647,7 +1647,7 @@ test('runOrfeCore maps project.get-status auth failures clearly', async () => {
   }
 });
 
-test('runOrfeCore supports explicit status field overrides for project.get-status', async () => {
+test('runOrfeCore supports explicit status field overrides for project get-status', async () => {
   nock.disableNetConnect();
 
   try {
@@ -1695,7 +1695,7 @@ test('runOrfeCore supports explicit status field overrides for project.get-statu
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'project.get-status',
+        command: 'project get-status',
         input: { item_type: 'issue', item_number: 13, status_field_name: 'Delivery' },
       },
       {
@@ -1707,7 +1707,7 @@ test('runOrfeCore supports explicit status field overrides for project.get-statu
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'project.get-status',
+      command: 'project get-status',
       repo: 'throw-if-null/orfe',
       data: {
         project_owner: 'throw-if-null',
@@ -1729,8 +1729,8 @@ test('runOrfeCore supports explicit status field overrides for project.get-statu
   }
 });
 
-test('project.set-status pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('project.set-status').successDataExample, {
+test('project set-status pins its exact JSON success contract', () => {
+  assert.deepEqual(getCommandContract('project set-status').successDataExample, {
     project_owner: 'throw-if-null',
     project_number: 1,
     status_field_name: 'Status',
@@ -1850,7 +1850,7 @@ test('runOrfeCore sets project status for an issue and returns structured succes
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'project.set-status',
+        command: 'project set-status',
         input: { item_type: 'issue', item_number: 13, status: 'In Progress' },
       },
       {
@@ -1862,7 +1862,7 @@ test('runOrfeCore sets project status for an issue and returns structured succes
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'project.set-status',
+      command: 'project set-status',
       repo: 'throw-if-null/orfe',
       data: {
         project_owner: 'throw-if-null',
@@ -1890,7 +1890,7 @@ test('runOrfeCore sets project status for an issue and returns structured succes
   }
 });
 
-test('runOrfeCore treats project.set-status as an idempotent no-op when the requested status already matches', async () => {
+test('runOrfeCore treats project set-status as an idempotent no-op when the requested status already matches', async () => {
   nock.disableNetConnect();
 
   try {
@@ -1942,7 +1942,7 @@ test('runOrfeCore treats project.set-status as an idempotent no-op when the requ
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'project.set-status',
+        command: 'project set-status',
         input: { item_type: 'issue', item_number: 13, status: 'In Progress' },
       },
       {
@@ -1954,7 +1954,7 @@ test('runOrfeCore treats project.set-status as an idempotent no-op when the requ
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'project.set-status',
+      command: 'project set-status',
       repo: 'throw-if-null/orfe',
       data: {
         project_owner: 'throw-if-null',
@@ -1979,7 +1979,7 @@ test('runOrfeCore treats project.set-status as an idempotent no-op when the requ
   }
 });
 
-test('runOrfeCore fails clearly when project.set-status targets an item outside the configured project', async () => {
+test('runOrfeCore fails clearly when project set-status targets an item outside the configured project', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2001,7 +2001,7 @@ test('runOrfeCore fails clearly when project.set-status targets an item outside 
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'project.set-status',
+          command: 'project set-status',
           input: { item_type: 'issue', item_number: 13, status: 'In Progress' },
         },
         {
@@ -2025,7 +2025,7 @@ test('runOrfeCore fails clearly when project.set-status targets an item outside 
   }
 });
 
-test('runOrfeCore fails clearly when project.set-status receives an invalid status option', async () => {
+test('runOrfeCore fails clearly when project set-status receives an invalid status option', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2078,7 +2078,7 @@ test('runOrfeCore fails clearly when project.set-status receives an invalid stat
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'project.set-status',
+          command: 'project set-status',
           input: { item_type: 'issue', item_number: 13, status: 'Blocked' },
         },
         {
@@ -2103,7 +2103,7 @@ test('runOrfeCore fails clearly when project.set-status receives an invalid stat
   }
 });
 
-test('runOrfeCore maps project.set-status auth failures clearly', async () => {
+test('runOrfeCore maps project set-status auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2118,7 +2118,7 @@ test('runOrfeCore maps project.set-status auth failures clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'project.set-status',
+          command: 'project set-status',
           input: { item_type: 'issue', item_number: 13, status: 'In Progress' },
         },
         {
@@ -2142,7 +2142,7 @@ test('runOrfeCore maps project.set-status auth failures clearly', async () => {
   }
 });
 
-test('runOrfeCore supports explicit status field overrides for project.set-status', async () => {
+test('runOrfeCore supports explicit status field overrides for project set-status', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2246,7 +2246,7 @@ test('runOrfeCore supports explicit status field overrides for project.set-statu
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'project.set-status',
+        command: 'project set-status',
         input: { item_type: 'issue', item_number: 13, status: 'Shipped', status_field_name: 'Delivery' },
       },
       {
@@ -2258,7 +2258,7 @@ test('runOrfeCore supports explicit status field overrides for project.set-statu
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'project.set-status',
+      command: 'project set-status',
       repo: 'throw-if-null/orfe',
       data: {
         project_owner: 'throw-if-null',
@@ -2305,7 +2305,7 @@ test('runOrfeCore can be exercised directly with plain callerName data', async (
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'issue.get',
+        command: 'issue get',
         input: { issue_number: 14 },
       },
       {
@@ -2317,7 +2317,7 @@ test('runOrfeCore can be exercised directly with plain callerName data', async (
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.get',
+      command: 'issue get',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -2337,7 +2337,7 @@ test('runOrfeCore can be exercised directly with plain callerName data', async (
   }
 });
 
-test('runOrfeCore maps issue.get not-found responses clearly', async () => {
+test('runOrfeCore maps issue get not-found responses clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2351,7 +2351,7 @@ test('runOrfeCore maps issue.get not-found responses clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.get',
+          command: 'issue get',
           input: { issue_number: 999 },
         },
         {
@@ -2375,7 +2375,7 @@ test('runOrfeCore maps issue.get not-found responses clearly', async () => {
   }
 });
 
-test('runOrfeCore maps issue.get auth failures clearly', async () => {
+test('runOrfeCore maps issue get auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2389,7 +2389,7 @@ test('runOrfeCore maps issue.get auth failures clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.get',
+          command: 'issue get',
           input: { issue_number: 14 },
         },
         {
@@ -2422,7 +2422,7 @@ test('runOrfeCore reads a pull request and returns structured success output', a
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'pr.get',
+        command: 'pr get',
         input: { pr_number: 9 },
       },
       {
@@ -2434,7 +2434,7 @@ test('runOrfeCore reads a pull request and returns structured success output', a
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'pr.get',
+      command: 'pr get',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -2454,7 +2454,7 @@ test('runOrfeCore reads a pull request and returns structured success output', a
   }
 });
 
-test('runOrfeCore maps pr.get not-found responses clearly', async () => {
+test('runOrfeCore maps pr get not-found responses clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2468,7 +2468,7 @@ test('runOrfeCore maps pr.get not-found responses clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.get',
+          command: 'pr get',
           input: { pr_number: 999 },
         },
         {
@@ -2492,7 +2492,7 @@ test('runOrfeCore maps pr.get not-found responses clearly', async () => {
   }
 });
 
-test('runOrfeCore maps pr.get auth failures clearly', async () => {
+test('runOrfeCore maps pr get auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2506,7 +2506,7 @@ test('runOrfeCore maps pr.get auth failures clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.get',
+          command: 'pr get',
           input: { pr_number: 9 },
         },
         {
@@ -2530,7 +2530,7 @@ test('runOrfeCore maps pr.get auth failures clearly', async () => {
   }
 });
 
-test('runOrfeCore reuses an existing pull request for pr.get-or-create', async () => {
+test('runOrfeCore reuses an existing pull request for pr get-or-create', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2553,7 +2553,7 @@ test('runOrfeCore reuses an existing pull request for pr.get-or-create', async (
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'pr.get-or-create',
+        command: 'pr get-or-create',
         input: { head: 'issues/orfe-13', title: 'Design the `orfe` custom tool and CLI contract' },
       },
       {
@@ -2565,7 +2565,7 @@ test('runOrfeCore reuses an existing pull request for pr.get-or-create', async (
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'pr.get-or-create',
+      command: 'pr get-or-create',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -2583,7 +2583,7 @@ test('runOrfeCore reuses an existing pull request for pr.get-or-create', async (
   }
 });
 
-test('runOrfeCore creates a pull request for pr.get-or-create when none exists', async () => {
+test('runOrfeCore creates a pull request for pr get-or-create when none exists', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2612,7 +2612,7 @@ test('runOrfeCore creates a pull request for pr.get-or-create when none exists',
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'pr.get-or-create',
+        command: 'pr get-or-create',
         input: {
           head: 'issues/orfe-13',
           title: 'Design the `orfe` custom tool and CLI contract',
@@ -2629,7 +2629,7 @@ test('runOrfeCore creates a pull request for pr.get-or-create when none exists',
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'pr.get-or-create',
+      command: 'pr get-or-create',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 10,
@@ -2656,7 +2656,7 @@ test('runOrfeCore posts a top-level pull request comment and returns structured 
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'pr.comment',
+        command: 'pr comment',
         input: { pr_number: 9, body: 'Hello from orfe' },
       },
       {
@@ -2668,7 +2668,7 @@ test('runOrfeCore posts a top-level pull request comment and returns structured 
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'pr.comment',
+      command: 'pr comment',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -2693,7 +2693,7 @@ test('runOrfeCore submits a pull request review and returns structured success o
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'pr.submit-review',
+        command: 'pr submit-review',
         input: { pr_number: 9, event: 'approve', body: 'Looks good' },
       },
       {
@@ -2705,7 +2705,7 @@ test('runOrfeCore submits a pull request review and returns structured success o
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'pr.submit-review',
+      command: 'pr submit-review',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -2721,12 +2721,12 @@ test('runOrfeCore submits a pull request review and returns structured success o
   }
 });
 
-test('runOrfeCore rejects invalid pr.submit-review events clearly', async () => {
+test('runOrfeCore rejects invalid pr submit-review events clearly', async () => {
   await assert.rejects(
     runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'pr.submit-review',
+        command: 'pr submit-review',
         input: { pr_number: 9, event: 'dismiss', body: 'nope' },
       },
       {
@@ -2743,7 +2743,7 @@ test('runOrfeCore rejects invalid pr.submit-review events clearly', async () => 
   );
 });
 
-test('runOrfeCore maps pr.submit-review missing pull requests clearly', async () => {
+test('runOrfeCore maps pr submit-review missing pull requests clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2759,7 +2759,7 @@ test('runOrfeCore maps pr.submit-review missing pull requests clearly', async ()
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.submit-review',
+          command: 'pr submit-review',
           input: { pr_number: 404, event: 'approve', body: 'Looks good' },
         },
         {
@@ -2783,7 +2783,7 @@ test('runOrfeCore maps pr.submit-review missing pull requests clearly', async ()
   }
 });
 
-test('runOrfeCore maps pr.submit-review auth failures clearly', async () => {
+test('runOrfeCore maps pr submit-review auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2799,7 +2799,7 @@ test('runOrfeCore maps pr.submit-review auth failures clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.submit-review',
+          command: 'pr submit-review',
           input: { pr_number: 9, event: 'approve', body: 'Looks good' },
         },
         {
@@ -2823,7 +2823,7 @@ test('runOrfeCore maps pr.submit-review auth failures clearly', async () => {
   }
 });
 
-test('runOrfeCore maps pr.submit-review internal failures clearly', async () => {
+test('runOrfeCore maps pr submit-review internal failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2839,7 +2839,7 @@ test('runOrfeCore maps pr.submit-review internal failures clearly', async () => 
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.submit-review',
+          command: 'pr submit-review',
           input: { pr_number: 9, event: 'approve', body: 'Looks good' },
         },
         {
@@ -2864,7 +2864,7 @@ test('runOrfeCore maps pr.submit-review internal failures clearly', async () => 
   }
 });
 
-test('runOrfeCore maps pr.comment not-found responses clearly', async () => {
+test('runOrfeCore maps pr comment not-found responses clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2879,7 +2879,7 @@ test('runOrfeCore maps pr.comment not-found responses clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.comment',
+          command: 'pr comment',
           input: { pr_number: 999, body: 'Hello from orfe' },
         },
         {
@@ -2903,7 +2903,7 @@ test('runOrfeCore maps pr.comment not-found responses clearly', async () => {
   }
 });
 
-test('runOrfeCore maps plain-issue targets for pr.comment as not found', async () => {
+test('runOrfeCore maps plain-issue targets for pr comment as not found', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2918,7 +2918,7 @@ test('runOrfeCore maps plain-issue targets for pr.comment as not found', async (
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.comment',
+          command: 'pr comment',
           input: { pr_number: 14, body: 'Hello from orfe' },
         },
         {
@@ -2942,7 +2942,7 @@ test('runOrfeCore maps plain-issue targets for pr.comment as not found', async (
   }
 });
 
-test('runOrfeCore maps pr.comment auth failures clearly', async () => {
+test('runOrfeCore maps pr comment auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2957,7 +2957,7 @@ test('runOrfeCore maps pr.comment auth failures clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.comment',
+          command: 'pr comment',
           input: { pr_number: 9, body: 'Hello from orfe' },
         },
         {
@@ -2981,7 +2981,7 @@ test('runOrfeCore maps pr.comment auth failures clearly', async () => {
   }
 });
 
-test('runOrfeCore surfaces pr.comment validation failures clearly', async () => {
+test('runOrfeCore surfaces pr comment validation failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -2996,7 +2996,7 @@ test('runOrfeCore surfaces pr.comment validation failures clearly', async () => 
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.comment',
+          command: 'pr comment',
           input: { pr_number: 9, body: 'Hello from orfe' },
         },
         {
@@ -3029,7 +3029,7 @@ test('runOrfeCore replies to a pull request review comment and returns structure
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'pr.reply',
+        command: 'pr reply',
         input: { pr_number: 9, comment_id: 123456, body: 'ack' },
       },
       {
@@ -3041,7 +3041,7 @@ test('runOrfeCore replies to a pull request review comment and returns structure
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'pr.reply',
+      command: 'pr reply',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -3057,7 +3057,7 @@ test('runOrfeCore replies to a pull request review comment and returns structure
   }
 });
 
-test('runOrfeCore maps pr.reply missing pull requests clearly', async () => {
+test('runOrfeCore maps pr reply missing pull requests clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3073,7 +3073,7 @@ test('runOrfeCore maps pr.reply missing pull requests clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.reply',
+          command: 'pr reply',
           input: { pr_number: 404, comment_id: 123456, body: 'ack' },
         },
         {
@@ -3097,7 +3097,7 @@ test('runOrfeCore maps pr.reply missing pull requests clearly', async () => {
   }
 });
 
-test('runOrfeCore maps pr.reply missing review comments clearly', async () => {
+test('runOrfeCore maps pr reply missing review comments clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3113,7 +3113,7 @@ test('runOrfeCore maps pr.reply missing review comments clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.reply',
+          command: 'pr reply',
           input: { pr_number: 9, comment_id: 123456, body: 'ack' },
         },
         {
@@ -3137,7 +3137,7 @@ test('runOrfeCore maps pr.reply missing review comments clearly', async () => {
   }
 });
 
-test('runOrfeCore maps pr.reply auth failures clearly', async () => {
+test('runOrfeCore maps pr reply auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3153,7 +3153,7 @@ test('runOrfeCore maps pr.reply auth failures clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.reply',
+          command: 'pr reply',
           input: { pr_number: 9, comment_id: 123456, body: 'ack' },
         },
         {
@@ -3177,7 +3177,7 @@ test('runOrfeCore maps pr.reply auth failures clearly', async () => {
   }
 });
 
-test('runOrfeCore rejects non-repliable pr.reply targets clearly', async () => {
+test('runOrfeCore rejects non-repliable pr reply targets clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3193,7 +3193,7 @@ test('runOrfeCore rejects non-repliable pr.reply targets clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.reply',
+          command: 'pr reply',
           input: { pr_number: 9, comment_id: 123456, body: 'ack' },
         },
         {
@@ -3220,7 +3220,7 @@ test('runOrfeCore rejects non-repliable pr.reply targets clearly', async () => {
   }
 });
 
-test('runOrfeCore rejects ambiguous pr.get-or-create matches clearly', async () => {
+test('runOrfeCore rejects ambiguous pr get-or-create matches clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3254,7 +3254,7 @@ test('runOrfeCore rejects ambiguous pr.get-or-create matches clearly', async () 
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.get-or-create',
+          command: 'pr get-or-create',
           input: { head: 'issues/orfe-13', title: 'Design the `orfe` custom tool and CLI contract' },
         },
         {
@@ -3281,7 +3281,7 @@ test('runOrfeCore rejects ambiguous pr.get-or-create matches clearly', async () 
   }
 });
 
-test('runOrfeCore maps pr.get-or-create lookup auth failures clearly', async () => {
+test('runOrfeCore maps pr get-or-create lookup auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3295,7 +3295,7 @@ test('runOrfeCore maps pr.get-or-create lookup auth failures clearly', async () 
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.get-or-create',
+          command: 'pr get-or-create',
           input: { head: 'issues/orfe-13', title: 'Design the `orfe` custom tool and CLI contract' },
         },
         {
@@ -3322,7 +3322,7 @@ test('runOrfeCore maps pr.get-or-create lookup auth failures clearly', async () 
   }
 });
 
-test('runOrfeCore maps pr.get-or-create creation auth failures clearly', async () => {
+test('runOrfeCore maps pr get-or-create creation auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3337,7 +3337,7 @@ test('runOrfeCore maps pr.get-or-create creation auth failures clearly', async (
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.get-or-create',
+          command: 'pr get-or-create',
           input: { head: 'issues/orfe-13', title: 'Design the `orfe` custom tool and CLI contract' },
         },
         {
@@ -3364,7 +3364,7 @@ test('runOrfeCore maps pr.get-or-create creation auth failures clearly', async (
   }
 });
 
-test('runOrfeCore surfaces pr.get-or-create creation failures clearly', async () => {
+test('runOrfeCore surfaces pr get-or-create creation failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3379,7 +3379,7 @@ test('runOrfeCore surfaces pr.get-or-create creation failures clearly', async ()
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'pr.get-or-create',
+          command: 'pr get-or-create',
           input: { head: 'issues/orfe-13', title: 'Design the `orfe` custom tool and CLI contract' },
         },
         {
@@ -3419,7 +3419,7 @@ test('runOrfeCore creates a generic issue and returns structured success output'
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'issue.create',
+        command: 'issue create',
         input: {
           title: 'New issue title',
           body: 'Body text',
@@ -3436,7 +3436,7 @@ test('runOrfeCore creates a generic issue and returns structured success output'
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.create',
+      command: 'issue create',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 21,
@@ -3453,7 +3453,7 @@ test('runOrfeCore creates a generic issue and returns structured success output'
   }
 });
 
-test('runOrfeCore maps issue.create auth failures clearly', async () => {
+test('runOrfeCore maps issue create auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3467,7 +3467,7 @@ test('runOrfeCore maps issue.create auth failures clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.create',
+          command: 'issue create',
           input: { title: 'New issue title' },
         },
         {
@@ -3491,7 +3491,7 @@ test('runOrfeCore maps issue.create auth failures clearly', async () => {
   }
 });
 
-test('runOrfeCore maps issue.create missing repository failures clearly', async () => {
+test('runOrfeCore maps issue create missing repository failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3506,7 +3506,7 @@ test('runOrfeCore maps issue.create missing repository failures clearly', async 
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.create',
+          command: 'issue create',
           input: { title: 'New issue title', repo: 'octo/missing' },
         },
         {
@@ -3530,7 +3530,7 @@ test('runOrfeCore maps issue.create missing repository failures clearly', async 
   }
 });
 
-test('runOrfeCore maps issue.create creation failures clearly', async () => {
+test('runOrfeCore maps issue create creation failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3544,7 +3544,7 @@ test('runOrfeCore maps issue.create creation failures clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.create',
+          command: 'issue create',
           input: { title: 'New issue title' },
         },
         {
@@ -3586,7 +3586,7 @@ test('runOrfeCore updates issue metadata and returns structured success output',
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'issue.update',
+        command: 'issue update',
         input: {
           issue_number: 14,
           title: 'Updated title',
@@ -3604,7 +3604,7 @@ test('runOrfeCore updates issue metadata and returns structured success output',
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.update',
+      command: 'issue update',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -3621,7 +3621,7 @@ test('runOrfeCore updates issue metadata and returns structured success output',
   }
 });
 
-test('runOrfeCore clears labels and assignees for issue.update', async () => {
+test('runOrfeCore clears labels and assignees for issue update', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3646,7 +3646,7 @@ test('runOrfeCore clears labels and assignees for issue.update', async () => {
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'issue.update',
+        command: 'issue update',
         input: {
           issue_number: 14,
           clear_labels: true,
@@ -3662,7 +3662,7 @@ test('runOrfeCore clears labels and assignees for issue.update', async () => {
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.update',
+      command: 'issue update',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -3679,7 +3679,7 @@ test('runOrfeCore clears labels and assignees for issue.update', async () => {
   }
 });
 
-test('runOrfeCore maps issue.update not-found responses clearly', async () => {
+test('runOrfeCore maps issue update not-found responses clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3694,7 +3694,7 @@ test('runOrfeCore maps issue.update not-found responses clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.update',
+          command: 'issue update',
           input: { issue_number: 999, title: 'Updated title' },
         },
         {
@@ -3718,7 +3718,7 @@ test('runOrfeCore maps issue.update not-found responses clearly', async () => {
   }
 });
 
-test('runOrfeCore maps issue.update auth failures clearly', async () => {
+test('runOrfeCore maps issue update auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3733,7 +3733,7 @@ test('runOrfeCore maps issue.update auth failures clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.update',
+          command: 'issue update',
           input: { issue_number: 14, title: 'Updated title' },
         },
         {
@@ -3757,7 +3757,7 @@ test('runOrfeCore maps issue.update auth failures clearly', async () => {
   }
 });
 
-test('runOrfeCore rejects pull request targets for issue.update clearly', async () => {
+test('runOrfeCore rejects pull request targets for issue update clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3783,7 +3783,7 @@ test('runOrfeCore rejects pull request targets for issue.update clearly', async 
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.update',
+          command: 'issue update',
           input: { issue_number: 46, title: 'Updated title' },
         },
         {
@@ -3795,7 +3795,7 @@ test('runOrfeCore rejects pull request targets for issue.update clearly', async 
       (error: unknown) => {
         assert(error instanceof OrfeError);
         assert.equal(error.code, 'github_conflict');
-        assert.equal(error.message, 'Issue #46 is a pull request. issue.update only supports issues.');
+        assert.equal(error.message, 'Issue #46 is a pull request. issue update only supports issues.');
         return true;
       },
     );
@@ -3816,7 +3816,7 @@ test('runOrfeCore posts a generic issue comment and returns structured success o
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'issue.comment',
+        command: 'issue comment',
         input: { issue_number: 14, body: 'Hello from orfe' },
       },
       {
@@ -3828,7 +3828,7 @@ test('runOrfeCore posts a generic issue comment and returns structured success o
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.comment',
+      command: 'issue comment',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -3844,7 +3844,7 @@ test('runOrfeCore posts a generic issue comment and returns structured success o
   }
 });
 
-test('runOrfeCore maps issue.comment not-found responses clearly', async () => {
+test('runOrfeCore maps issue comment not-found responses clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3859,7 +3859,7 @@ test('runOrfeCore maps issue.comment not-found responses clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.comment',
+          command: 'issue comment',
           input: { issue_number: 999, body: 'Hello from orfe' },
         },
         {
@@ -3883,7 +3883,7 @@ test('runOrfeCore maps issue.comment not-found responses clearly', async () => {
   }
 });
 
-test('runOrfeCore maps issue.comment auth failures clearly', async () => {
+test('runOrfeCore maps issue comment auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -3898,7 +3898,7 @@ test('runOrfeCore maps issue.comment auth failures clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.comment',
+          command: 'issue comment',
           input: { issue_number: 14, body: 'Hello from orfe' },
         },
         {
@@ -3922,8 +3922,8 @@ test('runOrfeCore maps issue.comment auth failures clearly', async () => {
   }
 });
 
-test('validateCommandInput rejects invalid issue.set-state combinations clearly', () => {
-  const definition = getCommandDefinition('issue.set-state');
+test('validateCommandInput rejects invalid issue set-state combinations clearly', () => {
+  const definition = getCommandDefinition('issue set-state');
 
   assert.throws(
     () =>
@@ -3932,7 +3932,7 @@ test('validateCommandInput rejects invalid issue.set-state combinations clearly'
         state: 'open',
         state_reason: 'completed',
       }),
-    /issue\.set-state only allows state_reason when --state closed is used\./,
+    /issue set-state only allows state_reason when --state closed is used\./,
   );
 
   assert.throws(
@@ -3942,7 +3942,7 @@ test('validateCommandInput rejects invalid issue.set-state combinations clearly'
         state: 'closed',
         duplicate_of: 7,
       }),
-    /issue\.set-state only allows duplicate_of with state_reason=duplicate\./,
+    /issue set-state only allows duplicate_of with state_reason=duplicate\./,
   );
 
   assert.throws(
@@ -3952,7 +3952,7 @@ test('validateCommandInput rejects invalid issue.set-state combinations clearly'
         state: 'closed',
         state_reason: 'duplicate',
       }),
-    /issue\.set-state requires --duplicate-of when state_reason=duplicate\./,
+    /issue set-state requires --duplicate-of when state_reason=duplicate\./,
   );
 
   assert.throws(
@@ -3963,7 +3963,7 @@ test('validateCommandInput rejects invalid issue.set-state combinations clearly'
         state_reason: 'duplicate',
         duplicate_of: 14,
       }),
-    /issue\.set-state cannot mark an issue as a duplicate of itself\./,
+    /issue set-state cannot mark an issue as a duplicate of itself\./,
   );
 });
 
@@ -3986,7 +3986,7 @@ test('runOrfeCore closes an issue with structured state metadata', async () => {
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'issue.set-state',
+        command: 'issue set-state',
         input: { issue_number: 14, state: 'closed', state_reason: 'completed' },
       },
       {
@@ -3998,7 +3998,7 @@ test('runOrfeCore closes an issue with structured state metadata', async () => {
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.set-state',
+      command: 'issue set-state',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -4037,7 +4037,7 @@ test('runOrfeCore reopens an issue and clears duplicate metadata', async () => {
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'issue.set-state',
+        command: 'issue set-state',
         input: { issue_number: 14, state: 'open' },
       },
       {
@@ -4049,7 +4049,7 @@ test('runOrfeCore reopens an issue and clears duplicate metadata', async () => {
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.set-state',
+      command: 'issue set-state',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -4089,7 +4089,7 @@ test('runOrfeCore closes an issue as a duplicate and returns canonical issue met
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'issue.set-state',
+        command: 'issue set-state',
         input: { issue_number: 14, state: 'closed', state_reason: 'duplicate', duplicate_of: 7 },
       },
       {
@@ -4101,7 +4101,7 @@ test('runOrfeCore closes an issue as a duplicate and returns canonical issue met
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.set-state',
+      command: 'issue set-state',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -4118,7 +4118,7 @@ test('runOrfeCore closes an issue as a duplicate and returns canonical issue met
   }
 });
 
-test('runOrfeCore treats matching issue.set-state requests as no-ops', async () => {
+test('runOrfeCore treats matching issue set-state requests as no-ops', async () => {
   nock.disableNetConnect();
 
   try {
@@ -4136,7 +4136,7 @@ test('runOrfeCore treats matching issue.set-state requests as no-ops', async () 
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'issue.set-state',
+        command: 'issue set-state',
         input: { issue_number: 14, state: 'closed', state_reason: 'completed' },
       },
       {
@@ -4148,7 +4148,7 @@ test('runOrfeCore treats matching issue.set-state requests as no-ops', async () 
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.set-state',
+      command: 'issue set-state',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -4165,7 +4165,7 @@ test('runOrfeCore treats matching issue.set-state requests as no-ops', async () 
   }
 });
 
-test('runOrfeCore maps issue.set-state missing duplicate target clearly', async () => {
+test('runOrfeCore maps issue set-state missing duplicate target clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -4180,7 +4180,7 @@ test('runOrfeCore maps issue.set-state missing duplicate target clearly', async 
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.set-state',
+          command: 'issue set-state',
           input: { issue_number: 14, state: 'closed', state_reason: 'duplicate', duplicate_of: 999 },
         },
         {
@@ -4204,7 +4204,7 @@ test('runOrfeCore maps issue.set-state missing duplicate target clearly', async 
   }
 });
 
-test('runOrfeCore rejects pull request duplicate targets for issue.set-state clearly', async () => {
+test('runOrfeCore rejects pull request duplicate targets for issue set-state clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -4227,7 +4227,7 @@ test('runOrfeCore rejects pull request duplicate targets for issue.set-state cle
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.set-state',
+          command: 'issue set-state',
           input: { issue_number: 14, state: 'closed', state_reason: 'duplicate', duplicate_of: 48 },
         },
         {
@@ -4251,7 +4251,7 @@ test('runOrfeCore rejects pull request duplicate targets for issue.set-state cle
   }
 });
 
-test('runOrfeCore maps issue.set-state auth failures clearly', async () => {
+test('runOrfeCore maps issue set-state auth failures clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -4267,7 +4267,7 @@ test('runOrfeCore maps issue.set-state auth failures clearly', async () => {
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.set-state',
+          command: 'issue set-state',
           input: { issue_number: 14, state: 'closed', state_reason: 'completed' },
         },
         {
@@ -4291,7 +4291,7 @@ test('runOrfeCore maps issue.set-state auth failures clearly', async () => {
   }
 });
 
-test('runOrfeCore rejects pull request targets for issue.set-state clearly', async () => {
+test('runOrfeCore rejects pull request targets for issue set-state clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -4318,7 +4318,7 @@ test('runOrfeCore rejects pull request targets for issue.set-state clearly', asy
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.set-state',
+          command: 'issue set-state',
           input: { issue_number: 46, state: 'closed', state_reason: 'completed' },
         },
         {
@@ -4330,7 +4330,7 @@ test('runOrfeCore rejects pull request targets for issue.set-state clearly', asy
       (error: unknown) => {
         assert(error instanceof OrfeError);
         assert.equal(error.code, 'github_conflict');
-        assert.equal(error.message, 'Issue #46 is a pull request. issue.set-state only supports issues.');
+        assert.equal(error.message, 'Issue #46 is a pull request. issue set-state only supports issues.');
         return true;
       },
     );
@@ -4342,7 +4342,7 @@ test('runOrfeCore rejects pull request targets for issue.set-state clearly', asy
   }
 });
 
-test('runOrfeCore re-targets duplicate issue.set-state requests and reports changes', async () => {
+test('runOrfeCore re-targets duplicate issue set-state requests and reports changes', async () => {
   nock.disableNetConnect();
 
   try {
@@ -4373,7 +4373,7 @@ test('runOrfeCore re-targets duplicate issue.set-state requests and reports chan
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'issue.set-state',
+        command: 'issue set-state',
         input: { issue_number: 14, state: 'closed', state_reason: 'duplicate', duplicate_of: 9 },
       },
       {
@@ -4385,7 +4385,7 @@ test('runOrfeCore re-targets duplicate issue.set-state requests and reports chan
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.set-state',
+      command: 'issue set-state',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -4402,7 +4402,7 @@ test('runOrfeCore re-targets duplicate issue.set-state requests and reports chan
   }
 });
 
-test('runOrfeCore treats matching duplicate issue.set-state requests as no-ops', async () => {
+test('runOrfeCore treats matching duplicate issue set-state requests as no-ops', async () => {
   nock.disableNetConnect();
 
   try {
@@ -4423,7 +4423,7 @@ test('runOrfeCore treats matching duplicate issue.set-state requests as no-ops',
     const result = await runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'issue.set-state',
+        command: 'issue set-state',
         input: { issue_number: 14, state: 'closed', state_reason: 'duplicate', duplicate_of: 7 },
       },
       {
@@ -4435,7 +4435,7 @@ test('runOrfeCore treats matching duplicate issue.set-state requests as no-ops',
 
     assert.deepEqual(result, {
       ok: true,
-      command: 'issue.set-state',
+      command: 'issue set-state',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -4452,7 +4452,7 @@ test('runOrfeCore treats matching duplicate issue.set-state requests as no-ops',
   }
 });
 
-test('runOrfeCore rejects pull request targets for issue.comment clearly', async () => {
+test('runOrfeCore rejects pull request targets for issue comment clearly', async () => {
   nock.disableNetConnect();
 
   try {
@@ -4478,7 +4478,7 @@ test('runOrfeCore rejects pull request targets for issue.comment clearly', async
       runOrfeCore(
         {
           callerName: 'Greg',
-          command: 'issue.comment',
+          command: 'issue comment',
           input: { issue_number: 46, body: 'Hello from orfe' },
         },
         {
@@ -4490,7 +4490,7 @@ test('runOrfeCore rejects pull request targets for issue.comment clearly', async
       (error: unknown) => {
         assert(error instanceof OrfeError);
         assert.equal(error.code, 'github_conflict');
-        assert.equal(error.message, 'Issue #46 is a pull request. Use pr.comment instead.');
+        assert.equal(error.message, 'Issue #46 is a pull request. Use pr comment instead.');
         return true;
       },
     );
@@ -4537,7 +4537,7 @@ test('runOrfeCore rejects unmapped callers clearly', async () => {
     runOrfeCore(
       {
         callerName: 'Unknown Agent',
-        command: 'issue.get',
+        command: 'issue get',
         input: { issue_number: 14 },
       },
       {
@@ -4559,7 +4559,7 @@ test('runOrfeCore rejects empty caller names clearly', async () => {
     runOrfeCore(
       {
         callerName: '   ',
-        command: 'issue.get',
+        command: 'issue get',
         input: { issue_number: 14 },
       },
       {
@@ -4580,7 +4580,7 @@ test('runOrfeCore rejects repo-local config failures before auth config loading 
     runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'issue.get',
+        command: 'issue get',
         input: { issue_number: 14 },
       },
       {

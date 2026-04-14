@@ -101,7 +101,7 @@ function parseInvocation(args: string[], env: NodeJS.ProcessEnv): ParsedInvocati
     };
   }
 
-  const commandName = `${group}.${maybeLeaf}`;
+  const commandName = `${group} ${maybeLeaf}`;
   const commandDefinition = getCommandDefinitionForCli(commandName, group, maybeLeaf);
 
   if (rest.includes('--help') || rest.includes('-h')) {

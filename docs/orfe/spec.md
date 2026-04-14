@@ -127,7 +127,7 @@ Auth flow:
 5. `orfe` creates a GitHub App JWT internally
 6. `orfe` resolves the repository installation for the target repo internally
 7. `orfe` mints a GitHub App installation token internally
-8. the core builds Octokit clients with that installation token or returns token metadata directly for `auth.token`
+8. the core builds Octokit clients with that installation token or returns token metadata directly for `auth token`
 
 The auth adapter is part of the `orfe` runtime. It must not:
 
@@ -405,7 +405,7 @@ Shared envelope:
 ```json
 {
   "ok": true,
-  "command": "issue.get",
+  "command": "issue get",
   "repo": "throw-if-null/orfe",
   "data": {}
 }
@@ -420,7 +420,7 @@ Shared envelope:
 ```json
 {
   "ok": false,
-  "command": "issue.get",
+  "command": "issue get",
   "error": {
     "code": "github_not_found",
     "message": "Issue #13 was not found.",
@@ -466,7 +466,7 @@ The wrapper accepts structured JSON input:
 
 ```json
 {
-  "command": "issue.get",
+  "command": "issue get",
   "issue_number": 13,
   "repo": "throw-if-null/orfe"
 }
@@ -475,6 +475,7 @@ The wrapper accepts structured JSON input:
 Rules:
 
 - `command` is required.
+- `command` uses the canonical space-separated vocabulary, matching the CLI subcommands exactly.
 - command-specific fields use `snake_case`.
 - `caller_name` is **not** accepted from tool input.
 - the wrapper injects `callerName` from `context.agent`.
@@ -519,7 +520,7 @@ orfe auth token --repo <owner/name> [--config <path>] [--auth-config <path>]
 **Tool input**:
 
 ```json
-{ "command": "auth.token", "repo": "throw-if-null/orfe" }
+{ "command": "auth token", "repo": "throw-if-null/orfe" }
 ```
 
 **Success `data` shape**:
@@ -560,7 +561,7 @@ orfe issue get --issue-number <number> [--repo <owner/name>] [--config <path>]
 **Tool input**:
 
 ```json
-{ "command": "issue.get", "issue_number": 13, "repo": "throw-if-null/orfe" }
+{ "command": "issue get", "issue_number": 13, "repo": "throw-if-null/orfe" }
 ```
 
 **Success `data` shape**:
@@ -596,7 +597,7 @@ orfe issue create --title <text> [--body <text>] [--label <name> ...] [--assigne
 
 ```json
 {
-  "command": "issue.create",
+  "command": "issue create",
   "title": "New issue title",
   "body": "Body text",
   "labels": ["needs-input"],
@@ -1009,10 +1010,10 @@ Placeholder behavior for stubs:
 ```json
 {
   "ok": false,
-  "command": "issue.create",
+  "command": "issue create",
   "error": {
     "code": "not_implemented",
-    "message": "Command \"issue.create\" is not implemented yet.",
+    "message": "Command \"issue create\" is not implemented yet.",
     "retryable": false
   }
 }

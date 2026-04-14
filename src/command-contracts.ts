@@ -6,23 +6,23 @@ export interface CommandContract {
 }
 
 export const COMMAND_NAMES = [
-  'auth.token',
-  'issue.get',
-  'issue.create',
-  'issue.update',
-  'issue.comment',
-  'issue.set-state',
-  'pr.get',
-  'pr.get-or-create',
-  'pr.comment',
-  'pr.submit-review',
-  'pr.reply',
-  'project.get-status',
-  'project.set-status',
+  'auth token',
+  'issue get',
+  'issue create',
+  'issue update',
+  'issue comment',
+  'issue set-state',
+  'pr get',
+  'pr get-or-create',
+  'pr comment',
+  'pr submit-review',
+  'pr reply',
+  'project get-status',
+  'project set-status',
 ] as const satisfies readonly OrfeCommandName[];
 
 export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
-  'auth.token': {
+  'auth token': {
     validInput: { repo: 'throw-if-null/orfe' },
     successDataExample: {
       role: 'greg',
@@ -33,7 +33,7 @@ export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
       auth_mode: 'github-app',
     },
   },
-  'issue.get': {
+  'issue get': {
     validInput: { issue_number: 13 },
     successDataExample: {
       issue_number: 13,
@@ -46,7 +46,7 @@ export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
       html_url: 'https://github.com/throw-if-null/orfe/issues/13',
     },
   },
-  'issue.create': {
+  'issue create': {
     validInput: { title: 'New issue title' },
     successDataExample: {
       issue_number: 21,
@@ -56,7 +56,7 @@ export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
       created: true,
     },
   },
-  'issue.update': {
+  'issue update': {
     validInput: { issue_number: 13, title: 'Updated title' },
     successDataExample: {
       issue_number: 13,
@@ -66,7 +66,7 @@ export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
       changed: true,
     },
   },
-  'issue.comment': {
+  'issue comment': {
     validInput: { issue_number: 13, body: 'Hello from orfe' },
     successDataExample: {
       issue_number: 13,
@@ -75,7 +75,7 @@ export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
       created: true,
     },
   },
-  'issue.set-state': {
+  'issue set-state': {
     validInput: { issue_number: 13, state: 'closed', state_reason: 'completed' },
     successDataExample: {
       issue_number: 13,
@@ -85,7 +85,7 @@ export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
       changed: true,
     },
   },
-  'pr.get': {
+  'pr get': {
     validInput: { pr_number: 9 },
     successDataExample: {
       pr_number: 9,
@@ -98,7 +98,7 @@ export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
       html_url: 'https://github.com/throw-if-null/orfe/pull/9',
     },
   },
-  'pr.get-or-create': {
+  'pr get-or-create': {
     validInput: { head: 'issues/orfe-13', title: 'Design the `orfe` custom tool and CLI contract' },
     successDataExample: {
       pr_number: 9,
@@ -109,7 +109,7 @@ export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
       created: false,
     },
   },
-  'pr.comment': {
+  'pr comment': {
     validInput: { pr_number: 9, body: 'Hello from orfe' },
     successDataExample: {
       pr_number: 9,
@@ -118,7 +118,7 @@ export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
       created: true,
     },
   },
-  'pr.submit-review': {
+  'pr submit-review': {
     validInput: { pr_number: 9, event: 'approve', body: 'Looks good' },
     successDataExample: {
       pr_number: 9,
@@ -127,7 +127,7 @@ export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
       submitted: true,
     },
   },
-  'pr.reply': {
+  'pr reply': {
     validInput: { pr_number: 9, comment_id: 123456, body: 'ack' },
     successDataExample: {
       pr_number: 9,
@@ -136,7 +136,7 @@ export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
       created: true,
     },
   },
-  'project.get-status': {
+  'project get-status': {
     validInput: { item_type: 'issue', item_number: 13 },
     successDataExample: {
       project_owner: 'throw-if-null',
@@ -150,7 +150,7 @@ export const COMMAND_CONTRACTS: Record<OrfeCommandName, CommandContract> = {
       status: 'In Progress',
     },
   },
-  'project.set-status': {
+  'project set-status': {
     validInput: { item_type: 'issue', item_number: 13, status: 'In Progress' },
     successDataExample: {
       project_owner: 'throw-if-null',

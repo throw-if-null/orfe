@@ -20,19 +20,19 @@ class MemoryStream {
 
 const COMMAND_GROUPS: readonly OrfeCommandGroup[] = ['auth', 'issue', 'pr', 'project'];
 const ALL_COMMANDS: readonly OrfeCommandName[] = [
-  'auth.token',
-  'issue.get',
-  'issue.create',
-  'issue.update',
-  'issue.comment',
-  'issue.set-state',
-  'pr.get',
-  'pr.get-or-create',
-  'pr.comment',
-  'pr.submit-review',
-  'pr.reply',
-  'project.get-status',
-  'project.set-status',
+  'auth token',
+  'issue get',
+  'issue create',
+  'issue update',
+  'issue comment',
+  'issue set-state',
+  'pr get',
+  'pr get-or-create',
+  'pr comment',
+  'pr submit-review',
+  'pr reply',
+  'project get-status',
+  'project set-status',
 ];
 
 function createRuntimeDependencies() {
@@ -820,7 +820,7 @@ test('runCli renders leaf help for every agreed V1 command', async (t) => {
   await Promise.all(
     ALL_COMMANDS.map((commandName) =>
       t.test(commandName, async () => {
-        const [group, leaf] = commandName.split('.') as [string, string];
+        const [group, leaf] = commandName.split(' ') as [string, string];
         const stdout = new MemoryStream();
         const stderr = new MemoryStream();
         const definition = getCommandDefinition(commandName);
@@ -869,7 +869,7 @@ test('runCli requires caller identity for CLI mode', async () => {
   assert.match(stderr.output, /See: orfe issue get --help/);
 });
 
-test('runCli requires caller identity and mints auth.token for that caller role', async () => {
+test('runCli requires caller identity and mints auth token for that caller role', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -890,7 +890,7 @@ test('runCli requires caller identity and mints auth.token for that caller role'
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'auth.token',
+      command: 'auth token',
       repo: 'throw-if-null/orfe',
       data: {
         role: 'greg',
@@ -908,7 +908,7 @@ test('runCli requires caller identity and mints auth.token for that caller role'
   }
 });
 
-test('runCli rejects role override for auth.token as invalid usage', async () => {
+test('runCli rejects role override for auth token as invalid usage', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -924,7 +924,7 @@ test('runCli rejects role override for auth.token as invalid usage', async () =>
   assert.match(stderr.output, /See: orfe auth token --help/);
 });
 
-test('runCli prints structured auth failure for auth.token missing installation', async () => {
+test('runCli prints structured auth failure for auth token missing installation', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -945,7 +945,7 @@ test('runCli prints structured auth failure for auth.token missing installation'
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'auth.token',
+      command: 'auth token',
       error: {
         code: 'auth_failed',
         message: 'No GitHub App installation for throw-if-null/orfe was found for app GR3G-BOT.',
@@ -959,7 +959,7 @@ test('runCli prints structured auth failure for auth.token missing installation'
   }
 });
 
-test('runCli prints structured config failures for auth.token', async () => {
+test('runCli prints structured config failures for auth token', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -982,7 +982,7 @@ test('runCli prints structured config failures for auth.token', async () => {
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'auth.token',
+    command: 'auth token',
     error: {
       code: 'config_not_found',
       message: 'machine-local auth config not found at /tmp/auth.json.',
@@ -991,7 +991,7 @@ test('runCli prints structured config failures for auth.token', async () => {
   });
 });
 
-test('runCli reports missing required options for auth.token as usage errors', async () => {
+test('runCli reports missing required options for auth token as usage errors', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1011,7 +1011,7 @@ test('runCli reports missing required options for auth.token as usage errors', a
   assert.match(stderr.output, /See: orfe auth token --help/);
 });
 
-test('runCli reports missing caller identity for auth.token', async () => {
+test('runCli reports missing caller identity for auth token', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1052,7 +1052,7 @@ test('runCli rejects removed --caller-name option as unknown usage', async () =>
   assert.match(stderr.output, /See: orfe issue get --help/);
 });
 
-test('runCli rejects removed --caller-name override for auth.token', async () => {
+test('runCli rejects removed --caller-name override for auth token', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1089,7 +1089,7 @@ test('runCli uses ORFE_CALLER_NAME and prints structured success JSON', async ()
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'issue.get',
+      command: 'issue get',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -1109,7 +1109,7 @@ test('runCli uses ORFE_CALLER_NAME and prints structured success JSON', async ()
   }
 });
 
-test('runCli prints structured not-found failures for issue.get', async () => {
+test('runCli prints structured not-found failures for issue get', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1134,7 +1134,7 @@ test('runCli prints structured not-found failures for issue.get', async () => {
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'issue.get',
+      command: 'issue get',
       error: {
         code: 'github_not_found',
         message: 'Issue #404 was not found.',
@@ -1148,7 +1148,7 @@ test('runCli prints structured not-found failures for issue.get', async () => {
   }
 });
 
-test('runCli prints structured success JSON for issue.create', async () => {
+test('runCli prints structured success JSON for issue create', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1190,7 +1190,7 @@ test('runCli prints structured success JSON for issue.create', async () => {
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'issue.create',
+      command: 'issue create',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 21,
@@ -1207,7 +1207,7 @@ test('runCli prints structured success JSON for issue.create', async () => {
   }
 });
 
-test('runCli prints structured success JSON for pr.get', async () => {
+test('runCli prints structured success JSON for pr get', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1228,7 +1228,7 @@ test('runCli prints structured success JSON for pr.get', async () => {
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'pr.get',
+      command: 'pr get',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -1248,7 +1248,7 @@ test('runCli prints structured success JSON for pr.get', async () => {
   }
 });
 
-test('runCli prints structured not-found failures for pr.get', async () => {
+test('runCli prints structured not-found failures for pr get', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1273,7 +1273,7 @@ test('runCli prints structured not-found failures for pr.get', async () => {
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'pr.get',
+      command: 'pr get',
       error: {
         code: 'github_not_found',
         message: 'Pull request #404 was not found.',
@@ -1287,7 +1287,7 @@ test('runCli prints structured not-found failures for pr.get', async () => {
   }
 });
 
-test('runCli prints structured auth failures for pr.get', async () => {
+test('runCli prints structured auth failures for pr get', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1312,7 +1312,7 @@ test('runCli prints structured auth failures for pr.get', async () => {
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'pr.get',
+      command: 'pr get',
       error: {
         code: 'auth_failed',
         message: 'GitHub App authentication failed while reading pull request #9.',
@@ -1326,7 +1326,7 @@ test('runCli prints structured auth failures for pr.get', async () => {
   }
 });
 
-test('runCli reports missing required options for pr.get as usage errors', async () => {
+test('runCli reports missing required options for pr get as usage errors', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1346,7 +1346,7 @@ test('runCli reports missing required options for pr.get as usage errors', async
   assert.match(stderr.output, /See: orfe pr get --help/);
 });
 
-test('runCli prints structured config failures for pr.get', async () => {
+test('runCli prints structured config failures for pr get', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1363,7 +1363,7 @@ test('runCli prints structured config failures for pr.get', async () => {
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'pr.get',
+    command: 'pr get',
     error: {
       code: 'config_not_found',
       message: 'repo-local config not found at /tmp/.orfe/config.json.',
@@ -1372,7 +1372,7 @@ test('runCli prints structured config failures for pr.get', async () => {
   });
 });
 
-test('runCli prints structured success JSON for pr.get-or-create when reusing a pull request', async () => {
+test('runCli prints structured success JSON for pr get-or-create when reusing a pull request', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1407,7 +1407,7 @@ test('runCli prints structured success JSON for pr.get-or-create when reusing a 
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'pr.get-or-create',
+      command: 'pr get-or-create',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -1425,7 +1425,7 @@ test('runCli prints structured success JSON for pr.get-or-create when reusing a 
   }
 });
 
-test('runCli prints structured success JSON for pr.get-or-create when creating a pull request', async () => {
+test('runCli prints structured success JSON for pr get-or-create when creating a pull request', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1469,7 +1469,7 @@ test('runCli prints structured success JSON for pr.get-or-create when creating a
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'pr.get-or-create',
+      command: 'pr get-or-create',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 10,
@@ -1487,7 +1487,7 @@ test('runCli prints structured success JSON for pr.get-or-create when creating a
   }
 });
 
-test('runCli prints structured auth failures for pr.get-or-create lookup', async () => {
+test('runCli prints structured auth failures for pr get-or-create lookup', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1512,7 +1512,7 @@ test('runCli prints structured auth failures for pr.get-or-create lookup', async
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'pr.get-or-create',
+      command: 'pr get-or-create',
       error: {
         code: 'auth_failed',
         message: 'GitHub App authentication failed while looking up pull requests for head "issues/orfe-13" and base "main".',
@@ -1526,7 +1526,7 @@ test('runCli prints structured auth failures for pr.get-or-create lookup', async
   }
 });
 
-test('runCli reports missing required options for pr.get-or-create as usage errors', async () => {
+test('runCli reports missing required options for pr get-or-create as usage errors', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1546,7 +1546,7 @@ test('runCli reports missing required options for pr.get-or-create as usage erro
   assert.match(stderr.output, /See: orfe pr get-or-create --help/);
 });
 
-test('runCli prints structured config failures for pr.get-or-create', async () => {
+test('runCli prints structured config failures for pr get-or-create', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1563,7 +1563,7 @@ test('runCli prints structured config failures for pr.get-or-create', async () =
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'pr.get-or-create',
+    command: 'pr get-or-create',
     error: {
       code: 'config_not_found',
       message: 'repo-local config not found at /tmp/.orfe/config.json.',
@@ -1572,7 +1572,7 @@ test('runCli prints structured config failures for pr.get-or-create', async () =
   });
 });
 
-test('runCli prints structured success JSON for pr.comment', async () => {
+test('runCli prints structured success JSON for pr comment', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1593,7 +1593,7 @@ test('runCli prints structured success JSON for pr.comment', async () => {
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'pr.comment',
+      command: 'pr comment',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -1609,7 +1609,7 @@ test('runCli prints structured success JSON for pr.comment', async () => {
   }
 });
 
-test('runCli prints structured not-found failures for pr.comment', async () => {
+test('runCli prints structured not-found failures for pr comment', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1635,7 +1635,7 @@ test('runCli prints structured not-found failures for pr.comment', async () => {
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'pr.comment',
+      command: 'pr comment',
       error: {
         code: 'github_not_found',
         message: 'Pull request #404 was not found.',
@@ -1649,7 +1649,7 @@ test('runCli prints structured not-found failures for pr.comment', async () => {
   }
 });
 
-test('runCli prints structured success JSON for pr.submit-review', async () => {
+test('runCli prints structured success JSON for pr submit-review', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1670,7 +1670,7 @@ test('runCli prints structured success JSON for pr.submit-review', async () => {
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'pr.submit-review',
+      command: 'pr submit-review',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -1686,7 +1686,7 @@ test('runCli prints structured success JSON for pr.submit-review', async () => {
   }
 });
 
-test('runCli prints structured not-found failures for pr.submit-review', async () => {
+test('runCli prints structured not-found failures for pr submit-review', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1716,7 +1716,7 @@ test('runCli prints structured not-found failures for pr.submit-review', async (
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'pr.submit-review',
+      command: 'pr submit-review',
       error: {
         code: 'github_not_found',
         message: 'Pull request #404 was not found.',
@@ -1730,7 +1730,7 @@ test('runCli prints structured not-found failures for pr.submit-review', async (
   }
 });
 
-test('runCli prints structured auth failures for pr.submit-review', async () => {
+test('runCli prints structured auth failures for pr submit-review', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1757,7 +1757,7 @@ test('runCli prints structured auth failures for pr.submit-review', async () => 
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'pr.submit-review',
+      command: 'pr submit-review',
       error: {
         code: 'auth_failed',
         message: 'GitHub App authentication failed while submitting a review on pull request #9.',
@@ -1771,7 +1771,7 @@ test('runCli prints structured auth failures for pr.submit-review', async () => 
   }
 });
 
-test('runCli prints structured config failures for pr.submit-review', async () => {
+test('runCli prints structured config failures for pr submit-review', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1788,7 +1788,7 @@ test('runCli prints structured config failures for pr.submit-review', async () =
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'pr.submit-review',
+    command: 'pr submit-review',
     error: {
       code: 'config_not_found',
       message: 'repo-local config not found at /tmp/.orfe/config.json.',
@@ -1797,7 +1797,7 @@ test('runCli prints structured config failures for pr.submit-review', async () =
   });
 });
 
-test('runCli formats core invalid_input errors as structured failures for pr.submit-review', async () => {
+test('runCli formats core invalid_input errors as structured failures for pr submit-review', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1814,7 +1814,7 @@ test('runCli formats core invalid_input errors as structured failures for pr.sub
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'pr.submit-review',
+    command: 'pr submit-review',
     error: {
       code: 'invalid_input',
       message: 'Review event must be one of: approve, request-changes, comment.',
@@ -1823,7 +1823,7 @@ test('runCli formats core invalid_input errors as structured failures for pr.sub
   });
 });
 
-test('runCli prints structured success JSON for pr.reply', async () => {
+test('runCli prints structured success JSON for pr reply', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1844,7 +1844,7 @@ test('runCli prints structured success JSON for pr.reply', async () => {
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'pr.reply',
+      command: 'pr reply',
       repo: 'throw-if-null/orfe',
       data: {
         pr_number: 9,
@@ -1860,7 +1860,7 @@ test('runCli prints structured success JSON for pr.reply', async () => {
   }
 });
 
-test('runCli prints structured not-found failures for pr.reply', async () => {
+test('runCli prints structured not-found failures for pr reply', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1887,7 +1887,7 @@ test('runCli prints structured not-found failures for pr.reply', async () => {
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'pr.reply',
+      command: 'pr reply',
       error: {
         code: 'github_not_found',
         message: 'Review comment #123456 was not found on pull request #9.',
@@ -1901,7 +1901,7 @@ test('runCli prints structured not-found failures for pr.reply', async () => {
   }
 });
 
-test('runCli reports missing required options for pr.reply as usage errors', async () => {
+test('runCli reports missing required options for pr reply as usage errors', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1921,7 +1921,7 @@ test('runCli reports missing required options for pr.reply as usage errors', asy
   assert.match(stderr.output, /See: orfe pr reply --help/);
 });
 
-test('runCli prints structured config failures for pr.reply', async () => {
+test('runCli prints structured config failures for pr reply', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -1938,7 +1938,7 @@ test('runCli prints structured config failures for pr.reply', async () => {
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'pr.reply',
+    command: 'pr reply',
     error: {
       code: 'config_not_found',
       message: 'repo-local config not found at /tmp/.orfe/config.json.',
@@ -1947,7 +1947,7 @@ test('runCli prints structured config failures for pr.reply', async () => {
   });
 });
 
-test('runCli prints structured success JSON for project.get-status', async () => {
+test('runCli prints structured success JSON for project get-status', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2006,7 +2006,7 @@ test('runCli prints structured success JSON for project.get-status', async () =>
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'project.get-status',
+      command: 'project get-status',
       repo: 'throw-if-null/orfe',
       data: {
         project_owner: 'throw-if-null',
@@ -2028,7 +2028,7 @@ test('runCli prints structured success JSON for project.get-status', async () =>
   }
 });
 
-test('runCli prints structured success JSON for project.get-status when the target is a pull request', async () => {
+test('runCli prints structured success JSON for project get-status when the target is a pull request', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2086,7 +2086,7 @@ test('runCli prints structured success JSON for project.get-status when the targ
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'project.get-status',
+      command: 'project get-status',
       repo: 'throw-if-null/orfe',
       data: {
         project_owner: 'throw-if-null',
@@ -2108,7 +2108,7 @@ test('runCli prints structured success JSON for project.get-status when the targ
   }
 });
 
-test('runCli prints structured project-item-not-found failures for project.get-status', async () => {
+test('runCli prints structured project-item-not-found failures for project get-status', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2141,7 +2141,7 @@ test('runCli prints structured project-item-not-found failures for project.get-s
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'project.get-status',
+      command: 'project get-status',
       error: {
         code: 'project_item_not_found',
         message: 'Issue #13 is not present on GitHub Project throw-if-null/1.',
@@ -2155,7 +2155,7 @@ test('runCli prints structured project-item-not-found failures for project.get-s
   }
 });
 
-test('runCli prints structured missing-status-field failures for project.get-status', async () => {
+test('runCli prints structured missing-status-field failures for project get-status', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2208,7 +2208,7 @@ test('runCli prints structured missing-status-field failures for project.get-sta
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'project.get-status',
+      command: 'project get-status',
       error: {
         code: 'project_status_field_not_found',
         message: 'GitHub Project throw-if-null/1 has no single-select field named "Status".',
@@ -2223,7 +2223,7 @@ test('runCli prints structured missing-status-field failures for project.get-sta
   }
 });
 
-test('runCli prints structured auth failures for project.get-status', async () => {
+test('runCli prints structured auth failures for project get-status', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2249,7 +2249,7 @@ test('runCli prints structured auth failures for project.get-status', async () =
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'project.get-status',
+      command: 'project get-status',
       error: {
         code: 'auth_failed',
         message: 'GitHub App authentication failed while reading project status for issue #13.',
@@ -2263,7 +2263,7 @@ test('runCli prints structured auth failures for project.get-status', async () =
   }
 });
 
-test('runCli prints structured config failures for project.get-status', async () => {
+test('runCli prints structured config failures for project get-status', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2280,7 +2280,7 @@ test('runCli prints structured config failures for project.get-status', async ()
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'project.get-status',
+    command: 'project get-status',
     error: {
       code: 'config_not_found',
       message: 'repo-local config not found at /tmp/.orfe/config.json.',
@@ -2289,7 +2289,7 @@ test('runCli prints structured config failures for project.get-status', async ()
   });
 });
 
-test('runCli prints structured success JSON for project.set-status', async () => {
+test('runCli prints structured success JSON for project set-status', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2403,7 +2403,7 @@ test('runCli prints structured success JSON for project.set-status', async () =>
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'project.set-status',
+      command: 'project set-status',
       repo: 'throw-if-null/orfe',
       data: {
         project_owner: 'throw-if-null',
@@ -2431,7 +2431,7 @@ test('runCli prints structured success JSON for project.set-status', async () =>
   }
 });
 
-test('runCli prints structured missing-project-item failures for project.set-status', async () => {
+test('runCli prints structured missing-project-item failures for project set-status', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2464,7 +2464,7 @@ test('runCli prints structured missing-project-item failures for project.set-sta
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'project.set-status',
+      command: 'project set-status',
       error: {
         code: 'project_item_not_found',
         message: 'Issue #13 is not present on GitHub Project throw-if-null/1.',
@@ -2478,7 +2478,7 @@ test('runCli prints structured missing-project-item failures for project.set-sta
   }
 });
 
-test('runCli prints structured invalid-status failures for project.set-status', async () => {
+test('runCli prints structured invalid-status failures for project set-status', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2542,7 +2542,7 @@ test('runCli prints structured invalid-status failures for project.set-status', 
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'project.set-status',
+      command: 'project set-status',
       error: {
         code: 'project_status_option_not_found',
         message: 'GitHub Project throw-if-null/1 field "Status" has no option named "Blocked".',
@@ -2557,7 +2557,7 @@ test('runCli prints structured invalid-status failures for project.set-status', 
   }
 });
 
-test('runCli prints structured auth failures for project.set-status', async () => {
+test('runCli prints structured auth failures for project set-status', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2583,7 +2583,7 @@ test('runCli prints structured auth failures for project.set-status', async () =
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'project.set-status',
+      command: 'project set-status',
       error: {
         code: 'auth_failed',
         message: 'GitHub App authentication failed while setting project status for issue #13.',
@@ -2597,7 +2597,7 @@ test('runCli prints structured auth failures for project.set-status', async () =
   }
 });
 
-test('runCli prints structured config failures for project.set-status', async () => {
+test('runCli prints structured config failures for project set-status', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2614,7 +2614,7 @@ test('runCli prints structured config failures for project.set-status', async ()
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'project.set-status',
+    command: 'project set-status',
     error: {
       code: 'config_not_found',
       message: 'repo-local config not found at /tmp/.orfe/config.json.',
@@ -2623,7 +2623,7 @@ test('runCli prints structured config failures for project.set-status', async ()
   });
 });
 
-test('runCli prints structured auth failures for issue.create', async () => {
+test('runCli prints structured auth failures for issue create', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2648,7 +2648,7 @@ test('runCli prints structured auth failures for issue.create', async () => {
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'issue.create',
+      command: 'issue create',
       error: {
         code: 'auth_failed',
         message: 'GitHub App authentication failed while creating an issue in throw-if-null/orfe.',
@@ -2662,7 +2662,7 @@ test('runCli prints structured auth failures for issue.create', async () => {
   }
 });
 
-test('runCli prints structured repository-not-found failures for issue.create', async () => {
+test('runCli prints structured repository-not-found failures for issue create', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2688,7 +2688,7 @@ test('runCli prints structured repository-not-found failures for issue.create', 
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'issue.create',
+      command: 'issue create',
       error: {
         code: 'github_not_found',
         message: 'Repository octo/missing was not found.',
@@ -2702,7 +2702,7 @@ test('runCli prints structured repository-not-found failures for issue.create', 
   }
 });
 
-test('runCli prints structured creation failures for issue.create', async () => {
+test('runCli prints structured creation failures for issue create', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2727,7 +2727,7 @@ test('runCli prints structured creation failures for issue.create', async () => 
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'issue.create',
+      command: 'issue create',
       error: {
         code: 'internal_error',
         message: 'GitHub issue creation failed with status 422: Validation Failed',
@@ -2741,7 +2741,7 @@ test('runCli prints structured creation failures for issue.create', async () => 
   }
 });
 
-test('runCli prints structured success JSON for issue.update', async () => {
+test('runCli prints structured success JSON for issue update', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2788,7 +2788,7 @@ test('runCli prints structured success JSON for issue.update', async () => {
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'issue.update',
+      command: 'issue update',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -2805,7 +2805,7 @@ test('runCli prints structured success JSON for issue.update', async () => {
   }
 });
 
-test('runCli prints structured not-found failures for issue.update', async () => {
+test('runCli prints structured not-found failures for issue update', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2831,7 +2831,7 @@ test('runCli prints structured not-found failures for issue.update', async () =>
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'issue.update',
+      command: 'issue update',
       error: {
         code: 'github_not_found',
         message: 'Issue #404 was not found.',
@@ -2845,7 +2845,7 @@ test('runCli prints structured not-found failures for issue.update', async () =>
   }
 });
 
-test('runCli prints structured pull-request boundary failures for issue.update', async () => {
+test('runCli prints structured pull-request boundary failures for issue update', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2882,10 +2882,10 @@ test('runCli prints structured pull-request boundary failures for issue.update',
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'issue.update',
+      command: 'issue update',
       error: {
         code: 'github_conflict',
-        message: 'Issue #46 is a pull request. issue.update only supports issues.',
+        message: 'Issue #46 is a pull request. issue update only supports issues.',
         retryable: false,
       },
     });
@@ -2896,7 +2896,7 @@ test('runCli prints structured pull-request boundary failures for issue.update',
   }
 });
 
-test('runCli prints structured success JSON for issue.comment', async () => {
+test('runCli prints structured success JSON for issue comment', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2917,7 +2917,7 @@ test('runCli prints structured success JSON for issue.comment', async () => {
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'issue.comment',
+      command: 'issue comment',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -2933,7 +2933,7 @@ test('runCli prints structured success JSON for issue.comment', async () => {
   }
 });
 
-test('runCli formats core invalid_usage errors as CLI usage failures for issue.update', async () => {
+test('runCli formats core invalid_usage errors as CLI usage failures for issue update', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2948,12 +2948,12 @@ test('runCli formats core invalid_usage errors as CLI usage failures for issue.u
 
   assert.equal(exitCode, 2);
   assert.equal(stdout.output, '');
-  assert.match(stderr.output, /issue\.update requires at least one mutation option\./);
+  assert.match(stderr.output, /issue update requires at least one mutation option\./);
   assert.match(stderr.output, /Usage: orfe issue update --issue-number <number>/);
   assert.match(stderr.output, /See: orfe issue update --help/);
 });
 
-test('runCli rejects conflicting issue.update clear and replacement options', async () => {
+test('runCli rejects conflicting issue update clear and replacement options', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2973,7 +2973,7 @@ test('runCli rejects conflicting issue.update clear and replacement options', as
   assert.match(stderr.output, /See: orfe issue update --help/);
 });
 
-test('runCli prints structured config failures for issue.update', async () => {
+test('runCli prints structured config failures for issue update', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -2990,7 +2990,7 @@ test('runCli prints structured config failures for issue.update', async () => {
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'issue.update',
+    command: 'issue update',
     error: {
       code: 'config_not_found',
       message: 'repo-local config not found at /tmp/.orfe/config.json.',
@@ -2999,7 +2999,7 @@ test('runCli prints structured config failures for issue.update', async () => {
   });
 });
 
-test('runCli prints structured not-found failures for issue.comment', async () => {
+test('runCli prints structured not-found failures for issue comment', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3025,7 +3025,7 @@ test('runCli prints structured not-found failures for issue.comment', async () =
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'issue.comment',
+      command: 'issue comment',
       error: {
         code: 'github_not_found',
         message: 'Issue #404 was not found.',
@@ -3039,7 +3039,7 @@ test('runCli prints structured not-found failures for issue.comment', async () =
   }
 });
 
-test('runCli prints structured pull-request boundary failures for issue.comment', async () => {
+test('runCli prints structured pull-request boundary failures for issue comment', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3076,10 +3076,10 @@ test('runCli prints structured pull-request boundary failures for issue.comment'
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'issue.comment',
+      command: 'issue comment',
       error: {
         code: 'github_conflict',
-        message: 'Issue #46 is a pull request. Use pr.comment instead.',
+        message: 'Issue #46 is a pull request. Use pr comment instead.',
         retryable: false,
       },
     });
@@ -3090,7 +3090,7 @@ test('runCli prints structured pull-request boundary failures for issue.comment'
   }
 });
 
-test('runCli prints structured success JSON for issue.set-state', async () => {
+test('runCli prints structured success JSON for issue set-state', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3121,7 +3121,7 @@ test('runCli prints structured success JSON for issue.set-state', async () => {
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'issue.set-state',
+      command: 'issue set-state',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -3138,7 +3138,7 @@ test('runCli prints structured success JSON for issue.set-state', async () => {
   }
 });
 
-test('runCli prints structured success JSON for duplicate issue.set-state', async () => {
+test('runCli prints structured success JSON for duplicate issue set-state', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3176,7 +3176,7 @@ test('runCli prints structured success JSON for duplicate issue.set-state', asyn
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
-      command: 'issue.set-state',
+      command: 'issue set-state',
       repo: 'throw-if-null/orfe',
       data: {
         issue_number: 14,
@@ -3193,7 +3193,7 @@ test('runCli prints structured success JSON for duplicate issue.set-state', asyn
   }
 });
 
-test('runCli prints structured not-found failures for issue.set-state duplicate targets', async () => {
+test('runCli prints structured not-found failures for issue set-state duplicate targets', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3222,7 +3222,7 @@ test('runCli prints structured not-found failures for issue.set-state duplicate 
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'issue.set-state',
+      command: 'issue set-state',
       error: {
         code: 'github_not_found',
         message: 'Duplicate target issue #999 was not found.',
@@ -3236,7 +3236,7 @@ test('runCli prints structured not-found failures for issue.set-state duplicate 
   }
 });
 
-test('runCli prints structured pull-request boundary failures for duplicate issue.set-state targets', async () => {
+test('runCli prints structured pull-request boundary failures for duplicate issue set-state targets', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3273,7 +3273,7 @@ test('runCli prints structured pull-request boundary failures for duplicate issu
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'issue.set-state',
+      command: 'issue set-state',
       error: {
         code: 'github_conflict',
         message: 'Duplicate target issue #48 is a pull request. --duplicate-of must reference an issue.',
@@ -3287,7 +3287,7 @@ test('runCli prints structured pull-request boundary failures for duplicate issu
   }
 });
 
-test('runCli prints structured pull-request boundary failures for issue.set-state', async () => {
+test('runCli prints structured pull-request boundary failures for issue set-state', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3324,10 +3324,10 @@ test('runCli prints structured pull-request boundary failures for issue.set-stat
     assert.equal(stdout.output, '');
     assert.deepEqual(JSON.parse(stderr.output), {
       ok: false,
-      command: 'issue.set-state',
+      command: 'issue set-state',
       error: {
         code: 'github_conflict',
-        message: 'Issue #46 is a pull request. issue.set-state only supports issues.',
+        message: 'Issue #46 is a pull request. issue set-state only supports issues.',
         retryable: false,
       },
     });
@@ -3338,7 +3338,7 @@ test('runCli prints structured pull-request boundary failures for issue.set-stat
   }
 });
 
-test('runCli prints structured config failures for issue.set-state', async () => {
+test('runCli prints structured config failures for issue set-state', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3355,7 +3355,7 @@ test('runCli prints structured config failures for issue.set-state', async () =>
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'issue.set-state',
+    command: 'issue set-state',
     error: {
       code: 'config_not_found',
       message: 'repo-local config not found at /tmp/.orfe/config.json.',
@@ -3364,7 +3364,7 @@ test('runCli prints structured config failures for issue.set-state', async () =>
   });
 });
 
-test('runCli formats core invalid_usage errors as CLI usage failures for issue.comment', async () => {
+test('runCli formats core invalid_usage errors as CLI usage failures for issue comment', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3385,7 +3385,7 @@ test('runCli formats core invalid_usage errors as CLI usage failures for issue.c
   assert.match(stderr.output, /See: orfe issue comment --help/);
 });
 
-test('runCli prints structured config failures for issue.comment', async () => {
+test('runCli prints structured config failures for issue comment', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3402,7 +3402,7 @@ test('runCli prints structured config failures for issue.comment', async () => {
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'issue.comment',
+    command: 'issue comment',
     error: {
       code: 'config_not_found',
       message: 'repo-local config not found at /tmp/.orfe/config.json.',
@@ -3411,7 +3411,7 @@ test('runCli prints structured config failures for issue.comment', async () => {
   });
 });
 
-test('runCli prints structured config failures for issue.get', async () => {
+test('runCli prints structured config failures for issue get', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3428,7 +3428,7 @@ test('runCli prints structured config failures for issue.get', async () => {
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'issue.get',
+    command: 'issue get',
     error: {
       code: 'config_not_found',
       message: 'repo-local config not found at /tmp/.orfe/config.json.',
@@ -3476,7 +3476,7 @@ test('runCli reports malformed numeric CLI option values as usage errors', async
   assert.match(stderr.output, /See: orfe issue get --help/);
 });
 
-test('runCli reports malformed pr.submit-review event values as structured invalid_input failures', async () => {
+test('runCli reports malformed pr submit-review event values as structured invalid_input failures', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -3493,7 +3493,7 @@ test('runCli reports malformed pr.submit-review event values as structured inval
   assert.equal(stdout.output, '');
   assert.deepEqual(JSON.parse(stderr.output), {
     ok: false,
-    command: 'pr.submit-review',
+    command: 'pr submit-review',
     error: {
       code: 'invalid_input',
       message: 'Review event must be one of: approve, request-changes, comment.',

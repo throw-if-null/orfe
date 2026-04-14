@@ -1,19 +1,19 @@
 import type { Octokit } from 'octokit';
 
 export const ORFE_COMMANDS = [
-  'auth.token',
-  'issue.get',
-  'issue.create',
-  'issue.update',
-  'issue.comment',
-  'issue.set-state',
-  'pr.get',
-  'pr.get-or-create',
-  'pr.comment',
-  'pr.submit-review',
-  'pr.reply',
-  'project.get-status',
-  'project.set-status',
+  'auth token',
+  'issue get',
+  'issue create',
+  'issue update',
+  'issue comment',
+  'issue set-state',
+  'pr get',
+  'pr get-or-create',
+  'pr comment',
+  'pr submit-review',
+  'pr reply',
+  'project get-status',
+  'project set-status',
 ] as const;
 
 export type OrfeCommandName = (typeof ORFE_COMMANDS)[number];

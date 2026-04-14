@@ -54,7 +54,7 @@ const commonCliOptions: CommandOptionDefinition[] = [
 
 export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
   defineCommand({
-    name: 'auth.token',
+    name: 'auth token',
     purpose: 'Mint a GitHub App installation token for the resolved caller role and repository.',
     usage: 'orfe auth token --repo <owner/name> [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints structured JSON token metadata and the minted token.',
@@ -63,7 +63,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     handler: handleAuthToken,
   }),
   defineCommand({
-    name: 'issue.get',
+    name: 'issue get',
     purpose: 'Read one issue.',
     usage: 'orfe issue get --issue-number <number> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON issue payload.',
@@ -72,7 +72,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     handler: handleIssueGet,
   }),
   defineCommand({
-    name: 'issue.create',
+    name: 'issue create',
     purpose: 'Create a generic issue.',
     usage: 'orfe issue create --title <text> [--body <text>] [--label <name> ...] [--assignee <login> ...] [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON create result.',
@@ -86,7 +86,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     handler: handleIssueCreate,
   }),
   defineCommand({
-    name: 'issue.update',
+    name: 'issue update',
     purpose: 'Update mutable issue fields without changing state.',
     usage:
       'orfe issue update --issue-number <number> [--title <text>] [--body <text>] [--label <name> ...] [--assignee <login> ...] [--clear-labels] [--clear-assignees] [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
@@ -110,21 +110,21 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
         input.clear_labels !== true &&
         input.clear_assignees !== true
       ) {
-        throw new OrfeError('invalid_usage', 'issue.update requires at least one mutation option.');
+        throw new OrfeError('invalid_usage', 'issue update requires at least one mutation option.');
       }
 
       if (input.labels !== undefined && input.clear_labels === true) {
-        throw new OrfeError('invalid_usage', 'issue.update does not allow labels together with --clear-labels.');
+        throw new OrfeError('invalid_usage', 'issue update does not allow labels together with --clear-labels.');
       }
 
       if (input.assignees !== undefined && input.clear_assignees === true) {
-        throw new OrfeError('invalid_usage', 'issue.update does not allow assignees together with --clear-assignees.');
+        throw new OrfeError('invalid_usage', 'issue update does not allow assignees together with --clear-assignees.');
       }
     },
     handler: handleIssueUpdate,
   }),
   defineCommand({
-    name: 'issue.comment',
+    name: 'issue comment',
     purpose: 'Add a top-level issue comment.',
     usage: 'orfe issue comment --issue-number <number> --body <text> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON comment result.',
@@ -136,7 +136,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     handler: handleIssueComment,
   }),
   defineCommand({
-    name: 'issue.set-state',
+    name: 'issue set-state',
     purpose: 'Set issue open or closed state.',
     usage:
       'orfe issue set-state --issue-number <number> --state <open|closed> [--state-reason <completed|not_planned|duplicate>] [--duplicate-of <issue-number>] [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
@@ -156,25 +156,25 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     ],
     validate(input) {
       if (input.state_reason !== undefined && input.state !== 'closed') {
-        throw new OrfeError('invalid_usage', 'issue.set-state only allows state_reason when --state closed is used.');
+        throw new OrfeError('invalid_usage', 'issue set-state only allows state_reason when --state closed is used.');
       }
 
       if (input.duplicate_of !== undefined && input.state_reason !== 'duplicate') {
-        throw new OrfeError('invalid_usage', 'issue.set-state only allows duplicate_of with state_reason=duplicate.');
+        throw new OrfeError('invalid_usage', 'issue set-state only allows duplicate_of with state_reason=duplicate.');
       }
 
       if (input.state_reason === 'duplicate' && input.duplicate_of === undefined) {
-        throw new OrfeError('invalid_usage', 'issue.set-state requires --duplicate-of when state_reason=duplicate.');
+        throw new OrfeError('invalid_usage', 'issue set-state requires --duplicate-of when state_reason=duplicate.');
       }
 
       if (input.duplicate_of !== undefined && input.duplicate_of === input.issue_number) {
-        throw new OrfeError('invalid_usage', 'issue.set-state cannot mark an issue as a duplicate of itself.');
+        throw new OrfeError('invalid_usage', 'issue set-state cannot mark an issue as a duplicate of itself.');
       }
     },
     handler: handleIssueSetState,
   }),
   defineCommand({
-    name: 'pr.get',
+    name: 'pr get',
     purpose: 'Read one pull request.',
     usage: 'orfe pr get --pr-number <number> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON pull request payload.',
@@ -183,7 +183,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     handler: handlePrGet,
   }),
   defineCommand({
-    name: 'pr.get-or-create',
+    name: 'pr get-or-create',
     purpose: 'Reuse or create a pull request for a branch pair.',
     usage: 'orfe pr get-or-create --head <branch> --title <text> [--body <text>] [--base <branch>] [--draft] [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON pull request result.',
@@ -198,7 +198,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     handler: handlePrGetOrCreate,
   }),
   defineCommand({
-    name: 'pr.comment',
+    name: 'pr comment',
     purpose: 'Add a top-level pull request comment.',
     usage: 'orfe pr comment --pr-number <number> --body <text> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON comment result.',
@@ -210,7 +210,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     handler: handlePrComment,
   }),
   defineCommand({
-    name: 'pr.submit-review',
+    name: 'pr submit-review',
     purpose: 'Submit a completed pull request review.',
     usage: 'orfe pr submit-review --pr-number <number> --event <approve|request-changes|comment> --body <text> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON review result.',
@@ -234,7 +234,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     handler: handlePrSubmitReview,
   }),
   defineCommand({
-    name: 'pr.reply',
+    name: 'pr reply',
     purpose: 'Reply to an existing pull request review comment.',
     usage: 'orfe pr reply --pr-number <number> --comment-id <number> --body <text> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
     successSummary: 'Prints a structured JSON reply result.',
@@ -247,7 +247,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     handler: handlePrReply,
   }),
   defineCommand({
-    name: 'project.get-status',
+    name: 'project get-status',
     purpose: 'Read the current Status field value for a project item.',
     usage:
       'orfe project get-status --item-type <issue|pr> --item-number <number> [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
@@ -263,7 +263,7 @@ export const COMMAND_DEFINITIONS: readonly CommandDefinition[] = [
     handler: handleProjectGetStatus,
   }),
   defineCommand({
-    name: 'project.set-status',
+    name: 'project set-status',
     purpose: 'Set the Status field value for a project item.',
     usage:
       'orfe project set-status --item-type <issue|pr> --item-number <number> --status <value> [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
@@ -339,7 +339,7 @@ function defineCommand(
     validate?: CommandDefinition['validate'];
   },
 ): CommandDefinition {
-  const [group, leaf] = definition.name.split('.') as [OrfeCommandGroup, string];
+  const [group, leaf] = definition.name.split(' ') as [OrfeCommandGroup, string];
   const contract = getCommandContract(definition.name);
 
   return {
