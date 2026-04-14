@@ -9,10 +9,23 @@
 
 ## Install the npm CLI package
 
-`orfe` can currently be installed from a locally built npm package artifact.
+### Install from GitHub Packages
+
+```bash
+npm install @throw-if-null/orfe --registry=https://npm.pkg.github.com
+```
+
+### Or run directly with npx
+
+```bash
+npx @throw-if-null/orfe --help
+```
+
+`orfe` can also be installed from a locally built npm package artifact for development.
 
 - Supported now: package artifact installs created with `npm pack`
-- Not included yet: npm registry publication, release automation, or public-registry `npx orfe`
+- Primary public distribution: GitHub Packages via `@throw-if-null/orfe`
+- Supported invocation path: `npx @throw-if-null/orfe`
 
 Build the package artifact from the repo root:
 
@@ -20,14 +33,14 @@ Build the package artifact from the repo root:
 npm pack
 ```
 
-That command runs the package `prepack` build and writes `orfe-<version>.tgz`.
+That command runs the package `prepack` build and writes `throw-if-null-orfe-<version>.tgz`.
 
 ### Local install from the package artifact
 
 Install the tarball into another project directory:
 
 ```bash
-npm install /absolute/path/to/orfe-<version>.tgz
+npm install /absolute/path/to/throw-if-null-orfe-<version>.tgz
 PATH="$(pwd)/node_modules/.bin:$PATH" orfe --help
 ```
 
@@ -36,7 +49,7 @@ PATH="$(pwd)/node_modules/.bin:$PATH" orfe --help
 Install the same tarball globally:
 
 ```bash
-npm install --global /absolute/path/to/orfe-<version>.tgz
+npm install --global /absolute/path/to/throw-if-null-orfe-<version>.tgz
 orfe --help
 ```
 
@@ -45,7 +58,7 @@ orfe --help
 Package installation is separate from the other setup steps in this repo:
 
 - **Package installation** puts the `orfe` executable on disk
-- **npm publication/release automation** is not configured by this repository yet
+- **npm publication/release automation** publishes tagged releases to GitHub Packages
 - **Repo-local config** is still a separate step for repositories that want to run GitHub commands through `orfe`
 - **Machine-local auth config** is still a separate step for machines that need GitHub App auth
 
