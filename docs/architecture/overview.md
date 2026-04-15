@@ -4,17 +4,17 @@
 
 `orfe` is a stand-alone GitHub operations runtime with two entrypoints over the same core behavior:
 - a CLI named `orfe`
-- an OpenCode custom tool wrapper named `orfe`
+- an OpenCode plugin that registers the `orfe` tool
 
 The design goal is to provide deterministic, reusable GitHub operations without embedding repository-specific workflow policy into the runtime itself.
 
 ## Major runtime parts
 
-### 1. OpenCode wrapper
-Currently represented by `.opencode/tools/orfe.ts` and related wrapper code.
+### 1. OpenCode plugin entrypoint
+Currently represented by `src/plugin.ts`, exported from the package at `./plugin`, and consumed by repositories through the `opencode.json` `plugin` array.
 
 Responsibilities:
-- expose the custom tool name
+- expose the `orfe` tool through `OrfePlugin`
 - read `context.agent`
 - resolve a plain `callerName`
 - pass only plain data into the runtime core
@@ -29,7 +29,7 @@ Currently represented by `src/cli.ts` and related CLI code.
 Responsibilities:
 - parse CLI arguments
 - resolve caller identity for direct CLI usage
-- invoke the same runtime core used by the wrapper
+- invoke the same runtime core used by the plugin entrypoint
 - print structured JSON success or structured errors
 
 ### 3. Core runtime
@@ -44,7 +44,7 @@ Responsibilities:
 - dispatch command handlers
 - return structured success or typed errors
 
-The core is runtime-agnostic and must remain callable from both CLI and wrapper entrypoints.
+The core is runtime-agnostic and must remain callable from both CLI and plugin entrypoints.
 
 ### 4. Config layer
 Current examples include `src/config.ts` and `.orfe/config.json`.
@@ -73,7 +73,7 @@ Responsibilities:
 ## Module map
 
 ```text
-OpenCode wrapper / CLI
+OpenCode plugin / CLI
         |
         v
    core runtime
@@ -87,7 +87,7 @@ OpenCode wrapper / CLI
 
 ## Architectural rules to keep in mind
 
-- wrapper reads OpenCode context; core does not
+- plugin entrypoint reads OpenCode context; core does not
 - core accepts plain data only
 - repo-local config contains no secrets
 - machine-local auth config contains role credentials
