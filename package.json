@@ -1,9 +1,13 @@
 {
   "name": "@throw-if-null/orfe",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Generic GitHub operations runtime for humans and agents",
   "license": "MIT",
   "type": "module",
+  "main": "./dist/wrapper.js",
+  "exports": {
+    ".": "./dist/wrapper.js"
+  },
   "bin": {
     "orfe": "./dist/cli.js"
   },
