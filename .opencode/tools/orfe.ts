@@ -1,4 +1,4 @@
-import { executeOrfeTool } from '../../src/wrapper.js';
+import { executeOrfeTool } from '@throw-if-null/orfe';
 import { type ToolDefinition, tool } from '@opencode-ai/plugin';
 
 const args = {

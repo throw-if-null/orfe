@@ -4,6 +4,8 @@ import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { executeOrfeTool } from '../src/wrapper.js';
+
 const testDir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(testDir, '..');
 
@@ -16,12 +18,16 @@ test('package metadata exposes installable orfe CLI wiring', async () => {
   const scripts = packageJson.scripts as Record<string, string> | undefined;
   const files = packageJson.files as string[] | undefined;
   const bin = packageJson.bin as Record<string, string> | undefined;
+  const exportsField = packageJson.exports as Record<string, string> | undefined;
   const publishConfig = packageJson.publishConfig as Record<string, string> | undefined;
 
   assert.equal(packageJson.name, '@throw-if-null/orfe');
+  assert.equal(packageJson.version, '0.1.1');
   assert.equal(packageJson.private, undefined);
   assert.equal(packageJson.license, 'MIT');
   assert.match(String(packageJson.description), /GitHub operations runtime/i);
+  assert.equal(packageJson.main, './dist/wrapper.js');
+  assert.equal(exportsField?.['.'], './dist/wrapper.js');
   assert.equal(bin?.orfe, './dist/cli.js');
   assert.equal(scripts?.prepack, 'npm run build');
   assert.ok(files?.includes('dist'));
@@ -35,4 +41,8 @@ test('CLI source keeps a node shebang for packaged execution', async () => {
   const cliSource = await readFile(resolve(workspaceRoot, 'src/cli.ts'), 'utf8');
 
   assert.match(cliSource, /^#!\/usr\/bin\/env node/m);
+});
+
+test('wrapper exports executeOrfeTool for package entry point wiring', () => {
+  assert.equal(typeof executeOrfeTool, 'function');
 });
