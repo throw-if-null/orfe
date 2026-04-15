@@ -143,10 +143,19 @@ async function readPrivateKey(filePath: string, readFileImpl: ReadFileText): Pro
 }
 
 function defaultOctokitFactory(auth?: string): Octokit {
-  return new Octokit({
+  const octokit = new Octokit({
     userAgent: USER_AGENT,
+    headers: {
+      'X-GitHub-Api-Version': GITHUB_API_VERSION,
+    },
     ...(auth ? { auth } : {}),
   });
+
+  octokit.hook.before('request', async (options) => {
+    options.headers['x-github-api-version'] = GITHUB_API_VERSION;
+  });
+
+  return octokit;
 }
 
 function mapGitHubRequestError(

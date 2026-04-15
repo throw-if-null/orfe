@@ -21,7 +21,10 @@ test('GitHubClientFactory mints an installation token and returns Octokit REST a
     .get('/repos/throw-if-null/orfe/issues/14')
     .reply(function (this: ReplyContext) {
       const authorization = this.req.headers.authorization;
+      const apiVersion = this.req.headers['x-github-api-version'];
+
       assert.match(String(authorization), /ghs_123/);
+      assert.equal(apiVersion, '2022-11-28');
 
       return [200, { number: 14, title: 'Build `orfe` foundation and runtime scaffolding' }];
     })
