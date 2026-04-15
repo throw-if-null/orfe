@@ -1,17 +1,20 @@
 {
-  "name": "orfe",
+  "name": "@throw-if-null/orfe",
   "version": "0.1.0",
   "description": "Generic GitHub operations runtime for humans and agents",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "orfe": "./dist/cli.js"
   },
   "files": [
     "dist",
-    "README.md",
-    "docs"
+    "README.md"
   ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/throw-if-null/orfe.git"

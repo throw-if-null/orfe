@@ -16,15 +16,19 @@ test('package metadata exposes installable orfe CLI wiring', async () => {
   const scripts = packageJson.scripts as Record<string, string> | undefined;
   const files = packageJson.files as string[] | undefined;
   const bin = packageJson.bin as Record<string, string> | undefined;
+  const publishConfig = packageJson.publishConfig as Record<string, string> | undefined;
 
-  assert.equal(packageJson.name, 'orfe');
+  assert.equal(packageJson.name, '@throw-if-null/orfe');
   assert.equal(packageJson.private, undefined);
+  assert.equal(packageJson.license, 'MIT');
   assert.match(String(packageJson.description), /GitHub operations runtime/i);
   assert.equal(bin?.orfe, './dist/cli.js');
   assert.equal(scripts?.prepack, 'npm run build');
   assert.ok(files?.includes('dist'));
   assert.ok(files?.includes('README.md'));
-  assert.ok(files?.includes('docs'));
+  assert.ok(!files?.includes('docs'));
+  assert.equal(publishConfig?.registry, 'https://npm.pkg.github.com');
+  assert.equal(publishConfig?.access, 'public');
 });
 
 test('CLI source keeps a node shebang for packaged execution', async () => {
