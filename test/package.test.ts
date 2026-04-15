@@ -22,12 +22,13 @@ test('package metadata exposes installable orfe CLI wiring', async () => {
   const publishConfig = packageJson.publishConfig as Record<string, string> | undefined;
 
   assert.equal(packageJson.name, '@throw-if-null/orfe');
-  assert.equal(packageJson.version, '0.1.1');
+  assert.equal(packageJson.version, '0.1.2');
   assert.equal(packageJson.private, undefined);
   assert.equal(packageJson.license, 'MIT');
   assert.match(String(packageJson.description), /GitHub operations runtime/i);
   assert.equal(packageJson.main, './dist/wrapper.js');
   assert.equal(exportsField?.['.'], './dist/wrapper.js');
+  assert.equal(exportsField?.['./plugin'], './dist/plugin.js');
   assert.equal(bin?.orfe, './dist/cli.js');
   assert.equal(scripts?.prepack, 'npm run build');
   assert.ok(files?.includes('dist'));
