@@ -3,7 +3,7 @@
 `orfe` is a stand-alone GitHub operations runtime with two entrypoints:
 
 - an installable CLI named `orfe`
-- an OpenCode custom tool wrapper also named `orfe`
+- an OpenCode plugin that registers the `orfe` tool
 
 `orfe` now ships the full v1 command surface. When repo-local config and machine-local GitHub App auth are in place, the CLI and OpenCode wrapper execute the documented GitHub operations directly.
 
@@ -155,13 +155,19 @@ CLI caller resolution order:
 
 Successful commands print structured JSON to stdout. Valid commands that fail at runtime print structured JSON errors to stderr.
 
-## OpenCode wrapper
+## OpenCode plugin
 
-The custom tool wrapper lives at `.opencode/tools/orfe.ts`.
+Configure OpenCode to load the packaged plugin directly:
 
-- the wrapper reads `context.agent`
-- the wrapper resolves a plain `callerName`
-- the wrapper passes only plain data into the runtime core
+```json
+{
+  "plugin": ["@throw-if-null/orfe/plugin"]
+}
+```
+
+- the plugin reads `context.agent`
+- the plugin resolves a plain `callerName`
+- the plugin passes only plain data into the runtime core
 - the core does not read `context.agent`
 
 ## Development

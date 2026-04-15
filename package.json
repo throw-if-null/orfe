@@ -1,12 +1,13 @@
 {
   "name": "@throw-if-null/orfe",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Generic GitHub operations runtime for humans and agents",
   "license": "MIT",
   "type": "module",
   "main": "./dist/wrapper.js",
   "exports": {
-    ".": "./dist/wrapper.js"
+    ".": "./dist/wrapper.js",
+    "./plugin": "./dist/plugin.js"
   },
   "bin": {
     "orfe": "./dist/cli.js"
@@ -44,11 +45,11 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@opencode-ai/plugin": "^1.4.3",
     "octokit": "^4.1.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
-    "@opencode-ai/plugin": "^1.4.3",
     "@types/node": "^24.5.2",
     "eslint": "^9.24.0",
     "globals": "^16.0.0",

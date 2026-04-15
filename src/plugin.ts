@@ -1,5 +1,7 @@
-import { executeOrfeTool } from '@throw-if-null/orfe';
-import { type ToolDefinition, tool } from '@opencode-ai/plugin';
+import type { Plugin } from '@opencode-ai/plugin';
+import { tool } from '@opencode-ai/plugin';
+
+import { executeOrfeTool } from './wrapper.js';
 
 const args = {
   command: tool.schema.string().min(1),
@@ -28,17 +30,23 @@ const args = {
   status_field_name: tool.schema.string().optional(),
 };
 
-const orfeTool: ToolDefinition = tool({
-  description: 'Generic GitHub auth, issue, pull request, and project operations.',
-  args,
-  async execute(args, context) {
-    const result = await executeOrfeTool(args, {
-      agent: context.agent,
-      ...(context.directory ? { cwd: context.directory } : {}),
-    });
+export const OrfePlugin: Plugin = async () => {
+  return {
+    tool: {
+      orfe: tool({
+        description: 'Generic GitHub auth, issue, pull request, and project operations.',
+        args,
+        async execute(args, context) {
+          const result = await executeOrfeTool(args, {
+            agent: context.agent,
+            ...(context.directory ? { cwd: context.directory } : {}),
+          });
 
-    return JSON.stringify(result);
-  },
-});
+          return JSON.stringify(result);
+        },
+      }),
+    },
+  };
+};
 
-export default orfeTool;
+export default OrfePlugin;
