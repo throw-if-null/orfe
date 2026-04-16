@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["@throw-if-null/orfe/plugin"],
+  "plugin": ["."],
   "permission": {
     "bash": {
       "orfe": "deny",

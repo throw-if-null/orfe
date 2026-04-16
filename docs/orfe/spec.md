@@ -47,11 +47,11 @@ V1 exists to provide a deterministic, reusable contract for:
 
 ### 3.1 Packaging and installation boundary
 
-- npm package name: `@throw-if-null/orfe`
+- npm package name: `@mirzamerdovic/orfe`
 - installed executable name: `orfe`
 - package CLI entrypoint: package `bin.orfe -> dist/cli.js`
-- primary public distribution is GitHub Packages (`https://npm.pkg.github.com`)
-- supported invocation path is `npx @throw-if-null/orfe`
+- primary public distribution is npmjs.org (`https://registry.npmjs.org`)
+- supported invocation path is `npx @mirzamerdovic/orfe`
 - package-artifact installs produced by `npm pack` remain valid for local development
 - package installation does not create repo-local config or machine-local auth config; those remain separate operator-managed setup steps
 
