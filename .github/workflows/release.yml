@@ -23,16 +23,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6.0.2
 
-      - name: Verify tag matches package version
-        shell: bash
-        run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
-            echo "Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
-            exit 1
-          fi
-
       - name: Set up Node.js
         uses: actions/setup-node@v6.3.0
         with:
@@ -53,6 +43,9 @@ jobs:
 
       - name: Run build
         run: npm run build
+
+      - name: Set version from tag
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version
 
       - name: Publish package
         run: npm publish

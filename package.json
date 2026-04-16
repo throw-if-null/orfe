@@ -1,6 +1,6 @@
 {
   "name": "@throw-if-null/orfe",
-  "version": "0.1.2",
+  "version": "0.0.0",
   "description": "Generic GitHub operations runtime for humans and agents",
   "license": "MIT",
   "type": "module",
