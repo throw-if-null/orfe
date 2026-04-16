@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import nock from 'nock';
 import test from 'node:test';
 
-import { getCommandDefinition, getGroupDefinitions, listCommandGroups, listCommandNames } from '../src/command-registry.js';
+import { getCommandDefinition, getGroupDefinitions, listCommandGroups, listCommandNames } from '../src/commands/registry/index.js';
 import { OrfeError } from '../src/errors.js';
 import { GitHubClientFactory } from '../src/github.js';
 import { parseInvocationForCli, runCli } from '../src/command.js';

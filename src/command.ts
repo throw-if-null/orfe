@@ -6,7 +6,7 @@ import {
   listCommandGroups,
   type CommandDefinition,
   type CommandOptionDefinition,
-} from './command-registry.js';
+} from './commands/registry/index.js';
 import { CliUsageError, OrfeError, formatCliUsageError } from './errors.js';
 import { runOrfeCore, type OrfeCoreDependencies } from './core.js';
 import { createErrorResponse } from './response.js';
@@ -234,6 +234,8 @@ function parseCliOptionValue(
         );
       }
       return nextToken;
+    default:
+      throw createLeafUsageError(commandDefinition, `Option "${optionDefinition.flag}" has an unsupported type.`);
   }
 }
 

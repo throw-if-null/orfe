@@ -3,7 +3,7 @@ import nock from 'nock';
 import test from 'node:test';
 
 import { COMMANDS } from '../src/commands/index.js';
-import { listCommandNames } from '../src/command-registry.js';
+import { listCommandNames } from '../src/commands/registry/index.js';
 import { OrfeError } from '../src/errors.js';
 import { GitHubClientFactory } from '../src/github.js';
 import { createRuntimeSnapshot, runOrfeCore } from '../src/core.js';

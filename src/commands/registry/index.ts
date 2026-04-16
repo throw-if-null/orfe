@@ -4,6 +4,8 @@ import { COMMON_CLI_OPTIONS } from './common-options.js';
 import type { CommandDefinition, CommandOptionDefinition } from './types.js';
 import type { CommandInput } from '../../types.js';
 
+export type { CommandDefinition, CommandOptionDefinition } from './types.js';
+
 const COMMAND_DEFINITION_MAP = createCommandDefinitionMap(COMMANDS);
 const COMMAND_GROUPS = createCommandGroupList(COMMANDS);
 
