@@ -28,3 +28,8 @@ This file keeps known documentation, architecture, and process debt visible so i
 - **Impact:** issue and handoff quality should improve, but the repo still depends on humans and agents consistently using the templates rather than enforcing them mechanically.
 - **Current treatment:** provide a standard issue template and documented handoff formats as the default path.
 - **Follow-up direction:** consider GitHub issue forms, additional automation, or skill-level enforcement if drift remains high.
+
+### 6. Some cross-cutting tests are still large after the command-slice refactor
+- **Impact:** command metadata and validation ownership now live with slices, but `test/core.test.ts` and `test/cli.test.ts` still contain substantial integration coverage and shared HTTP fixture setup.
+- **Current treatment:** keep true runtime and CLI integration coverage in `test/`, while new command-definition ownership tests live beside the slices.
+- **Follow-up direction:** continue extracting reusable integration fixtures and shrink the large cross-cutting test files opportunistically without reducing behavior coverage.

@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import nock from 'nock';
 import test from 'node:test';
 
-import { getCommandDefinition, getGroupDefinitions } from '../src/command-registry.js';
-import { getCommandContract } from '../src/command-contracts.js';
+import { getCommandDefinition, getGroupDefinitions, listCommandGroups, listCommandNames } from '../src/command-registry.js';
 import { OrfeError } from '../src/errors.js';
 import { GitHubClientFactory } from '../src/github.js';
 import { parseInvocationForCli, runCli } from '../src/command.js';
@@ -18,22 +17,8 @@ class MemoryStream {
   }
 }
 
-const COMMAND_GROUPS: readonly OrfeCommandGroup[] = ['auth', 'issue', 'pr', 'project'];
-const ALL_COMMANDS: readonly OrfeCommandName[] = [
-  'auth token',
-  'issue get',
-  'issue create',
-  'issue update',
-  'issue comment',
-  'issue set-state',
-  'pr get',
-  'pr get-or-create',
-  'pr comment',
-  'pr submit-review',
-  'pr reply',
-  'project get-status',
-  'project set-status',
-];
+const COMMAND_GROUPS: readonly OrfeCommandGroup[] = listCommandGroups();
+const ALL_COMMANDS: readonly OrfeCommandName[] = listCommandNames();
 
 function createRuntimeDependencies() {
   return {
@@ -791,6 +776,18 @@ test('runCli renders root help', async () => {
   assert.match(stdout.output, /orfe - generic GitHub operations runtime/);
   assert.match(stdout.output, /Command groups:/);
   assert.match(stdout.output, /Run `orfe <group> --help` for group-specific help\./);
+});
+
+test('runCli treats commandless invocation as the root help noop path', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli([], { stdout, stderr });
+
+  assert.equal(exitCode, 0);
+  assert.equal(stderr.output, '');
+  assert.match(stdout.output, /orfe - generic GitHub operations runtime/);
+  assert.match(stdout.output, /Command groups:/);
 });
 
 test('runCli renders help for each command group', async (t) => {
@@ -3519,11 +3516,12 @@ test('runCli reports malformed repo overrides as usage errors', async () => {
   assert.match(stderr.output, /See: orfe issue get --help/);
 });
 
-test('command contracts expose a JSON success shape for every V1 command', () => {
+test('registered command definitions expose a JSON success shape for every V1 command', () => {
   for (const commandName of ALL_COMMANDS) {
-    const contract = getCommandContract(commandName);
-    assert.equal(typeof contract.successDataExample, 'object');
-    assert.ok(Object.keys(contract.successDataExample).length > 0);
+    const definition = getCommandDefinition(commandName);
+    assert.equal(typeof definition.successDataExample, 'object');
+    assert.ok(Object.keys(definition.successDataExample).length > 0);
+    assert.ok(definition.validInputExample);
   }
 });
 

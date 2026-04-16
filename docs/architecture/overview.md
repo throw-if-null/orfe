@@ -27,16 +27,19 @@ It must not:
 Currently represented by `src/cli.ts` and related CLI code.
 
 Responsibilities:
-- parse CLI arguments
+- support commandless invocation as a noop/help path
+- parse CLI arguments generically from registered command metadata
 - resolve caller identity for direct CLI usage
 - invoke the same runtime core used by the plugin entrypoint
 - print structured JSON success or structured errors
+
+The CLI is intentionally a thin adapter. It renders root, group, and leaf help from the registered command catalog rather than maintaining a separate hardcoded command map.
 
 ### 3. Core runtime
 Currently represented by `src/core.ts` and related command/config/runtime code.
 
 Responsibilities:
-- validate command input
+- validate command input through command slice definitions
 - load repo-local config
 - resolve caller-to-role mapping
 - load machine-local auth config
@@ -70,6 +73,72 @@ Responsibilities:
 - use GraphQL where required for project status and duplicate semantics
 - preserve deterministic command behavior and structured outputs
 
+## Command architecture
+
+### Vertical command slices
+
+Command behavior is organized by explicit vertical slices under `src/commands/`.
+
+Default shape:
+
+```text
+src/commands/
+  <group>/
+    shared.ts                 # small group-local helpers only when reused
+    <command>/
+      definition.ts           # name, help, options, examples, valid input, success example, validation
+      handler.ts              # command implementation
+      errors.ts               # command-local validation/business-rule helpers when needed
+      *.test.ts               # co-located command tests by default
+```
+
+Examples:
+
+- `src/commands/issue/get/definition.ts`
+- `src/commands/issue/get/handler.ts`
+- `src/commands/pr/get-or-create/definition.ts`
+- `src/commands/project/shared.ts`
+
+Each slice owns its command contract metadata, including:
+
+- command name
+- purpose and usage/help text
+- examples
+- option definitions
+- validation logic
+- valid input example used by tests
+- success data example used by tests/help
+- handler wiring
+
+### Explicit generic registry
+
+The command registry is now an explicit composition layer.
+
+Key modules:
+
+- `src/commands/index.ts` — explicit `COMMANDS` registration array
+- `src/commands/registry/definition.ts` — minimal `createCommandDefinition(...)` helper
+- `src/commands/registry/index.ts` — generic lookup/list/group/validation helpers
+
+The registry:
+
+- explicitly imports command slice definitions
+- exposes deterministic command lookup and listing
+- derives command identity types from the `COMMANDS` array
+- performs generic option-shape validation only
+
+The registry does not own per-command semantics from a separate contract source of truth.
+
+### Group-local shared helpers
+
+When multiple commands in the same group share normalization or lookup logic, that logic lives in a small group-local helper module such as:
+
+- `src/commands/issue/shared.ts`
+- `src/commands/pr/shared.ts`
+- `src/commands/project/shared.ts`
+
+These files are intentionally group-scoped helper modules, not replacements for the slice structure.
+
 ## Module map
 
 ```text
@@ -82,7 +151,7 @@ OpenCode plugin / CLI
         +--> caller -> role resolution
         +--> auth/token minting
         +--> GitHub client factory
-        +--> command registry / handlers
+        +--> explicit command registry / slices
 ```
 
 ## Architectural rules to keep in mind
