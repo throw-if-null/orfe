@@ -1,10 +1,8 @@
-import { resolveProjectCommandConfig } from './config.js';
-import { OrfeError } from './errors.js';
-import type { CommandContext } from './types.js';
+import { OrfeError } from '../../errors.js';
 
-type ProjectItemType = 'issue' | 'pr';
+export type ProjectItemType = 'issue' | 'pr';
 
-interface ProjectGetStatusData {
+export interface ProjectGetStatusData {
   project_owner: string;
   project_number: number;
   status_field_name: string;
@@ -16,7 +14,7 @@ interface ProjectGetStatusData {
   status: string | null;
 }
 
-interface ProjectSetStatusData {
+export interface ProjectSetStatusData {
   project_owner: string;
   project_number: number;
   status_field_name: string;
@@ -31,7 +29,7 @@ interface ProjectSetStatusData {
   changed: boolean;
 }
 
-interface ResolvedProjectStatusContext {
+export interface ResolvedProjectStatusContext {
   projectItem: ProjectItemNode;
   projectItemId: string;
   projectId: string;
@@ -103,18 +101,18 @@ interface ProjectSingleSelectFieldValueNode {
   field?: unknown;
 }
 
-interface ProjectStatusField {
+export interface ProjectStatusField {
   id: string;
   name: string;
   options: ProjectStatusFieldOption[];
 }
 
-interface ProjectStatusFieldOption {
+export interface ProjectStatusFieldOption {
   id: string;
   name: string;
 }
 
-interface ProjectStatusValue {
+export interface ProjectStatusValue {
   option_id: string;
   name: string;
 }
@@ -246,122 +244,7 @@ const PROJECT_STATUS_UPDATE_MUTATION = `
   }
 `;
 
-export async function handleProjectGetStatus(context: CommandContext): Promise<ProjectGetStatusData> {
-  const itemType = context.input.item_type as ProjectItemType;
-  const itemNumber = context.input.item_number as number;
-  const projectConfig = resolveProjectCommandConfig(context.repoConfig, context.input);
-
-  try {
-    const { graphql } = await context.getGitHubClient();
-    const resolvedStatusContext = await resolveProjectStatusContext(
-      graphql,
-      context.repo.owner,
-      context.repo.name,
-      projectConfig.projectOwner,
-      projectConfig.projectNumber,
-      projectConfig.statusFieldName,
-      itemType,
-      itemNumber,
-    );
-
-    return {
-      project_owner: projectConfig.projectOwner,
-      project_number: projectConfig.projectNumber,
-      status_field_name: resolvedStatusContext.statusField.name,
-      status_field_id: resolvedStatusContext.statusField.id,
-      item_type: itemType,
-      item_number: itemNumber,
-      project_item_id: resolvedStatusContext.projectItemId,
-      status_option_id: resolvedStatusContext.status?.option_id ?? null,
-      status: resolvedStatusContext.status?.name ?? null,
-    };
-  } catch (error) {
-    throw mapProjectGetStatusError(error, itemType, itemNumber);
-  }
-}
-
-export async function handleProjectSetStatus(context: CommandContext): Promise<ProjectSetStatusData> {
-  const itemType = context.input.item_type as ProjectItemType;
-  const itemNumber = context.input.item_number as number;
-  const targetStatus = context.input.status as string;
-  const projectConfig = resolveProjectCommandConfig(context.repoConfig, context.input);
-
-  try {
-    const { graphql } = await context.getGitHubClient();
-    const currentStatusContext = await resolveProjectStatusContext(
-      graphql,
-      context.repo.owner,
-      context.repo.name,
-      projectConfig.projectOwner,
-      projectConfig.projectNumber,
-      projectConfig.statusFieldName,
-      itemType,
-      itemNumber,
-    );
-    const targetOption = selectProjectStatusOption(
-      currentStatusContext.statusField,
-      projectConfig.projectOwner,
-      projectConfig.projectNumber,
-      targetStatus,
-    );
-
-    if (currentStatusContext.status?.option_id === targetOption.id) {
-      return normalizeProjectSetStatusResult(
-        projectConfig.projectOwner,
-        projectConfig.projectNumber,
-        itemType,
-        itemNumber,
-        currentStatusContext,
-        currentStatusContext.status,
-        false,
-      );
-    }
-
-    await updateProjectStatus(
-      graphql,
-      currentStatusContext.projectId,
-      currentStatusContext.projectItemId,
-      currentStatusContext.statusField.id,
-      targetOption.id,
-    );
-
-    const observedStatusContext = await resolveProjectStatusContext(
-      graphql,
-      context.repo.owner,
-      context.repo.name,
-      projectConfig.projectOwner,
-      projectConfig.projectNumber,
-      projectConfig.statusFieldName,
-      itemType,
-      itemNumber,
-    );
-
-    if (
-      observedStatusContext.status === null ||
-      observedStatusContext.status.option_id !== targetOption.id ||
-      observedStatusContext.status.name !== targetOption.name
-    ) {
-      throw new OrfeError(
-        'internal_error',
-        `GitHub Project ${projectConfig.projectOwner}/${projectConfig.projectNumber} did not reach status "${targetStatus}" for ${formatProjectTrackedItem(itemType)} #${itemNumber}.`,
-      );
-    }
-
-    return normalizeProjectSetStatusResult(
-      projectConfig.projectOwner,
-      projectConfig.projectNumber,
-      itemType,
-      itemNumber,
-      currentStatusContext,
-      observedStatusContext.status,
-      true,
-    );
-  } catch (error) {
-    throw mapProjectSetStatusError(error, itemType, itemNumber);
-  }
-}
-
-async function resolveProjectStatusContext(
+export async function resolveProjectStatusContext(
   graphql: <TResponse>(query: string, variables?: Record<string, unknown>) => Promise<TResponse>,
   owner: string,
   repo: string,
@@ -386,7 +269,7 @@ async function resolveProjectStatusContext(
   };
 }
 
-async function updateProjectStatus(
+export async function updateProjectStatus(
   graphql: <TResponse>(query: string, variables?: Record<string, unknown>) => Promise<TResponse>,
   projectId: string,
   itemId: string,
@@ -399,6 +282,141 @@ async function updateProjectStatus(
     fieldId,
     optionId,
   });
+}
+
+export function selectProjectStatusOption(
+  statusField: ProjectStatusField,
+  projectOwner: string,
+  projectNumber: number,
+  targetStatus: string,
+): ProjectStatusFieldOption {
+  for (const option of statusField.options) {
+    if (option.name === targetStatus) {
+      return option;
+    }
+  }
+
+  throw new OrfeError(
+    'project_status_option_not_found',
+    `GitHub Project ${projectOwner}/${projectNumber} field "${statusField.name}" has no option named "${targetStatus}".`,
+  );
+}
+
+export function normalizeProjectSetStatusResult(
+  projectOwner: string,
+  projectNumber: number,
+  itemType: ProjectItemType,
+  itemNumber: number,
+  currentStatusContext: ResolvedProjectStatusContext,
+  observedStatus: ProjectStatusValue | null,
+  changed: boolean,
+): ProjectSetStatusData {
+  if (observedStatus === null) {
+    throw new OrfeError(
+      'internal_error',
+      `GitHub Project ${projectOwner}/${projectNumber} returned no resulting status value for ${formatProjectTrackedItem(itemType)} #${itemNumber}.`,
+    );
+  }
+
+  return {
+    project_owner: projectOwner,
+    project_number: projectNumber,
+    status_field_name: currentStatusContext.statusField.name,
+    status_field_id: currentStatusContext.statusField.id,
+    item_type: itemType,
+    item_number: itemNumber,
+    project_item_id: currentStatusContext.projectItemId,
+    status_option_id: observedStatus.option_id,
+    status: observedStatus.name,
+    previous_status_option_id: currentStatusContext.status?.option_id ?? null,
+    previous_status: currentStatusContext.status?.name ?? null,
+    changed,
+  };
+}
+
+export function mapProjectGetStatusError(error: unknown, itemType: ProjectItemType, itemNumber: number): OrfeError {
+  if (error instanceof OrfeError) {
+    return error;
+  }
+
+  const status = getGitHubRequestStatus(error);
+  if (status !== undefined) {
+    if (status === 401 || status === 403) {
+      return new OrfeError(
+        'auth_failed',
+        `GitHub App authentication failed while reading project status for ${itemType === 'issue' ? 'issue' : 'pull request'} #${itemNumber}.`,
+      );
+    }
+
+    return new OrfeError(
+      'internal_error',
+      `GitHub API request failed with status ${status}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      {
+        retryable: status >= 500 || status === 429,
+      },
+    );
+  }
+
+  if (error instanceof Error) {
+    return new OrfeError('internal_error', error.message);
+  }
+
+  return new OrfeError('internal_error', 'Unknown GitHub project status lookup failure.');
+}
+
+export function mapProjectSetStatusError(error: unknown, itemType: ProjectItemType, itemNumber: number): OrfeError {
+  if (error instanceof OrfeError) {
+    return error;
+  }
+
+  const status = getGitHubRequestStatus(error);
+  if (status !== undefined) {
+    if (status === 401 || status === 403) {
+      return new OrfeError(
+        'auth_failed',
+        `GitHub App authentication failed while setting project status for ${formatProjectTrackedItem(itemType)} #${itemNumber}.`,
+      );
+    }
+
+    return new OrfeError(
+      'internal_error',
+      `GitHub API request failed with status ${status}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      {
+        retryable: status >= 500 || status === 429,
+      },
+    );
+  }
+
+  if (error instanceof Error) {
+    return new OrfeError('internal_error', error.message);
+  }
+
+  return new OrfeError('internal_error', 'Unknown GitHub project status update failure.');
+}
+
+export function formatProjectTrackedItem(itemType: ProjectItemType): string {
+  return itemType === 'issue' ? 'issue' : 'pull request';
+}
+
+function getGitHubRequestStatus(error: unknown): number | undefined {
+  if (error instanceof Error && 'status' in error && typeof (error as { status?: unknown }).status === 'number') {
+    return (error as { status: number }).status;
+  }
+
+  if (
+    error instanceof Error &&
+    'response' in error &&
+    isObject((error as { response?: unknown }).response) &&
+    typeof (error as { response: { status?: unknown } }).response.status === 'number'
+  ) {
+    return (error as { response: { status: number } }).response.status;
+  }
+
+  return undefined;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 async function lookupProjectItem(
@@ -511,11 +529,7 @@ function readTrackedProjectItems(trackedNode: ProjectTrackedNode): { nodes: unkn
   return projectItems as { nodes: unknown[]; pageInfo?: unknown };
 }
 
-function selectProjectItem(
-  projectItemNodes: unknown[],
-  projectOwner: string,
-  projectNumber: number,
-): ProjectItemNode | null {
+function selectProjectItem(projectItemNodes: unknown[], projectOwner: string, projectNumber: number): ProjectItemNode | null {
   for (const rawNode of projectItemNodes) {
     if (!isObject(rawNode)) {
       continue;
@@ -565,11 +579,7 @@ function readProjectId(project: ProjectNode, projectOwner: string, projectNumber
   return project.id;
 }
 
-function readProjectFieldsConnection(
-  response: ProjectFieldsLookupResponse,
-  projectOwner: string,
-  projectNumber: number,
-): ProjectFieldsConnection {
+function readProjectFieldsConnection(response: ProjectFieldsLookupResponse, projectOwner: string, projectNumber: number): ProjectFieldsConnection {
   if (!isObject(response.node)) {
     throw new OrfeError('internal_error', `GitHub Project ${projectOwner}/${projectNumber} is missing fields metadata.`);
   }
@@ -702,24 +712,6 @@ function readProjectStatusFieldOption(
   };
 }
 
-function selectProjectStatusOption(
-  statusField: ProjectStatusField,
-  projectOwner: string,
-  projectNumber: number,
-  targetStatus: string,
-): ProjectStatusFieldOption {
-  for (const option of statusField.options) {
-    if (option.name === targetStatus) {
-      return option;
-    }
-  }
-
-  throw new OrfeError(
-    'project_status_option_not_found',
-    `GitHub Project ${projectOwner}/${projectNumber} field "${statusField.name}" has no option named "${targetStatus}".`,
-  );
-}
-
 function readProjectStatusValue(
   rawValue: unknown,
   statusField: ProjectStatusField,
@@ -778,121 +770,4 @@ function readProjectStatusValue(
     option_id: statusValue.optionId,
     name: statusValue.name,
   };
-}
-
-function normalizeProjectSetStatusResult(
-  projectOwner: string,
-  projectNumber: number,
-  itemType: ProjectItemType,
-  itemNumber: number,
-  currentStatusContext: ResolvedProjectStatusContext,
-  observedStatus: ProjectStatusValue | null,
-  changed: boolean,
-): ProjectSetStatusData {
-  if (observedStatus === null) {
-    throw new OrfeError(
-      'internal_error',
-      `GitHub Project ${projectOwner}/${projectNumber} returned no resulting status value for ${formatProjectTrackedItem(itemType)} #${itemNumber}.`,
-    );
-  }
-
-  return {
-    project_owner: projectOwner,
-    project_number: projectNumber,
-    status_field_name: currentStatusContext.statusField.name,
-    status_field_id: currentStatusContext.statusField.id,
-    item_type: itemType,
-    item_number: itemNumber,
-    project_item_id: currentStatusContext.projectItemId,
-    status_option_id: observedStatus.option_id,
-    status: observedStatus.name,
-    previous_status_option_id: currentStatusContext.status?.option_id ?? null,
-    previous_status: currentStatusContext.status?.name ?? null,
-    changed,
-  };
-}
-
-function mapProjectGetStatusError(error: unknown, itemType: ProjectItemType, itemNumber: number): OrfeError {
-  if (error instanceof OrfeError) {
-    return error;
-  }
-
-  const status = getGitHubRequestStatus(error);
-  if (status !== undefined) {
-    if (status === 401 || status === 403) {
-      return new OrfeError(
-        'auth_failed',
-        `GitHub App authentication failed while reading project status for ${itemType === 'issue' ? 'issue' : 'pull request'} #${itemNumber}.`,
-      );
-    }
-
-    return new OrfeError(
-      'internal_error',
-      `GitHub API request failed with status ${status}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      {
-        retryable: status >= 500 || status === 429,
-      },
-    );
-  }
-
-  if (error instanceof Error) {
-    return new OrfeError('internal_error', error.message);
-  }
-
-  return new OrfeError('internal_error', 'Unknown GitHub project status lookup failure.');
-}
-
-function mapProjectSetStatusError(error: unknown, itemType: ProjectItemType, itemNumber: number): OrfeError {
-  if (error instanceof OrfeError) {
-    return error;
-  }
-
-  const status = getGitHubRequestStatus(error);
-  if (status !== undefined) {
-    if (status === 401 || status === 403) {
-      return new OrfeError(
-        'auth_failed',
-        `GitHub App authentication failed while setting project status for ${formatProjectTrackedItem(itemType)} #${itemNumber}.`,
-      );
-    }
-
-    return new OrfeError(
-      'internal_error',
-      `GitHub API request failed with status ${status}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      {
-        retryable: status >= 500 || status === 429,
-      },
-    );
-  }
-
-  if (error instanceof Error) {
-    return new OrfeError('internal_error', error.message);
-  }
-
-  return new OrfeError('internal_error', 'Unknown GitHub project status update failure.');
-}
-
-function formatProjectTrackedItem(itemType: ProjectItemType): string {
-  return itemType === 'issue' ? 'issue' : 'pull request';
-}
-
-function getGitHubRequestStatus(error: unknown): number | undefined {
-  if (error instanceof Error && 'status' in error && typeof (error as { status?: unknown }).status === 'number') {
-    return (error as { status: number }).status;
-  }
-
-  if (
-    error instanceof Error &&
-    'response' in error &&
-    isObject((error as { response?: unknown }).response) &&
-    typeof (error as { response: { status?: unknown } }).response.status === 'number'
-  ) {
-    return (error as { response: { status: number } }).response.status;
-  }
-
-  return undefined;
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }

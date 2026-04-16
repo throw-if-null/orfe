@@ -1,7 +1,7 @@
-import { OrfeError } from './errors.js';
-import type { CommandContext } from './types.js';
+import { OrfeError } from '../../../errors.js';
+import type { CommandContext } from '../../../types.js';
 
-interface AuthTokenData {
+export interface AuthTokenData {
   role: string;
   app_slug: string;
   repo: string;
@@ -10,7 +10,7 @@ interface AuthTokenData {
   auth_mode: 'github-app';
 }
 
-export async function handleAuthToken(context: CommandContext): Promise<AuthTokenData> {
+export async function handleAuthToken(context: CommandContext<'auth token'>): Promise<AuthTokenData> {
   if (context.command !== 'auth token') {
     throw new OrfeError('internal_error', 'auth token handler received an unexpected command context.');
   }

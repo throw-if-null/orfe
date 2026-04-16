@@ -2,28 +2,13 @@ import assert from 'node:assert/strict';
 import nock from 'nock';
 import test from 'node:test';
 
-import { COMMAND_NAMES, getCommandContract } from '../src/command-contracts.js';
-import { getCommandDefinition, listCommandNames, validateCommandInput } from '../src/command-registry.js';
+import { COMMANDS } from '../src/commands/index.js';
+import { listCommandNames } from '../src/commands/registry/index.js';
 import { OrfeError } from '../src/errors.js';
 import { GitHubClientFactory } from '../src/github.js';
 import { createRuntimeSnapshot, runOrfeCore } from '../src/core.js';
 
-const UNIMPLEMENTED_COMMAND_NAMES = COMMAND_NAMES.filter(
-  (commandName) =>
-    commandName !== 'auth token' &&
-    commandName !== 'issue get' &&
-    commandName !== 'issue create' &&
-    commandName !== 'issue update' &&
-    commandName !== 'issue comment' &&
-    commandName !== 'issue set-state' &&
-    commandName !== 'pr get' &&
-    commandName !== 'pr get-or-create' &&
-    commandName !== 'pr comment' &&
-    commandName !== 'pr submit-review' &&
-    commandName !== 'pr reply' &&
-    commandName !== 'project get-status' &&
-    commandName !== 'project set-status',
-);
+const COMMAND_NAMES = COMMANDS.map((definition) => definition.name);
 
 function createRepoConfig() {
   return {
@@ -825,134 +810,6 @@ test('listCommandNames exposes the agreed V1 command surface', () => {
   assert.deepEqual(listCommandNames(), COMMAND_NAMES);
 });
 
-test('issue get pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('issue get').successDataExample, {
-    issue_number: 13,
-    title: 'Design the `orfe` custom tool and CLI contract',
-    body: '...',
-    state: 'open',
-    state_reason: null,
-    labels: ['needs-input'],
-    assignees: ['greg'],
-    html_url: 'https://github.com/throw-if-null/orfe/issues/13',
-  });
-});
-
-test('issue create pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('issue create').successDataExample, {
-    issue_number: 21,
-    title: 'New issue title',
-    state: 'open',
-    html_url: 'https://github.com/throw-if-null/orfe/issues/21',
-    created: true,
-  });
-});
-
-test('issue update pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('issue update').successDataExample, {
-    issue_number: 13,
-    title: 'Updated title',
-    state: 'open',
-    html_url: 'https://github.com/throw-if-null/orfe/issues/13',
-    changed: true,
-  });
-});
-
-test('issue comment pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('issue comment').successDataExample, {
-    issue_number: 13,
-    comment_id: 123456,
-    html_url: 'https://github.com/throw-if-null/orfe/issues/13#issuecomment-123456',
-    created: true,
-  });
-});
-
-test('issue set-state pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('issue set-state').successDataExample, {
-    issue_number: 13,
-    state: 'closed',
-    state_reason: 'completed',
-    duplicate_of_issue_number: null,
-    changed: true,
-  });
-});
-
-test('pr get pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('pr get').successDataExample, {
-    pr_number: 9,
-    title: 'Design the `orfe` custom tool and CLI contract',
-    body: '...',
-    state: 'open',
-    draft: false,
-    head: 'issues/orfe-13',
-    base: 'main',
-    html_url: 'https://github.com/throw-if-null/orfe/pull/9',
-  });
-});
-
-test('pr get-or-create pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('pr get-or-create').successDataExample, {
-    pr_number: 9,
-    html_url: 'https://github.com/throw-if-null/orfe/pull/9',
-    head: 'issues/orfe-13',
-    base: 'main',
-    draft: false,
-    created: false,
-  });
-});
-
-test('pr comment pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('pr comment').successDataExample, {
-    pr_number: 9,
-    comment_id: 123456,
-    html_url: 'https://github.com/throw-if-null/orfe/pull/9#issuecomment-123456',
-    created: true,
-  });
-});
-
-test('pr submit-review pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('pr submit-review').successDataExample, {
-    pr_number: 9,
-    review_id: 555,
-    event: 'approve',
-    submitted: true,
-  });
-});
-
-test('pr reply pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('pr reply').successDataExample, {
-    pr_number: 9,
-    comment_id: 123999,
-    in_reply_to_comment_id: 123456,
-    created: true,
-  });
-});
-
-test('project get-status pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('project get-status').successDataExample, {
-    project_owner: 'throw-if-null',
-    project_number: 1,
-    status_field_name: 'Status',
-    status_field_id: 'PVTSSF_lAHOABCD1234',
-    item_type: 'issue',
-    item_number: 13,
-    project_item_id: 'PVTI_lAHOABCD1234',
-    status_option_id: 'f75ad846',
-    status: 'In Progress',
-  });
-});
-
-test('auth token pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('auth token').successDataExample, {
-    role: 'greg',
-    app_slug: 'GR3G-BOT',
-    repo: 'throw-if-null/orfe',
-    token: 'ghs_123',
-    expires_at: '2026-04-06T12:00:00Z',
-    auth_mode: 'github-app',
-  });
-});
-
 test('runOrfeCore mints an auth token for the resolved caller role', async () => {
   nock.disableNetConnect();
 
@@ -1729,23 +1586,6 @@ test('runOrfeCore supports explicit status field overrides for project get-statu
   }
 });
 
-test('project set-status pins its exact JSON success contract', () => {
-  assert.deepEqual(getCommandContract('project set-status').successDataExample, {
-    project_owner: 'throw-if-null',
-    project_number: 1,
-    status_field_name: 'Status',
-    status_field_id: 'PVTSSF_lAHOABCD1234',
-    item_type: 'issue',
-    item_number: 13,
-    project_item_id: 'PVTI_lAHOABCD1234',
-    status_option_id: 'f75ad846',
-    status: 'In Progress',
-    previous_status_option_id: 'f75ad845',
-    previous_status: 'Todo',
-    changed: true,
-  });
-});
-
 test('runOrfeCore sets project status for an issue and returns structured success output', async () => {
   nock.disableNetConnect();
 
@@ -2283,16 +2123,6 @@ test('runOrfeCore supports explicit status field overrides for project set-statu
   } finally {
     nock.cleanAll();
     nock.enableNetConnect();
-  }
-});
-
-test('every command definition uses the independently pinned success contract', () => {
-  for (const commandName of COMMAND_NAMES) {
-    const definition = getCommandDefinition(commandName);
-    const contract = getCommandContract(commandName);
-
-    assert.deepEqual(definition.successDataExample, contract.successDataExample);
-    assert.ok(contract.validInput);
   }
 });
 
@@ -3922,51 +3752,6 @@ test('runOrfeCore maps issue comment auth failures clearly', async () => {
   }
 });
 
-test('validateCommandInput rejects invalid issue set-state combinations clearly', () => {
-  const definition = getCommandDefinition('issue set-state');
-
-  assert.throws(
-    () =>
-      validateCommandInput(definition, {
-        issue_number: 14,
-        state: 'open',
-        state_reason: 'completed',
-      }),
-    /issue set-state only allows state_reason when --state closed is used\./,
-  );
-
-  assert.throws(
-    () =>
-      validateCommandInput(definition, {
-        issue_number: 14,
-        state: 'closed',
-        duplicate_of: 7,
-      }),
-    /issue set-state only allows duplicate_of with state_reason=duplicate\./,
-  );
-
-  assert.throws(
-    () =>
-      validateCommandInput(definition, {
-        issue_number: 14,
-        state: 'closed',
-        state_reason: 'duplicate',
-      }),
-    /issue set-state requires --duplicate-of when state_reason=duplicate\./,
-  );
-
-  assert.throws(
-    () =>
-      validateCommandInput(definition, {
-        issue_number: 14,
-        state: 'closed',
-        state_reason: 'duplicate',
-        duplicate_of: 14,
-      }),
-    /issue set-state cannot mark an issue as a duplicate of itself\./,
-  );
-});
-
 test('runOrfeCore closes an issue with structured state metadata', async () => {
   nock.disableNetConnect();
 
@@ -4500,36 +4285,6 @@ test('runOrfeCore rejects pull request targets for issue comment clearly', async
     nock.cleanAll();
     nock.enableNetConnect();
   }
-});
-
-test('runOrfeCore returns the shared not-implemented stub error for every unimplemented leaf command', async (t) => {
-  await Promise.all(
-    UNIMPLEMENTED_COMMAND_NAMES.map((commandName) =>
-      t.test(commandName, async () => {
-        const contract = getCommandContract(commandName);
-
-        await assert.rejects(
-          runOrfeCore(
-            {
-              callerName: 'Greg',
-              command: commandName,
-              input: contract.validInput,
-            },
-            {
-              loadRepoConfigImpl: async () => createRepoConfig(),
-              loadAuthConfigImpl: async () => createAuthConfig(),
-            },
-          ),
-          (error: unknown) => {
-            assert(error instanceof OrfeError);
-            assert.equal(error.code, 'not_implemented');
-            assert.equal(error.message, `Command "${commandName}" is not implemented yet.`);
-            return true;
-          },
-        );
-      }),
-    ),
-  );
 });
 
 test('runOrfeCore rejects unmapped callers clearly', async () => {

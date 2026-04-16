@@ -1,4 +1,4 @@
-import { getCommandDefinition, validateCommandInput } from './command-registry.js';
+import { getCommandDefinition, validateCommandInput } from './commands/registry/index.js';
 import { getRoleAuthConfig, loadAuthConfig, loadRepoConfig, resolveCallerRole, resolveRepository } from './config.js';
 import { OrfeError } from './errors.js';
 import { GitHubClientFactory } from './github.js';

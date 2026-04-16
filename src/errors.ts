@@ -1,4 +1,4 @@
-import type { OrfeCommandName } from './types.js';
+import type { OrfeCommandName } from './commands/index.js';
 
 export const ERROR_CODES = [
   'invalid_usage',

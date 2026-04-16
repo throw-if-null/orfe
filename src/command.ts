@@ -1,8 +1,17 @@
-import { getCliCommonOptions, getCommandDefinition, getGroupDefinitions, type CommandDefinition, type CommandOptionDefinition } from './command-registry.js';
+import {
+  getCliCommonOptions,
+  getCommandDefinition,
+  getGroupDefinitions,
+  listCommandDefinitions,
+  listCommandGroups,
+  type CommandDefinition,
+  type CommandOptionDefinition,
+} from './commands/registry/index.js';
 import { CliUsageError, OrfeError, formatCliUsageError } from './errors.js';
 import { runOrfeCore, type OrfeCoreDependencies } from './core.js';
 import { createErrorResponse } from './response.js';
-import type { CommandInput, OrfeCommandGroup } from './types.js';
+import type { CommandInput } from './types.js';
+import type { OrfeCommandGroup } from './commands/index.js';
 
 export interface ParsedLeafInvocation {
   kind: 'leaf';
@@ -25,8 +34,6 @@ export interface RunCliDependencies extends OrfeCoreDependencies {
   stdout?: Pick<NodeJS.WriteStream, 'write'>;
   stderr?: Pick<NodeJS.WriteStream, 'write'>;
 }
-
-const COMMAND_GROUPS: readonly OrfeCommandGroup[] = ['auth', 'issue', 'pr', 'project'];
 
 export function parseInvocationForCli(args: string[], env: NodeJS.ProcessEnv): ParsedInvocation {
   return parseInvocation(args, env);
@@ -78,6 +85,8 @@ export async function runCli(args: string[], dependencies: RunCliDependencies = 
 }
 
 function parseInvocation(args: string[], env: NodeJS.ProcessEnv): ParsedInvocation {
+  const commandGroups = listCommandGroups();
+
   if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
     return {
       kind: 'help',
@@ -88,8 +97,8 @@ function parseInvocation(args: string[], env: NodeJS.ProcessEnv): ParsedInvocati
   const [group, maybeLeaf, ...rest] = args;
   if (!group || !isCommandGroup(group)) {
     throw new CliUsageError(`Unknown command group "${group}".`, {
-      usage: 'orfe <auth|issue|pr|project> <command> [options]',
-      example: 'ORFE_CALLER_NAME=Greg orfe auth token --repo throw-if-null/orfe',
+      usage: `orfe <${commandGroups.join('|')}> <command> [options]`,
+      example: getCommandDefinition('auth token').examples[0] ?? 'ORFE_CALLER_NAME=Greg orfe auth token --repo throw-if-null/orfe',
       see: 'orfe --help',
     });
   }
@@ -225,11 +234,13 @@ function parseCliOptionValue(
         );
       }
       return nextToken;
+    default:
+      throw createLeafUsageError(commandDefinition, `Option "${optionDefinition.flag}" has an unsupported type.`);
   }
 }
 
 function isCommandGroup(value: string): value is OrfeCommandGroup {
-  return COMMAND_GROUPS.includes(value as OrfeCommandGroup);
+  return listCommandGroups().includes(value as OrfeCommandGroup);
 }
 
 function getCommandDefinitionForCli(commandName: string, group: OrfeCommandGroup, leaf: string): CommandDefinition {
@@ -245,19 +256,24 @@ function getCommandDefinitionForCli(commandName: string, group: OrfeCommandGroup
 }
 
 function renderRootHelp(): string {
+  const commandGroups = listCommandGroups();
+  const rootExamples = listCommandDefinitions()
+    .flatMap((definition) => definition.examples)
+    .filter((example, index, examples) => example.trim().length > 0 && examples.indexOf(example) === index)
+    .slice(0, 2);
+
   return [
     'orfe - generic GitHub operations runtime',
     '',
     'Usage:',
-    '  orfe <auth|issue|pr|project> <command> [options]',
+    `  orfe <${commandGroups.join('|')}> <command> [options]`,
     '  orfe --help',
     '',
     'Command groups:',
-    ...COMMAND_GROUPS.map((group) => `  ${group}`),
+    ...commandGroups.map((group) => `  ${group}`),
     '',
     'Examples:',
-    '  ORFE_CALLER_NAME=Greg orfe auth token --repo throw-if-null/orfe',
-    '  ORFE_CALLER_NAME=Greg orfe pr get-or-create --head issues/orfe-14 --title "Build orfe foundation"',
+    ...(rootExamples.length > 0 ? rootExamples.map((example) => `  ${example}`) : ['  orfe --help']),
     '',
     'Run `orfe <group> --help` for group-specific help.',
   ].join('\n');
