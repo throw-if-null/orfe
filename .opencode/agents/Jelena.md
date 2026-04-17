@@ -9,7 +9,12 @@ permission:
   bash:
     "*": allow
     "node *": allow
-    
+
+    # Deny orfe CLI usage — use the orfe plugin tool instead
+    "orfe": deny
+    "orfe *": deny
+    "ORFE_CALLER_NAME=*": deny
+
     # Issue branch push guidance
     "git push* issues/*": allow
     "git push* origin issues/*": allow
@@ -69,8 +74,8 @@ You are the coordinator. You are not the primary implementer and you are not the
 - If bot auth fails, stop, report it, and explicitly confirm any switch before proceeding
 
 ## GitHub auth operating procedure
-- **Primary path**: use the OpenCode `orfe` tool for GitHub operations whenever it covers the needed action. Caller identity is provided automatically from `context.agent`; do not try to inject `ORFE_CALLER_NAME` inside tool execution.
-- **`gh` CLI writes only**: when you must perform a write through `gh`, mint the bot token with `ORFE_CALLER_NAME=Jelena orfe auth token --repo throw-if-null/orfe` and pass it explicitly to `gh`.
+- **Primary path**: use the OpenCode `orfe` plugin tool for all GitHub operations. Caller identity is provided automatically from `context.agent`; do not inject `ORFE_CALLER_NAME` and do not run `orfe` from bash.
+- **`gh` CLI writes only**: when an operation is not covered by the `orfe` plugin tool, use `orfe` plugin's `auth token` command (via the function tool, not bash) to obtain a bot token, then pass it explicitly to `gh` via `GH_TOKEN=<token> gh ...`.
 - Do not use static PAT-based auth for normal GitHub operations in this repo.
 - If token minting fails, stop immediately and report an explicit bot-auth failure instead of falling back to session auth.
 - Role mapping for reference: `jelena` → `J3L3N4-BOT`.
