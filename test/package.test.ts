@@ -21,8 +21,8 @@ test('package metadata exposes installable orfe CLI wiring', async () => {
   const exportsField = packageJson.exports as Record<string, string> | undefined;
   const publishConfig = packageJson.publishConfig as Record<string, string> | undefined;
 
-  assert.equal(packageJson.name, '@throw-if-null/orfe');
-  assert.equal(packageJson.version, '0.0.0');
+  assert.equal(packageJson.name, '@mirzamerdovic/orfe');
+  assert.equal(packageJson.version, '0.2.1');
   assert.equal(packageJson.private, undefined);
   assert.equal(packageJson.license, 'MIT');
   assert.match(String(packageJson.description), /GitHub operations runtime/i);
@@ -34,7 +34,8 @@ test('package metadata exposes installable orfe CLI wiring', async () => {
   assert.ok(files?.includes('dist'));
   assert.ok(files?.includes('README.md'));
   assert.ok(!files?.includes('docs'));
-  assert.equal(publishConfig?.registry, 'https://npm.pkg.github.com');
+  assert.equal(exportsField?.['./server'], './dist/plugin.js');
+  assert.equal(publishConfig?.registry, 'https://registry.npmjs.org');
   assert.equal(publishConfig?.access, 'public');
 });
 

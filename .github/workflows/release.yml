@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  packages: write
+  id-token: write
 
 concurrency:
   group: release-${{ github.workflow }}-${{ github.ref }}
@@ -27,8 +27,7 @@ jobs:
         uses: actions/setup-node@v6.3.0
         with:
           node-version: 22.22.0
-          registry-url: https://npm.pkg.github.com
-          scope: '@throw-if-null'
+          registry-url: https://registry.npmjs.org
           cache: npm
           cache-dependency-path: package-lock.json
 
@@ -47,7 +46,8 @@ jobs:
       - name: Set version from tag
         run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version
 
+      - name: Upgrade npm for OIDC publishing support
+        run: npm install -g npm@latest
+
       - name: Publish package
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm publish --access public

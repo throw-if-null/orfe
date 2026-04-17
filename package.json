@@ -1,13 +1,14 @@
 {
-  "name": "@throw-if-null/orfe",
-  "version": "0.0.0",
+  "name": "@mirzamerdovic/orfe",
+  "version": "0.2.1",
   "description": "Generic GitHub operations runtime for humans and agents",
   "license": "MIT",
   "type": "module",
   "main": "./dist/wrapper.js",
   "exports": {
     ".": "./dist/wrapper.js",
-    "./plugin": "./dist/plugin.js"
+    "./plugin": "./dist/plugin.js",
+    "./server": "./dist/plugin.js"
   },
   "bin": {
     "orfe": "./dist/cli.js"
@@ -17,7 +18,7 @@
     "README.md"
   ],
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
+    "registry": "https://registry.npmjs.org",
     "access": "public"
   },
   "repository": {

@@ -9,23 +9,23 @@
 
 ## Install the npm CLI package
 
-### Install from GitHub Packages
+### Install from npm
 
 ```bash
-npm install @throw-if-null/orfe --registry=https://npm.pkg.github.com
+npm install @mirzamerdovic/orfe
 ```
 
 ### Or run directly with npx
 
 ```bash
-npx @throw-if-null/orfe --help
+npx @mirzamerdovic/orfe --help
 ```
 
 `orfe` can also be installed from a locally built npm package artifact for development.
 
 - Supported now: package artifact installs created with `npm pack`
-- Primary public distribution: GitHub Packages via `@throw-if-null/orfe`
-- Supported invocation path: `npx @throw-if-null/orfe`
+- Primary public distribution: npm registry via `@mirzamerdovic/orfe`
+- Supported invocation path: `npx @mirzamerdovic/orfe`
 
 Build the package artifact from the repo root:
 
@@ -33,15 +33,14 @@ Build the package artifact from the repo root:
 npm pack
 ```
 
-That command runs the package `prepack` build and writes `throw-if-null-orfe-<version>.tgz`.
+That command runs the package `prepack` build and writes `mirzamerdovic-orfe-<version>.tgz`.
 
 ### Local install from the package artifact
 
 Install the tarball into another project directory:
 
 ```bash
-npm install /absolute/path/to/throw-if-null-orfe-<version>.tgz
-PATH="$(pwd)/node_modules/.bin:$PATH" orfe --help
+npm install /absolute/path/to/mirzamerdovic-orfe-<version>.tgz
 ```
 
 ### Global install from the package artifact
@@ -49,7 +48,7 @@ PATH="$(pwd)/node_modules/.bin:$PATH" orfe --help
 Install the same tarball globally:
 
 ```bash
-npm install --global /absolute/path/to/throw-if-null-orfe-<version>.tgz
+npm install --global /absolute/path/to/mirzamerdovic-orfe-<version>.tgz
 orfe --help
 ```
 
@@ -58,7 +57,7 @@ orfe --help
 Package installation is separate from the other setup steps in this repo:
 
 - **Package installation** puts the `orfe` executable on disk
-- **npm publication/release automation** publishes tagged releases to GitHub Packages
+- **npm publication/release automation** publishes tagged releases to npmjs.org
 - **Repo-local config** is still a separate step for repositories that want to run GitHub commands through `orfe`
 - **Machine-local auth config** is still a separate step for machines that need GitHub App auth
 
@@ -161,7 +160,7 @@ Configure OpenCode to load the packaged plugin directly:
 
 ```json
 {
-  "plugin": ["@throw-if-null/orfe/plugin"]
+  "plugin": ["."]
 }
 ```
 
