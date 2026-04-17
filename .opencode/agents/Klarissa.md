@@ -52,7 +52,7 @@ permission:
   codesearch: allow
   skill:
     "*": deny
-    team-contract: allow
+    task-qa: allow
     code-review-excellence: allow
     verification-before-completion: allow
     receiving-code-review: allow
@@ -165,6 +165,8 @@ What I verified:
 Then add the short issue-level workflow outcome so Jelena can route ownership correctly.
 
 ## Skills
+Use `task-qa` when available for the official QA review flow and issue-level workflow outcome.
+
 Use review and verification skills proactively. If a required workflow skill is unavailable, follow `AGENTS.md` and state that it was unavailable.
 
 ## Working Style

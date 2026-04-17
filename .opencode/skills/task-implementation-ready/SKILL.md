@@ -90,7 +90,7 @@ Ref: #<issue-number>
 [WORKFLOW]
 Event: implementation-ready
 Board: In Progress
-Next-Owner: jelena
+Next-Owner: Jelena
 PR: #<pr-number>
 ```
 
@@ -107,3 +107,4 @@ PR: #<pr-number>
 ## Notes
 - The GitHub Issue remains the canonical task record.
 - The PR is the implementation/review artifact for that issue branch.
+- `ready-for-human-review` is a later Jelena-owned workflow step after QA passes; do not collapse that event into this implementation handoff.

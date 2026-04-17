@@ -106,6 +106,8 @@ auth:
 - `AGENTS.md` defines shared repo policy; skills define phase/workflow execution details; agent definitions/prompts define critical role-specific behavior.
 - **task-start**: load/use the relevant task-start skill before beginning work.
 - **task-implementation-ready**: load/use the implementation-ready skill before opening or updating a pull request.
+- **task-qa**: load/use the QA skill before recording an official QA outcome.
+- **task-ready-for-human-review**: load/use the human-review handoff skill before returning passed work for final human review.
 - **task-complete**: load/use the completion/handoff skill before marking work complete.
 - If the required skill is unavailable in the OpenCode environment, follow this file and report that the skill was unavailable.
 
@@ -149,7 +151,7 @@ Do not invent new workflow states if an existing event fits.
 5. Implement or review according to role.
 6. If implementation is ready, open/update PR and post `Event: implementation-ready`.
 7. Klarissa performs QA and posts either `qa-changes-requested` or `qa-passed`.
-8. When QA passes and the branch is ready for final review, post `ready-for-human-review`.
+8. When QA passes and the branch is ready for final review, Jelena posts `ready-for-human-review`.
 9. After merge **and** human approval, post `complete` and move the issue to `Done`.
 
 ## Safety rules

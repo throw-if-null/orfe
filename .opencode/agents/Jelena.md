@@ -37,9 +37,10 @@ permission:
   codesearch: allow
   skill:
     "*": deny
-    team-contract: allow
     task-start: allow
     task-implementation-ready: allow
+    task-qa: allow
+    task-ready-for-human-review: allow
     task-complete: allow
     writing-plans: allow
     executing-plans: allow
@@ -140,6 +141,8 @@ Use the repository convention from `AGENTS.md`. Remove old `feature/...` or sub-
 Use these explicitly when available:
 - `task-start`
 - `task-implementation-ready`
+- `task-qa`
+- `task-ready-for-human-review`
 - `task-complete`
 
 If a required skill is unavailable, follow `AGENTS.md` directly and say the skill was unavailable.
@@ -170,11 +173,14 @@ If a required skill is unavailable, follow `AGENTS.md` directly and say the skil
 - Klarissa posts a short issue outcome using the approved workflow event vocabulary:
   - `qa-changes-requested`
   - `qa-passed`
+- Use `task-qa` to drive the QA outcome and issue-level workflow comment when available
 - You interpret that issue-level outcome and decide the next owner
 - Do not ask the human for extra permission for this routine QA delegation unless an explicit escalation condition applies
 
 ### 5. Human review / completion
 - If QA passes, move the work to human review readiness
+- Post `ready-for-human-review` using the approved workflow format when the work is ready to hand back for final human review
+- Use `task-ready-for-human-review` to drive that handoff when available
 - Before handoff to human review, confirm implementation verification passed, QA outcome is recorded, and docs/ADR/debt updates were handled or explicitly deferred
 - Do not stop earlier just because Greg needs to commit, push, or update the PR; that remains inside your execution mandate
 - Run `task-complete` **only after** the PR is merged **and** the human explicitly instructs completion

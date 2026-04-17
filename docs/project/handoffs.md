@@ -112,6 +112,16 @@ Matching issue event: post `[WORKFLOW] Event: implementation-ready` when Greg ha
 - ...
 ```
 
+Exact `[WORKFLOW]` issue comment template:
+
+```text
+[WORKFLOW]
+Event: implementation-ready
+Board: In Progress
+Next-Owner: Jelena
+PR: #<pr-number>
+```
+
 ## Klarissa → Jelena
 
 Use after QA review is complete.
@@ -139,16 +149,68 @@ Matching issue event: post `[WORKFLOW] Event: qa-passed` or `[WORKFLOW] Event: q
 - Greg | Jelena | Human
 ```
 
+Exact `[WORKFLOW]` issue comment templates:
+
+`qa-changes-requested`
+
+```text
+[WORKFLOW]
+Event: qa-changes-requested
+Board: In Progress
+Next-Owner: Greg
+PR: #<pr-number>
+```
+
+`qa-passed`
+
+```text
+[WORKFLOW]
+Event: qa-passed
+Board: In Progress
+Next-Owner: Jelena
+PR: #<pr-number>
+```
+
+## Jelena → Human
+
+Use after QA has passed and the work is ready for final human review.
+Matching issue event: post `[WORKFLOW] Event: ready-for-human-review` when Jelena hands the issue back for final review.
+
+```md
+## Ready for human review
+- Issue: #<number>
+- PR: #<number>
+
+### What changed
+- ...
+
+### Verification summary
+- Greg verification passed: yes | no
+- Klarissa QA passed: yes | no
+
+### Docs / ADR / debt
+- docs updated: yes | no
+- ADR updated: yes | no
+- debt updated: yes | no
+- if no, explain why: ...
+
+### Remaining risks / follow-ups
+- ...
+```
+
+Exact `[WORKFLOW]` issue comment template:
+
+```text
+[WORKFLOW]
+Event: ready-for-human-review
+Board: In Progress
+Next-Owner: Human
+PR: #<pr-number>
+```
+
 ## Notes
 
 - Keep the GitHub issue as the workflow source of truth.
 - Keep detailed code review comments in the PR.
 - Keep issue-level workflow outcomes aligned to the approved `[WORKFLOW]` event vocabulary in `AGENTS.md`.
-- Example issue comment for implementation handoff:
-
-```text
-[WORKFLOW]
-Event: implementation-ready
-Owner: Greg
-Notes: Implementation complete, PR updated, ready for QA.
-```
+- Keep the exact comment templates above synchronized with the matching workflow skills.
