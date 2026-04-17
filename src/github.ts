@@ -145,9 +145,6 @@ async function readPrivateKey(filePath: string, readFileImpl: ReadFileText): Pro
 function defaultOctokitFactory(auth?: string): Octokit {
   const octokit = new Octokit({
     userAgent: USER_AGENT,
-    headers: {
-      'X-GitHub-Api-Version': GITHUB_API_VERSION,
-    },
     ...(auth ? { auth } : {}),
   });
 
