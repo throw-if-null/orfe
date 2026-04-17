@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import nock from 'nock';
 import test from 'node:test';
 
-import { GitHubClientFactory } from '../src/github.js';
+import { GITHUB_API_VERSION, GitHubClientFactory } from '../src/github.js';
+
+// GITHUB_API_VERSION is defined in src/github.ts and matches the GitHub REST API version date.
+// See: https://docs.github.com/en/rest/about-the-rest-api/api-versions
 
 interface ReplyContext {
   req: {
@@ -17,16 +20,32 @@ test('GitHubClientFactory mints an installation token and returns Octokit REST a
     .get('/repos/throw-if-null/orfe/installation')
     .reply(200, { id: 42 })
     .post('/app/installations/42/access_tokens')
-    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .reply(function (this: ReplyContext) {
+      const apiVersion = this.req.headers['x-github-api-version'];
+
+      assert.equal(apiVersion, GITHUB_API_VERSION);
+
+      return [201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' }];
+    })
     .get('/repos/throw-if-null/orfe/issues/14')
     .reply(function (this: ReplyContext) {
       const authorization = this.req.headers.authorization;
       const apiVersion = this.req.headers['x-github-api-version'];
 
       assert.match(String(authorization), /ghs_123/);
-      assert.equal(apiVersion, '2022-11-28');
+      assert.equal(apiVersion, GITHUB_API_VERSION);
 
       return [200, { number: 14, title: 'Build `orfe` foundation and runtime scaffolding' }];
+    })
+    .patch('/repos/throw-if-null/orfe/issues/14')
+    .reply(function (this: ReplyContext) {
+      const authorization = this.req.headers.authorization;
+      const apiVersion = this.req.headers['x-github-api-version'];
+
+      assert.match(String(authorization), /ghs_123/);
+      assert.equal(apiVersion, GITHUB_API_VERSION);
+
+      return [200, { number: 14, title: 'Build `orfe` foundation and runtime scaffolding', state: 'open' }];
     })
     .post('/graphql')
     .reply(function (this: ReplyContext) {
@@ -57,11 +76,18 @@ test('GitHubClientFactory mints an installation token and returns Octokit REST a
   );
 
   const issueResponse = await client.rest.issues.get({ owner: 'throw-if-null', repo: 'orfe', issue_number: 14 });
+  const issueUpdateResponse = await client.rest.issues.update({
+    owner: 'throw-if-null',
+    repo: 'orfe',
+    issue_number: 14,
+    title: 'Build `orfe` foundation and runtime scaffolding',
+  });
   const graphqlResponse = await client.graphql<{ viewer: { login: string } }>('query { viewer { login } }');
 
   assert.equal(client.auth.installationId, 42);
   assert.equal(client.auth.token, 'ghs_123');
   assert.equal(issueResponse.data.title, 'Build `orfe` foundation and runtime scaffolding');
+  assert.equal(issueUpdateResponse.data.state, 'open');
   assert.equal(graphqlResponse.viewer.login, 'GR3G-BOT');
   assert.equal(api.isDone(), true);
 
