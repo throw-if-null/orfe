@@ -42,6 +42,7 @@ permission:
     # Deny branch/code mutation
     "git commit*": deny
     "git push*": deny
+    "* git push*": deny
     "git add*": deny
     "git checkout*": deny
     "git merge*": deny

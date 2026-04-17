@@ -32,6 +32,20 @@ permission:
     "git push* master*": deny
     "git push* *:main*": deny
     "git push* *:master*": deny
+
+    # Same with env-var prefix (e.g. GH_TOKEN=... git push origin main)
+    "* git push* origin main*": deny
+    "* git push* origin master*": deny
+    "* git push* origin *:main*": deny
+    "* git push* origin *:master*": deny
+    "* git push* origin HEAD:main*": deny
+    "* git push* origin HEAD:master*": deny
+    "* git push* origin refs/heads/main*": deny
+    "* git push* origin refs/heads/master*": deny
+    "* git push* main*": deny
+    "* git push* master*": deny
+    "* git push* *:main*": deny
+    "* git push* *:master*": deny
   webfetch: allow
   websearch: allow
   codesearch: allow
