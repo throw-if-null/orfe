@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import nock from 'nock';
 import test from 'node:test';
 
-import { GitHubClientFactory } from '../src/github.js';
+import { GITHUB_API_VERSION, GitHubClientFactory } from '../src/github.js';
+
+// GITHUB_API_VERSION is defined in src/github.ts and matches the GitHub REST API version date.
+// See: https://docs.github.com/en/rest/about-the-rest-api/api-versions
 
 interface ReplyContext {
   req: {
@@ -20,7 +23,7 @@ test('GitHubClientFactory mints an installation token and returns Octokit REST a
     .reply(function (this: ReplyContext) {
       const apiVersion = this.req.headers['x-github-api-version'];
 
-      assert.equal(apiVersion, '2022-11-28');
+      assert.equal(apiVersion, GITHUB_API_VERSION);
 
       return [201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' }];
     })
@@ -30,7 +33,7 @@ test('GitHubClientFactory mints an installation token and returns Octokit REST a
       const apiVersion = this.req.headers['x-github-api-version'];
 
       assert.match(String(authorization), /ghs_123/);
-      assert.equal(apiVersion, '2022-11-28');
+      assert.equal(apiVersion, GITHUB_API_VERSION);
 
       return [200, { number: 14, title: 'Build `orfe` foundation and runtime scaffolding' }];
     })
@@ -40,7 +43,7 @@ test('GitHubClientFactory mints an installation token and returns Octokit REST a
       const apiVersion = this.req.headers['x-github-api-version'];
 
       assert.match(String(authorization), /ghs_123/);
-      assert.equal(apiVersion, '2022-11-28');
+      assert.equal(apiVersion, GITHUB_API_VERSION);
 
       return [200, { number: 14, title: 'Build `orfe` foundation and runtime scaffolding', state: 'open' }];
     })
