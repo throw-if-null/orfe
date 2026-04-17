@@ -1,30 +1,38 @@
-name: Release
+name: Release Please
 
 on:
   push:
-    tags:
-      - v*
+    branches:
+      - main
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
   id-token: write
 
 concurrency:
-  group: release-${{ github.workflow }}-${{ github.ref }}
+  group: release-please-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  publish:
-    name: Publish package
+  release-please:
+    name: Release Please
     runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: node
+
       - name: Check out repository
         uses: actions/checkout@v6.0.2
+        if: ${{ steps.release.outputs.release_created }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v6.3.0
+        if: ${{ steps.release.outputs.release_created }}
         with:
           node-version: 22.22.0
           registry-url: https://registry.npmjs.org
@@ -32,22 +40,25 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
+        if: ${{ steps.release.outputs.release_created }}
         run: npm ci
 
       - name: Run tests
+        if: ${{ steps.release.outputs.release_created }}
         run: npm test
 
       - name: Run lint
+        if: ${{ steps.release.outputs.release_created }}
         run: npm run lint
 
       - name: Run build
+        if: ${{ steps.release.outputs.release_created }}
         run: npm run build
 
-      - name: Set version from tag
-        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
-
       - name: Upgrade npm for OIDC publishing support
+        if: ${{ steps.release.outputs.release_created }}
         run: npm install -g npm@latest
 
       - name: Publish package
+        if: ${{ steps.release.outputs.release_created }}
         run: npm publish --access public

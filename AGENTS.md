@@ -160,3 +160,16 @@ Do not invent new workflow states if an existing event fits.
 - Do not work on multiple issues in the same worktree.
 - Do not invent new workflow states if an existing event fits.
 - If `AGENTS.md` and a skill disagree, ask for clarification.
+
+## Commit conventions
+
+Commits merged to `main` should follow [Conventional Commits](https://www.conventionalcommits.org/) so that release-please can determine the correct version bump automatically:
+
+| Prefix | Version bump |
+|---|---|
+| `fix:` | patch |
+| `feat:` | minor |
+| `feat!:`, `fix!:`, `refactor!:` | major |
+| `chore:`, `docs:`, `refactor:`, `test:` | no release |
+
+Release Please maintains a Release PR on `main` that accumulates these changes. Merging the Release PR triggers the automated npm publish via OIDC — no manual tagging or version bumping required.
