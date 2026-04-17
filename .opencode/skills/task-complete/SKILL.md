@@ -67,8 +67,8 @@ Derived naming convention:
 4. Remove the issue worktree if it still exists. If step 3 hit the "already checked out in another worktree" case, this removal is how you clear the branch checkout before deleting the branch locally.
 5. Delete the local issue branch from the repository root or another remaining worktree.
 6. Delete the remote issue branch if it still exists.
-7. If the issue has a GitHub Project item, move it to `Done` using GitHub MCP. If no project item exists, note that in the result and continue.
-8. Close the GitHub issue using GitHub MCP.
+7. If the issue has a GitHub Project item, move it to `Done` using the `orfe` OpenCode function tool. If no project item exists, note that in the result and continue.
+8. Close the GitHub issue using the `orfe` OpenCode function tool.
 9. Post the `[WORKFLOW]` comment on the issue.
 10. Return a short completion summary including PR, issue, branch, worktree cleanup status, and whether the project item existed.
 

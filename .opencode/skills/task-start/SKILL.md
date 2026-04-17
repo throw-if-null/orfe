@@ -69,7 +69,7 @@ Example for issue `123` in this repo:
    - if the issue branch already exists, reuse it
    - if the issue worktree already exists, reuse it
    - otherwise create the branch from the configured default branch and create the matching worktree
-5. If a project item exists, move it to `In Progress` using GitHub MCP. Otherwise skip the project update and continue.
+5. If a project item exists, move it to `In Progress` using the `orfe` OpenCode function tool. Otherwise skip the project update and continue.
 6. Resolve `next-owner`:
    - if `next-owner` was provided, use it
    - if `next-owner` was omitted, default to `Greg` for the normal Jelena → Greg implementation handoff
