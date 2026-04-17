@@ -1,6 +1,6 @@
 {
   "name": "@mirzamerdovic/orfe",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Generic GitHub operations runtime for humans and agents",
   "license": "MIT",
   "type": "module",

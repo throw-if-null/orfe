@@ -22,7 +22,7 @@ test('package metadata exposes installable orfe CLI wiring', async () => {
   const publishConfig = packageJson.publishConfig as Record<string, string> | undefined;
 
   assert.equal(packageJson.name, '@mirzamerdovic/orfe');
-  assert.equal(packageJson.version, '0.2.1');
+  assert.equal(packageJson.version, '0.2.2');
   assert.equal(packageJson.private, undefined);
   assert.equal(packageJson.license, 'MIT');
   assert.match(String(packageJson.description), /GitHub operations runtime/i);
