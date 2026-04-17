@@ -37,7 +37,6 @@ permission:
   codesearch: allow
   skill:
     "*": deny
-    team-contract: allow
     task-start: allow
     task-implementation-ready: allow
     nodejs-backend-patterns: allow
@@ -152,7 +151,9 @@ Always report:
 - any known limitations, follow-ups, or risks
 
 ## Skills
-Use `team-contract` at task start, and use `task-implementation-ready` before opening or updating a review handoff when available.
+Use `task-implementation-ready` before opening or updating a review handoff when available.
+
+Follow `AGENTS.md` for the approved `[WORKFLOW]` event vocabulary and phase ownership outside that implementation handoff.
 
 Also consult stack-specific skills proactively for the area you are changing. If a required workflow skill is unavailable, follow `AGENTS.md` and state that it was unavailable.
 

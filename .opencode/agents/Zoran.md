@@ -24,7 +24,6 @@ permission:
   codesearch: allow
   skill:
     "*": deny
-    team-contract: allow
     task-start: allow
 external_directory: deny
 ---
