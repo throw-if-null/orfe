@@ -37,14 +37,15 @@ Derived naming convention:
 - The branch/worktree in use matches the single-issue workflow from `AGENTS.md`.
 
 ## Preferred mechanisms
-- Use **GitHub MCP** as the preferred mechanism for GitHub state changes: issue lookup, PR lookup/creation, and issue comments.
+- Use the **`orfe` OpenCode function tool** as the preferred mechanism for GitHub state changes: issue lookup, PR lookup/creation, and issue comments.
 - Use **local git commands only for branch/worktree operations and pushing commits**.
-- Exact MCP/API details may vary by environment, but the workflow outcome below is required.
+- Exact tool call details may vary by environment, but the workflow outcome below is required.
 
 ## Auth rules
 - `auth_mode` may be `bot` or `session`.
 - If `bot` is requested or implied by repo config, **do not silently fall back** to `session`.
 - If bot auth fails, stop and explicitly report or confirm the switch.
+- To mint a bot token for `gh` CLI writes: call the `orfe` **function tool** with `command: auth token` and `repo: throw-if-null/orfe`. Do not use bash for token minting — the bash `orfe` CLI is blocked by agent permissions.
 
 ## Required outcome
 1. Read `AGENTS.md` and derive the expected issue branch/worktree.

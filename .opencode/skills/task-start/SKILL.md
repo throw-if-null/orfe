@@ -45,14 +45,15 @@ Example for issue `123` in this repo:
 7. Return the derived branch/worktree details.
 
 ## Preferred mechanisms
-- Use **GitHub MCP** as the preferred mechanism for GitHub state changes: issue lookup, project status changes, comments, and related metadata.
+- Use the **`orfe` OpenCode function tool** as the preferred mechanism for GitHub state changes: issue lookup, project status changes, comments, and related metadata.
 - Use **local git commands only for branch/worktree operations**.
-- Exact MCP/API calls may vary by environment, but the workflow outcome above is required.
+- Exact tool call details may vary by environment, but the workflow outcome above is required.
 
 ## Auth rules
 - `auth_mode` may be `bot` or `session`.
 - If `bot` is requested or implied by repo config, **do not silently fall back** to `session`.
 - If bot auth fails, stop and explicitly report or confirm the switch.
+- To mint a bot token for `gh` CLI writes: call the `orfe` **function tool** with `command: auth token` and `repo: throw-if-null/orfe`. Do not use bash for token minting — the bash `orfe` CLI is blocked by agent permissions.
 
 ## Procedure
 1. Read `AGENTS.md` and derive:
