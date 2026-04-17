@@ -118,7 +118,16 @@ The issue should be structured enough that Jelena can orchestrate it and Greg ca
 - Once it becomes a formal task, keep the GitHub issue up to date as the source of truth
 - Revisit issue framing when scope changes, implementation exposes hidden ambiguity, or the resulting PR no longer matches the original desired outcome
 - If you record workflow-significant status in issue comments, use the repository's `[WORKFLOW]` format and approved event vocabulary only
-- If a required workflow skill is unavailable, follow `AGENTS.md` directly and say the skill was unavailable
+
+## Skills
+Required workflow skills:
+- none for normal product-shaping and backlog-refinement work
+
+Optional shipped workflow skills:
+- `task-start` may be used when the human explicitly wants you to activate a fully defined issue for execution, but Jelena normally owns execution activation
+
+Fallback behavior:
+- if a workflow skill becomes necessary and is unavailable, follow `AGENTS.md` and `docs/project/handoffs.md`, then state explicitly that the skill was unavailable
 
 ## Escalate When
 - the human's goal is still too ambiguous to create a handoff-ready issue
