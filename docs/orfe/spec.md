@@ -612,42 +612,6 @@ orfe issue get --issue-number <number> [--repo <owner/name>] [--config <path>]
 **Failure behavior**: `github_not_found` if the issue does not exist  
 **Idempotency**: yes
 
-## 11.1.1 `runtime info`
-
-**Purpose**: Inspect the currently executing `orfe` runtime through the supported command contract.
-
-**CLI**:
-
-```text
-orfe runtime info
-```
-
-**Tool input**:
-
-```json
-{ "command": "runtime info" }
-```
-
-**Success `data` shape**:
-
-```json
-{
-  "orfe_version": "0.4.0",
-  "entrypoint": "opencode-plugin"
-}
-```
-
-Rules:
-
-- `orfe_version` must be read from `package.json` at runtime, not hardcoded
-- `entrypoint` must be `cli` for CLI execution and `opencode-plugin` for plugin execution
-- the command must not require caller identity, repo config, auth config, or GitHub access
-- the command must not call GitHub
-
-**Side effects**: none  
-**Failure behavior**: package metadata load failures remain structured  
-**Idempotency**: yes
-
 ## 11.3 `issue create`
 
 **Purpose**: Create a generic issue.
@@ -1058,6 +1022,42 @@ Rules:
 
 **Side effects**: mutates project field state  
 **Failure behavior**: `project_item_not_found` if the item is not on the project; `project_status_field_not_found` if the configured or overridden single-select status field does not exist on the project; invalid option => `project_status_option_not_found`  
+**Idempotency**: yes
+
+## 11.14 `runtime info`
+
+**Purpose**: Inspect the currently executing `orfe` runtime through the supported command contract.
+
+**CLI**:
+
+```text
+orfe runtime info
+```
+
+**Tool input**:
+
+```json
+{ "command": "runtime info" }
+```
+
+**Success `data` shape**:
+
+```json
+{
+  "orfe_version": "0.4.0",
+  "entrypoint": "opencode-plugin"
+}
+```
+
+Rules:
+
+- `orfe_version` must be read from `package.json` at runtime, not hardcoded
+- `entrypoint` must be `cli` for CLI execution and `opencode-plugin` for plugin execution
+- the command must not require caller identity, repo config, auth config, or GitHub access
+- the command must not call GitHub
+
+**Side effects**: none  
+**Failure behavior**: package metadata load failures remain structured  
 **Idempotency**: yes
 
 ## 12. Success/failure semantics for follow-up implementation
