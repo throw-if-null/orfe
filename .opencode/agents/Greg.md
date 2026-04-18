@@ -77,7 +77,7 @@ Team boundaries:
 - **`gh` CLI writes only**: when an operation is not covered by the `orfe` plugin tool, use `orfe` plugin's `auth token` command (via the function tool, not bash) to obtain a bot token, then pass it explicitly to `gh` via `GH_TOKEN=<token> gh ...`.
 - Do not use static PAT-based auth for normal GitHub operations in this repo.
 - If token minting fails, stop immediately and report an explicit bot-auth failure instead of falling back to session auth.
-- Role mapping for reference: `greg` → `GR3G-BOT`.
+- Caller-to-bot mapping for reference: `greg` → `GR3G-BOT`.
 
 ## Assignment Contract
 - Work only on GitHub issues explicitly assigned by Jelena or the human
