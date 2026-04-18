@@ -359,11 +359,20 @@ Project commands use the same repo override for issue/PR item lookup and separat
 
 ### 8.2 Help behavior
 
+Root-level informational invocations must support:
+
+- `orfe --help`
+- `orfe --version`
+
 `--help` must work at three levels:
 
 - `orfe --help`
 - `orfe <group> --help`
 - `orfe <group> <command> --help`
+
+`orfe --version` prints the installed package version to stdout and exits `0`.
+It must not require caller identity, repo config, auth config, or any GitHub access.
+`-v` is not supported as an alias.
 
 Leaf-command help must include:
 

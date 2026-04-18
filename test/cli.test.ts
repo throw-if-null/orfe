@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import nock from 'nock';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { getCommandDefinition, getGroupDefinitions, listCommandGroups, listCommandNames } from '../src/commands/registry/index.js';
 import { OrfeError } from '../src/errors.js';
@@ -17,8 +20,19 @@ class MemoryStream {
   }
 }
 
+const testDir = dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = resolve(testDir, '..');
+
 const COMMAND_GROUPS: readonly OrfeCommandGroup[] = listCommandGroups();
 const ALL_COMMANDS: readonly OrfeCommandName[] = listCommandNames();
+
+async function readPackageVersion(): Promise<string> {
+  const packageJson = JSON.parse(await readFile(resolve(workspaceRoot, 'package.json'), 'utf8')) as {
+    version?: unknown;
+  };
+
+  return String(packageJson.version ?? '');
+}
 
 function createRuntimeDependencies() {
   return {
@@ -775,6 +789,7 @@ test('runCli renders root help', async () => {
   assert.equal(stderr.output, '');
   assert.match(stdout.output, /orfe - generic GitHub operations runtime/);
   assert.match(stdout.output, /Command groups:/);
+  assert.match(stdout.output, /orfe --version/);
   assert.match(stdout.output, /Run `orfe <group> --help` for group-specific help\./);
 });
 
@@ -788,6 +803,49 @@ test('runCli treats commandless invocation as the root help noop path', async ()
   assert.equal(stderr.output, '');
   assert.match(stdout.output, /orfe - generic GitHub operations runtime/);
   assert.match(stdout.output, /Command groups:/);
+  assert.match(stdout.output, /orfe --version/);
+});
+
+test('runCli prints the package version for --version without caller, config, auth, or GitHub access', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+  const packageVersion = await readPackageVersion();
+
+  nock.disableNetConnect();
+
+  try {
+    const exitCode = await runCli(['--version'], {
+      stdout,
+      stderr,
+      env: {},
+      loadRepoConfigImpl: async () => {
+        throw new Error('loadRepoConfigImpl should not run');
+      },
+      loadAuthConfigImpl: async () => {
+        throw new Error('loadAuthConfigImpl should not run');
+      },
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.match(packageVersion, /^\d+\.\d+\.\d+/);
+    assert.equal(stdout.output, `${packageVersion}\n`);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli does not support -v as a root-level alias for --version', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['-v'], { stdout, stderr });
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /Unknown command group "-v"\./);
+  assert.match(stderr.output, /See: orfe --help/);
 });
 
 test('runCli renders help for each command group', async (t) => {

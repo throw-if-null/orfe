@@ -12,6 +12,7 @@ import { runOrfeCore, type OrfeCoreDependencies } from './core.js';
 import { createErrorResponse } from './response.js';
 import type { CommandInput } from './types.js';
 import type { OrfeCommandGroup } from './commands/index.js';
+import { getOrfeVersion } from './version.js';
 
 export interface ParsedLeafInvocation {
   kind: 'leaf';
@@ -27,7 +28,12 @@ export interface ParsedHelpInvocation {
   output: string;
 }
 
-export type ParsedInvocation = ParsedLeafInvocation | ParsedHelpInvocation;
+export interface ParsedVersionInvocation {
+  kind: 'version';
+  output: string;
+}
+
+export type ParsedInvocation = ParsedLeafInvocation | ParsedHelpInvocation | ParsedVersionInvocation;
 
 export interface RunCliDependencies extends OrfeCoreDependencies {
   env?: NodeJS.ProcessEnv;
@@ -47,7 +53,7 @@ export async function runCli(args: string[], dependencies: RunCliDependencies = 
 
   try {
     const invocation = parseInvocation(args, env);
-    if (invocation.kind === 'help') {
+    if (invocation.kind === 'help' || invocation.kind === 'version') {
       stdout.write(`${invocation.output}\n`);
       return 0;
     }
@@ -91,6 +97,13 @@ function parseInvocation(args: string[], env: NodeJS.ProcessEnv): ParsedInvocati
     return {
       kind: 'help',
       output: renderRootHelp(),
+    };
+  }
+
+  if (args[0] === '--version') {
+    return {
+      kind: 'version',
+      output: getOrfeVersion(),
     };
   }
 
@@ -268,6 +281,7 @@ function renderRootHelp(): string {
     'Usage:',
     `  orfe <${commandGroups.join('|')}> <command> [options]`,
     '  orfe --help',
+    '  orfe --version',
     '',
     'Command groups:',
     ...commandGroups.map((group) => `  ${group}`),
