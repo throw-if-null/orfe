@@ -93,18 +93,6 @@ export function createWriteSink(writer: LogWriter): LogSink {
   };
 }
 
-export function createPluginSink(writer: LogWriter, level: LogLevel): LogSink {
-  const writeSink = createWriteSink(writer);
-
-  return (entry) => {
-    if (level === 'error' && entry.level !== 'error') {
-      return;
-    }
-
-    writeSink(entry);
-  };
-}
-
 export function createCliLogger(options: { env?: NodeJS.ProcessEnv; stderr?: LogWriter } = {}): Logger {
   const level = resolveLogLevel(options.env?.ORFE_LOG_LEVEL, 'error');
   const stderr = options.stderr ?? process.stderr;
@@ -121,7 +109,7 @@ export function createPluginLogger(options: { env?: NodeJS.ProcessEnv; stderr?: 
 
   return createLogger({
     level,
-    sink: createPluginSink(stderr, level),
+    sink: createWriteSink(stderr),
   });
 }
 
