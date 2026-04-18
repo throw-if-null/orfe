@@ -1,5 +1,5 @@
 import { getCommandDefinition, validateCommandInput } from './commands/registry/index.js';
-import { getRoleAuthConfig, loadAuthConfig, loadRepoConfig, resolveCallerRole, resolveRepository } from './config.js';
+import { getBotAuthConfig, loadAuthConfig, loadRepoConfig, resolveCallerBot, resolveRepository } from './config.js';
 import { OrfeError } from './errors.js';
 import { GitHubClientFactory } from './github.js';
 import { createSuccessResponse } from './response.js';
@@ -36,23 +36,23 @@ export async function runOrfeCore(
     ...(request.authConfigPath ? { authConfigPath: request.authConfigPath } : {}),
   });
 
-  const callerRole = resolveRequiredCallerRole(repoConfig, callerName);
-  const roleAuth = getRoleAuthConfig(authConfig, callerRole);
+  const callerBot = resolveRequiredCallerBot(repoConfig, callerName);
+  const botAuth = getBotAuthConfig(authConfig, callerBot);
   const repo = resolveRepository(repoConfig, typeof validatedInput.repo === 'string' ? validatedInput.repo : undefined);
   let cachedGitHubClient: GitHubClients | undefined;
   let cachedGitHubAuth: GitHubClients['auth'] | undefined;
 
   const data = await commandDefinition.handler({
     callerName,
-    callerRole,
+    callerBot,
     command: commandDefinition.name,
     input: validatedInput,
     repo,
     repoConfig,
     authConfig,
-    roleAuth,
+    botAuth,
     getGitHubClient: async () => {
-      cachedGitHubClient ??= await githubClientFactory.createClient(callerRole, roleAuth, repo);
+      cachedGitHubClient ??= await githubClientFactory.createClient(callerBot, botAuth, repo);
       return cachedGitHubClient;
     },
     getGitHubAuth: async () => {
@@ -61,9 +61,9 @@ export async function runOrfeCore(
       }
 
       cachedGitHubAuth ??= {
-        roleName: callerRole,
-        appSlug: roleAuth.appSlug,
-        ...(await githubClientFactory.createInstallationAuth(callerRole, roleAuth, repo)),
+        botName: callerBot,
+        appSlug: botAuth.appSlug,
+        ...(await githubClientFactory.createInstallationAuth(callerBot, botAuth, repo)),
       };
 
       return cachedGitHubAuth;
@@ -73,18 +73,18 @@ export async function runOrfeCore(
   return createSuccessResponse(commandDefinition.name, repo.fullName, data);
 }
 
-function resolveRequiredCallerRole(config: RepoLocalConfig, callerName: string): string {
+function resolveRequiredCallerBot(config: RepoLocalConfig, callerName: string): string {
   if (callerName.length === 0) {
     throw new OrfeError('caller_name_missing', 'Caller name is required.');
   }
 
-  return resolveCallerRole(config, callerName);
+  return resolveCallerBot(config, callerName);
 }
 
 export interface RuntimeSnapshot {
   repoConfig: RepoLocalConfig;
   authConfig: MachineAuthConfig;
-  callerRole: string;
+  callerBot: string;
 }
 
 export async function createRuntimeSnapshot(
@@ -102,12 +102,12 @@ export async function createRuntimeSnapshot(
     cwd,
     ...(request.authConfigPath ? { authConfigPath: request.authConfigPath } : {}),
   });
-  const callerRole = resolveRequiredCallerRole(repoConfig, request.callerName.trim());
-  getRoleAuthConfig(authConfig, callerRole);
+  const callerBot = resolveRequiredCallerBot(repoConfig, request.callerName.trim());
+  getBotAuthConfig(authConfig, callerBot);
 
   return {
     repoConfig,
     authConfig,
-    callerRole,
+    callerBot,
   };
 }

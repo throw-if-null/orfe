@@ -9,29 +9,29 @@ For agent-driven `gh` CLI operations outside runtime commands, the repository st
 
 This document explains both paths and why they currently coexist.
 
-## Why bot impersonation matters
+## Why bot auth matters
 
-The repo relies on role-specific bot identities:
+The repo relies on named bot identities:
 - `Z0R4N-BOT`
 - `J3L3N4-BOT`
 - `GR3G-BOT`
 - `KL4R1554-BOT`
 
-Without bot impersonation, `gh` operations would appear as the human operator's session identity instead of the assigned role.
+Without bot auth, `gh` operations would appear as the human operator's session identity instead of the assigned bot.
 That would weaken auditability, confuse workflow ownership, and blur the distinction between human and agent actions.
 
 ## Runtime auth inside `orfe`
 
 For `orfe` command execution:
 1. caller identity is resolved
-2. the runtime resolves that caller to a configured GitHub role
-3. machine-local auth config provides per-role GitHub App credentials
+2. the runtime resolves that caller to a configured GitHub bot
+3. machine-local auth config provides per-bot GitHub App credentials
 4. `orfe` mints the GitHub App JWT internally
 5. `orfe` resolves the installation internally
 6. `orfe` mints the installation token internally
 7. the runtime uses that token to build Octokit clients or returns it directly for `orfe auth token`
 
-`orfe auth token` follows the same self-identity path. It is not a cross-role impersonation command and does not accept a role override.
+`orfe auth token` follows the same self-identity path. It is not a cross-bot impersonation command and does not accept a bot override.
 
 This is the intended v1 runtime auth model.
 

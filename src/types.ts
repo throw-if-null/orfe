@@ -18,7 +18,7 @@ export interface RepoLocalConfig {
     name: string;
     defaultBranch: string;
   };
-  callerToGitHubRole: Record<string, string>;
+  callerToBot: Record<string, string>;
   projects?: {
     default?: {
       owner?: string;
@@ -28,7 +28,7 @@ export interface RepoLocalConfig {
   };
 }
 
-export interface GitHubAppRoleAuthConfig {
+export interface GitHubAppBotAuthConfig {
   provider: 'github-app';
   appId: number;
   appSlug: string;
@@ -38,11 +38,11 @@ export interface GitHubAppRoleAuthConfig {
 export interface MachineAuthConfig {
   configPath: string;
   version: 1;
-  roles: Record<string, GitHubAppRoleAuthConfig>;
+  bots: Record<string, GitHubAppBotAuthConfig>;
 }
 
 export interface GitHubClientAuthInfo {
-  roleName: string;
+  botName: string;
   appSlug: string;
   installationId: number;
   token: string;
@@ -84,13 +84,13 @@ export interface ErrorResponse {
 
 export interface CommandContext<TCommand extends string = string, TInput extends CommandInput = CommandInput> {
   callerName: string;
-  callerRole: string;
+  callerBot: string;
   command: TCommand;
   input: TInput;
   repo: RepoRef;
   repoConfig: RepoLocalConfig;
   authConfig: MachineAuthConfig;
-  roleAuth: GitHubAppRoleAuthConfig;
+  botAuth: GitHubAppBotAuthConfig;
   getGitHubClient(): Promise<GitHubClients>;
   getGitHubAuth(): Promise<GitHubClientAuthInfo>;
 }

@@ -360,12 +360,12 @@ test('executeOrfeTool returns the shared success envelope for issue get', async 
           configPath: '/tmp/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-          callerToGitHubRole: { Greg: 'greg' },
+          callerToBot: { Greg: 'greg' },
         }),
         loadAuthConfigImpl: async () => ({
           configPath: '/tmp/auth.json',
           version: 1,
-          roles: {
+          bots: {
             greg: {
               provider: 'github-app',
               appId: 123,
@@ -425,12 +425,12 @@ test('executeOrfeTool returns the shared success envelope for issue update', asy
           configPath: '/tmp/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-          callerToGitHubRole: { Greg: 'greg' },
+          callerToBot: { Greg: 'greg' },
         }),
         loadAuthConfigImpl: async () => ({
           configPath: '/tmp/auth.json',
           version: 1,
-          roles: {
+          bots: {
             greg: {
               provider: 'github-app',
               appId: 123,
@@ -490,12 +490,12 @@ test('executeOrfeTool returns the shared success envelope for issue create', asy
           configPath: '/tmp/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-          callerToGitHubRole: { Greg: 'greg' },
+          callerToBot: { Greg: 'greg' },
         }),
         loadAuthConfigImpl: async () => ({
           configPath: '/tmp/auth.json',
           version: 1,
-          roles: {
+          bots: {
             greg: {
               provider: 'github-app',
               appId: 123,
@@ -547,12 +547,12 @@ test('executeOrfeTool returns the shared success envelope for pr get', async () 
           configPath: '/tmp/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-          callerToGitHubRole: { Greg: 'greg' },
+          callerToBot: { Greg: 'greg' },
         }),
         loadAuthConfigImpl: async () => ({
           configPath: '/tmp/auth.json',
           version: 1,
-          roles: {
+          bots: {
             greg: {
               provider: 'github-app',
               appId: 123,
@@ -622,12 +622,12 @@ test('executeOrfeTool returns the shared success envelope for pr get-or-create',
           configPath: '/tmp/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-          callerToGitHubRole: { Greg: 'greg' },
+          callerToBot: { Greg: 'greg' },
         }),
         loadAuthConfigImpl: async () => ({
           configPath: '/tmp/auth.json',
           version: 1,
-          roles: {
+          bots: {
             greg: {
               provider: 'github-app',
               appId: 123,
@@ -681,12 +681,12 @@ test('executeOrfeTool returns the shared success envelope for pr comment', async
           configPath: '/tmp/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-          callerToGitHubRole: { Greg: 'greg' },
+          callerToBot: { Greg: 'greg' },
         }),
         loadAuthConfigImpl: async () => ({
           configPath: '/tmp/auth.json',
           version: 1,
-          roles: {
+          bots: {
             greg: {
               provider: 'github-app',
               appId: 123,
@@ -739,12 +739,12 @@ test('executeOrfeTool returns the shared success envelope for pr submit-review',
           configPath: '/tmp/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-          callerToGitHubRole: { Greg: 'greg' },
+          callerToBot: { Greg: 'greg' },
         }),
         loadAuthConfigImpl: async () => ({
           configPath: '/tmp/auth.json',
           version: 1,
-          roles: {
+          bots: {
             greg: {
               provider: 'github-app',
               appId: 123,
@@ -797,12 +797,12 @@ test('executeOrfeTool returns the shared success envelope for pr reply', async (
           configPath: '/tmp/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-          callerToGitHubRole: { Greg: 'greg' },
+          callerToBot: { Greg: 'greg' },
         }),
         loadAuthConfigImpl: async () => ({
           configPath: '/tmp/auth.json',
           version: 1,
-          roles: {
+          bots: {
             greg: {
               provider: 'github-app',
               appId: 123,
@@ -931,7 +931,7 @@ test('executeOrfeTool returns the shared success envelope for project get-status
           configPath: '/tmp/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-          callerToGitHubRole: { Greg: 'greg' },
+          callerToBot: { Greg: 'greg' },
           projects: {
             default: {
               owner: 'throw-if-null',
@@ -943,7 +943,7 @@ test('executeOrfeTool returns the shared success envelope for project get-status
         loadAuthConfigImpl: async () => ({
           configPath: '/tmp/auth.json',
           version: 1,
-          roles: {
+          bots: {
             greg: {
               provider: 'github-app',
               appId: 123,
@@ -1133,7 +1133,7 @@ test('executeOrfeTool returns the shared success envelope for project set-status
           configPath: '/tmp/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-          callerToGitHubRole: { Greg: 'greg' },
+          callerToBot: { Greg: 'greg' },
           projects: {
             default: {
               owner: 'throw-if-null',
@@ -1145,7 +1145,7 @@ test('executeOrfeTool returns the shared success envelope for project set-status
         loadAuthConfigImpl: async () => ({
           configPath: '/tmp/auth.json',
           version: 1,
-          roles: {
+          bots: {
             greg: {
               provider: 'github-app',
               appId: 123,
@@ -1244,12 +1244,12 @@ test('executeOrfeTool resolves auth token from context.agent and returns shared 
           configPath: '/tmp/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-          callerToGitHubRole: { Greg: 'greg' },
+          callerToBot: { Greg: 'greg' },
         }),
         loadAuthConfigImpl: async () => ({
           configPath: '/tmp/auth.json',
           version: 1,
-          roles: {
+          bots: {
             greg: {
               provider: 'github-app',
               appId: 123,
@@ -1267,7 +1267,7 @@ test('executeOrfeTool resolves auth token from context.agent and returns shared 
       command: 'auth token',
       repo: 'throw-if-null/orfe',
       data: {
-        role: 'greg',
+        bot: 'greg',
         app_slug: 'GR3G-BOT',
         repo: 'throw-if-null/orfe',
         token: 'ghs_123',
@@ -1282,11 +1282,11 @@ test('executeOrfeTool resolves auth token from context.agent and returns shared 
   }
 });
 
-test('executeOrfeTool rejects role override input for auth token', async () => {
+test('executeOrfeTool rejects bot override input for auth token', async () => {
   const result = await executeOrfeTool(
     {
       command: 'auth token',
-      role: 'greg',
+      bot: 'greg',
       repo: 'throw-if-null/orfe',
     },
     {
@@ -1300,7 +1300,7 @@ test('executeOrfeTool rejects role override input for auth token', async () => {
     command: 'auth token',
     error: {
       code: 'invalid_usage',
-      message: 'Command "auth token" does not accept input field "role".',
+      message: 'Command "auth token" does not accept input field "bot".',
       retryable: false,
     },
   });

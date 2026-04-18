@@ -5,7 +5,7 @@
 - an installable CLI named `orfe`
 - an OpenCode plugin that registers the `orfe` tool
 
-`orfe` now ships the full v1 command surface. When repo-local config and machine-local GitHub App auth are in place, the CLI and OpenCode wrapper execute the documented GitHub operations directly.
+`orfe` now ships the full v1 command surface. When repo-local config and machine-local GitHub App bot auth are in place, the CLI and OpenCode wrapper execute the documented GitHub operations directly.
 
 ## Install the npm CLI package
 
@@ -73,7 +73,7 @@ For operational workflow structure, also see `docs/project/handoffs.md`.
 
 - Node.js 22+
 - repo-local config at `.orfe/config.json` for GitHub-command execution
-- machine-local GitHub App auth config at `~/.config/orfe/auth.json` for GitHub-command execution
+- machine-local GitHub App bot auth config at `~/.config/orfe/auth.json` for GitHub-command execution
 
 ## Repo-local config
 
@@ -93,7 +93,7 @@ Example:
     "name": "orfe",
     "default_branch": "main"
   },
-  "caller_to_github_role": {
+  "caller_to_bot": {
     "Greg": "greg",
     "Jelena": "jelena",
     "Zoran": "zoran",
@@ -122,7 +122,7 @@ Example:
 ```json
 {
   "version": 1,
-  "roles": {
+  "bots": {
     "greg": {
       "provider": "github-app",
       "app_id": 123458,

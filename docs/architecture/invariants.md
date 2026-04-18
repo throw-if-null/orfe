@@ -18,10 +18,10 @@ These are the architecture constraints that future work must preserve unless a n
 ## Auth and security invariants
 
 - Repo-local config must not contain private keys or machine-local secrets.
-- Machine-local auth config contains per-role GitHub App credentials and stays outside repo-local public contract artifacts.
+- Machine-local auth config contains per-bot GitHub App credentials and stays outside repo-local public contract artifacts.
 - `orfe` v1 uses internal GitHub App auth for runtime command execution.
 - The runtime must not silently fall back to session auth or other ambient auth modes.
-- Caller identity, GitHub role resolution, and token minting must remain explicit steps.
+- Caller identity, GitHub bot resolution, and token minting must remain explicit steps.
 
 ## Command contract invariants
 

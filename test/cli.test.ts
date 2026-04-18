@@ -26,7 +26,7 @@ function createRuntimeDependencies() {
       configPath: '/tmp/.orfe/config.json',
       version: 1 as const,
       repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-      callerToGitHubRole: { Greg: 'greg' },
+      callerToBot: { Greg: 'greg' },
       projects: {
         default: {
           owner: 'throw-if-null',
@@ -38,7 +38,7 @@ function createRuntimeDependencies() {
     loadAuthConfigImpl: async () => ({
       configPath: '/tmp/auth.json',
       version: 1 as const,
-      roles: {
+      bots: {
         greg: {
           provider: 'github-app' as const,
           appId: 123,
@@ -866,7 +866,7 @@ test('runCli requires caller identity for CLI mode', async () => {
   assert.match(stderr.output, /See: orfe issue get --help/);
 });
 
-test('runCli requires caller identity and mints auth token for that caller role', async () => {
+test('runCli requires caller identity and mints auth token for that caller bot', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
@@ -890,7 +890,7 @@ test('runCli requires caller identity and mints auth token for that caller role'
       command: 'auth token',
       repo: 'throw-if-null/orfe',
       data: {
-        role: 'greg',
+        bot: 'greg',
         app_slug: 'GR3G-BOT',
         repo: 'throw-if-null/orfe',
         token: 'ghs_123',
@@ -905,11 +905,11 @@ test('runCli requires caller identity and mints auth token for that caller role'
   }
 });
 
-test('runCli rejects role override for auth token as invalid usage', async () => {
+test('runCli rejects bot override for auth token as invalid usage', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
-  const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe', '--role', 'greg'], {
+  const exitCode = await runCli(['auth', 'token', '--repo', 'throw-if-null/orfe', '--bot', 'greg'], {
     stdout,
     stderr,
     env: { ORFE_CALLER_NAME: 'Greg' },
@@ -917,7 +917,7 @@ test('runCli rejects role override for auth token as invalid usage', async () =>
 
   assert.equal(exitCode, 2);
   assert.equal(stdout.output, '');
-  assert.match(stderr.output, /Unknown option "--role"\./);
+  assert.match(stderr.output, /Unknown option "--bot"\./);
   assert.match(stderr.output, /See: orfe auth token --help/);
 });
 
@@ -968,7 +968,7 @@ test('runCli prints structured config failures for auth token', async () => {
       configPath: '/tmp/.orfe/config.json',
       version: 1 as const,
       repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
-      callerToGitHubRole: { Greg: 'greg' },
+      callerToBot: { Greg: 'greg' },
     }),
     loadAuthConfigImpl: async () => {
       throw new OrfeError('config_not_found', 'machine-local auth config not found at /tmp/auth.json.');

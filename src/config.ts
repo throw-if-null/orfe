@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { OrfeError } from './errors.js';
 import { expandUserPath, findUp, resolveFromCwd } from './path.js';
-import type { GitHubAppRoleAuthConfig, MachineAuthConfig, RepoLocalConfig, RepoRef } from './types.js';
+import type { GitHubAppBotAuthConfig, MachineAuthConfig, RepoLocalConfig, RepoRef } from './types.js';
 
 export const DEFAULT_REPO_CONFIG_PATH = '.orfe/config.json';
 export const DEFAULT_AUTH_CONFIG_PATH = '~/.config/orfe/auth.json';
@@ -44,7 +44,7 @@ export async function loadRepoConfig(options: LoadRepoConfigOptions = {}): Promi
 
   const version = expectLiteralNumber(parsed.version, 1, `${configPath}: version`);
   const repository = expectObject(parsed.repository, `${configPath}: repository`);
-  const callerToGitHubRole = expectObject(parsed.caller_to_github_role, `${configPath}: caller_to_github_role`);
+  const callerToBot = expectObject(parsed.caller_to_bot, `${configPath}: caller_to_bot`);
 
   const loadedConfig: RepoLocalConfig = {
     configPath,
@@ -54,7 +54,7 @@ export async function loadRepoConfig(options: LoadRepoConfigOptions = {}): Promi
       name: expectString(repository.name, `${configPath}: repository.name`),
       defaultBranch: expectString(repository.default_branch, `${configPath}: repository.default_branch`),
     },
-    callerToGitHubRole: readCallerRoleMapping(callerToGitHubRole, configPath),
+    callerToBot: readCallerBotMapping(callerToBot, configPath),
   };
 
   if ('projects' in parsed && parsed.projects !== undefined) {
@@ -96,26 +96,26 @@ export async function loadAuthConfig(options: LoadAuthConfigOptions = {}): Promi
   }
 
   const version = expectLiteralNumber(parsed.version, 1, `${authConfigPath}: version`);
-  const roles = expectObject(parsed.roles, `${authConfigPath}: roles`);
-  const loadedRoles: MachineAuthConfig['roles'] = {};
+  const bots = expectObject(parsed.bots, `${authConfigPath}: bots`);
+  const loadedBots: MachineAuthConfig['bots'] = {};
 
-  for (const [roleName, roleValue] of Object.entries(roles)) {
-    const roleObject = expectObject(roleValue, `${authConfigPath}: roles.${roleName}`);
-    const provider = expectString(roleObject.provider, `${authConfigPath}: roles.${roleName}.provider`);
+  for (const [botName, botValue] of Object.entries(bots)) {
+    const botObject = expectObject(botValue, `${authConfigPath}: bots.${botName}`);
+    const provider = expectString(botObject.provider, `${authConfigPath}: bots.${botName}.provider`);
 
     if (provider !== 'github-app') {
       throw new OrfeError(
         'config_invalid',
-        `Auth config at ${authConfigPath} only supports provider "github-app" in v1. Received "${provider}" for role "${roleName}".`,
+        `Auth config at ${authConfigPath} only supports provider "github-app" in v1. Received "${provider}" for bot "${botName}".`,
       );
     }
 
-    loadedRoles[roleName] = {
+    loadedBots[botName] = {
       provider: 'github-app',
-      appId: expectNumber(roleObject.app_id, `${authConfigPath}: roles.${roleName}.app_id`),
-      appSlug: expectString(roleObject.app_slug, `${authConfigPath}: roles.${roleName}.app_slug`),
+      appId: expectNumber(botObject.app_id, `${authConfigPath}: bots.${botName}.app_id`),
+      appSlug: expectString(botObject.app_slug, `${authConfigPath}: bots.${botName}.app_slug`),
       privateKeyPath: expandUserPath(
-        expectString(roleObject.private_key_path, `${authConfigPath}: roles.${roleName}.private_key_path`),
+        expectString(botObject.private_key_path, `${authConfigPath}: bots.${botName}.private_key_path`),
         options.homeDirectory,
       ),
     };
@@ -124,23 +124,23 @@ export async function loadAuthConfig(options: LoadAuthConfigOptions = {}): Promi
   return {
     configPath: authConfigPath,
     version,
-    roles: loadedRoles,
+    bots: loadedBots,
   };
 }
 
-export function resolveCallerRole(config: RepoLocalConfig, callerName: string): string {
+export function resolveCallerBot(config: RepoLocalConfig, callerName: string): string {
   const normalizedCallerName = callerName.trim();
 
   if (normalizedCallerName.length === 0) {
     throw new OrfeError('caller_name_missing', 'Caller name is required.');
   }
 
-  const roleName = config.callerToGitHubRole[normalizedCallerName];
-  if (!roleName) {
+  const botName = config.callerToBot[normalizedCallerName];
+  if (!botName) {
     throw new OrfeError('caller_name_unmapped', `Caller name "${normalizedCallerName}" is not mapped in ${config.configPath}.`);
   }
 
-  return roleName;
+  return botName;
 }
 
 export function resolveRepository(config: RepoLocalConfig, repoOverride?: string): RepoRef {
@@ -156,14 +156,14 @@ export function resolveRepository(config: RepoLocalConfig, repoOverride?: string
   return createRepoRef(parts[0]!.trim(), parts[1]!.trim());
 }
 
-export function getRoleAuthConfig(config: MachineAuthConfig, roleName: string): GitHubAppRoleAuthConfig {
-  const roleConfig = config.roles[roleName];
+export function getBotAuthConfig(config: MachineAuthConfig, botName: string): GitHubAppBotAuthConfig {
+  const botConfig = config.bots[botName];
 
-  if (!roleConfig) {
-    throw new OrfeError('auth_failed', `Auth config at ${config.configPath} has no entry for GitHub role "${roleName}".`);
+  if (!botConfig) {
+    throw new OrfeError('auth_failed', `Auth config at ${config.configPath} has no entry for GitHub bot "${botName}".`);
   }
 
-  return roleConfig;
+  return botConfig;
 }
 
 export function resolveProjectCommandConfig(
@@ -225,15 +225,15 @@ function createRepoRef(owner: string, name: string): RepoRef {
   };
 }
 
-function readCallerRoleMapping(value: Record<string, unknown>, configPath: string): Record<string, string> {
+function readCallerBotMapping(value: Record<string, unknown>, configPath: string): Record<string, string> {
   const mapping: Record<string, string> = {};
 
-  for (const [callerName, roleName] of Object.entries(value)) {
+  for (const [callerName, botName] of Object.entries(value)) {
     if (callerName.trim().length === 0) {
-      throw new OrfeError('config_invalid', `Repo config at ${configPath} contains an empty caller_to_github_role key.`);
+      throw new OrfeError('config_invalid', `Repo config at ${configPath} contains an empty caller_to_bot key.`);
     }
 
-    mapping[callerName] = expectString(roleName, `${configPath}: caller_to_github_role.${callerName}`);
+    mapping[callerName] = expectString(botName, `${configPath}: caller_to_bot.${callerName}`);
   }
 
   return mapping;
