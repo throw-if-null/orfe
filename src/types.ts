@@ -2,6 +2,7 @@ import type { Octokit } from 'octokit';
 import type { RuntimeEntrypoint } from './version.js';
 
 export type { OrfeCommandGroup, OrfeCommandName } from './commands/index.js';
+import type { Logger } from './logger.js';
 
 export type CommandInput = Record<string, unknown>;
 
@@ -65,6 +66,7 @@ export interface OrfeCoreRequest {
   cwd?: string;
   configPath?: string;
   authConfigPath?: string;
+  logger?: Logger;
 }
 
 export interface SuccessResponse<TData> {
@@ -93,6 +95,7 @@ export interface CommandContext<TCommand extends string = string, TInput extends
   repoConfig: RepoLocalConfig;
   authConfig: MachineAuthConfig;
   botAuth: GitHubAppBotAuthConfig;
+  logger: Logger;
   getGitHubClient(): Promise<GitHubClients>;
   getGitHubAuth(): Promise<GitHubClientAuthInfo>;
 }

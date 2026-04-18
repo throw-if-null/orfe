@@ -427,6 +427,14 @@ Examples of invalid usage:
 
 All successful leaf commands write JSON to stdout and exit `0`.
 
+Runtime logging is separate from command output:
+
+- `orfe` owns runtime logging through an internal logger abstraction
+- default runtime log level is `error`
+- CLI runtime logs write to stderr
+- OpenCode runtime logs suppress non-error entries by default
+- dependency and Octokit warnings must flow through that logger rather than ambient console behavior
+
 Shared envelope:
 
 ```json

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { Octokit } from 'octokit';
 
 import { OrfeError } from './errors.js';
+import { createOctokitLog, type Logger, type OctokitLogAdapter } from './logger.js';
 import type { GitHubAppBotAuthConfig, GitHubClients, RepoRef } from './types.js';
 
 // GitHub REST API version header reference:
@@ -22,9 +23,14 @@ interface AccessTokenResponse {
 
 type ReadFileText = (filePath: string, encoding: 'utf8') => Promise<string>;
 
+export interface GitHubOctokitOptions {
+  auth?: string;
+  log?: OctokitLogAdapter;
+}
+
 export interface GitHubClientFactoryDependencies {
   readFileImpl?: ReadFileText;
-  octokitFactory?: (auth?: string) => Octokit;
+  octokitFactory?: (options?: GitHubOctokitOptions) => Octokit;
   jwtFactory?: (appId: number, privateKey: string) => string;
 }
 
@@ -36,7 +42,7 @@ export interface GitHubInstallationAuth {
 
 export class GitHubClientFactory {
   private readonly readFileImpl: ReadFileText;
-  private readonly octokitFactory: (auth?: string) => Octokit;
+  private readonly octokitFactory: (options?: GitHubOctokitOptions) => Octokit;
   private readonly jwtFactory: (appId: number, privateKey: string) => string;
 
   constructor(dependencies: GitHubClientFactoryDependencies = {}) {
@@ -45,9 +51,9 @@ export class GitHubClientFactory {
     this.jwtFactory = dependencies.jwtFactory ?? createGitHubAppJwt;
   }
 
-  async createClient(botName: string, botAuth: GitHubAppBotAuthConfig, repo: RepoRef): Promise<GitHubClients> {
-    const auth = await this.createInstallationAuth(botName, botAuth, repo);
-    const octokit = this.octokitFactory(auth.token);
+  async createClient(botName: string, botAuth: GitHubAppBotAuthConfig, repo: RepoRef, logger?: Logger): Promise<GitHubClients> {
+    const auth = await this.createInstallationAuth(botName, botAuth, repo, logger);
+    const octokit = this.octokitFactory(createGitHubOctokitOptions(auth.token, logger));
 
     return {
       octokit,
@@ -67,10 +73,11 @@ export class GitHubClientFactory {
     botName: string,
     botAuth: GitHubAppBotAuthConfig,
     repo: RepoRef,
+    logger?: Logger,
   ): Promise<GitHubInstallationAuth> {
     const privateKey = await readPrivateKey(botAuth.privateKeyPath, this.readFileImpl);
     const appJwt = this.jwtFactory(botAuth.appId, privateKey);
-    const appOctokit = this.octokitFactory(appJwt);
+    const appOctokit = this.octokitFactory(createGitHubOctokitOptions(appJwt, logger));
 
     let installationId: number;
 
@@ -142,10 +149,11 @@ async function readPrivateKey(filePath: string, readFileImpl: ReadFileText): Pro
   }
 }
 
-function defaultOctokitFactory(auth?: string): Octokit {
+function defaultOctokitFactory(options: GitHubOctokitOptions = {}): Octokit {
   const octokit = new Octokit({
     userAgent: USER_AGENT,
-    ...(auth ? { auth } : {}),
+    ...(options.auth ? { auth: options.auth } : {}),
+    ...(options.log ? { log: options.log } : {}),
   });
 
   octokit.hook.before('request', async (options) => {
@@ -153,6 +161,13 @@ function defaultOctokitFactory(auth?: string): Octokit {
   });
 
   return octokit;
+}
+
+function createGitHubOctokitOptions(auth: string | undefined, logger: Logger | undefined): GitHubOctokitOptions {
+  return {
+    ...(auth ? { auth } : {}),
+    ...(logger ? { log: createOctokitLog(logger) } : {}),
+  };
 }
 
 function mapGitHubRequestError(

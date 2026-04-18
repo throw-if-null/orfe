@@ -10,6 +10,7 @@ import {
 import { CliUsageError, OrfeError, formatCliUsageError } from './errors.js';
 import { runOrfeCore, type OrfeCoreDependencies } from './core.js';
 import { createErrorResponse } from './response.js';
+import { createCliLogger } from './logger.js';
 import type { CommandInput } from './types.js';
 import type { OrfeCommandGroup } from './commands/index.js';
 import { getOrfeVersion } from './version.js';
@@ -49,6 +50,7 @@ export async function runCli(args: string[], dependencies: RunCliDependencies = 
   const env = dependencies.env ?? process.env;
   const stdout = dependencies.stdout ?? process.stdout;
   const stderr = dependencies.stderr ?? process.stderr;
+  const logger = createCliLogger({ env, stderr });
   let parsedInvocation: ParsedLeafInvocation | undefined;
 
   try {
@@ -67,6 +69,7 @@ export async function runCli(args: string[], dependencies: RunCliDependencies = 
         entrypoint: 'cli',
         ...(invocation.configPath ? { configPath: invocation.configPath } : {}),
         ...(invocation.authConfigPath ? { authConfigPath: invocation.authConfigPath } : {}),
+        logger,
       },
       dependencies,
     );
