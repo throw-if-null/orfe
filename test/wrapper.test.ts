@@ -337,7 +337,10 @@ test('executeOrfeTool reads caller identity from context.agent and passes plain 
     input: { issue_number: 14 },
     entrypoint: 'opencode-plugin',
     cwd: '/tmp/repo',
+    logger: capturedRequest?.logger,
   });
+  assert.equal(typeof capturedRequest?.logger?.error, 'function');
+  assert.equal(capturedRequest?.logger?.level, 'error');
   assert.equal(receivedAgentInCore, false);
 });
 

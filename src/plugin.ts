@@ -40,6 +40,8 @@ export const OrfePlugin: Plugin = async () => {
           const result = await executeOrfeTool(args, {
             agent: context.agent,
             ...(context.directory ? { cwd: context.directory } : {}),
+            stderr: process.stderr,
+            env: process.env,
           });
 
           return JSON.stringify(result);

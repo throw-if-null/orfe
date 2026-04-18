@@ -33,3 +33,8 @@ This file keeps known documentation, architecture, and process debt visible so i
 - **Impact:** command metadata and validation ownership now live with slices, but `test/core.test.ts` and `test/cli.test.ts` still contain substantial integration coverage and shared HTTP fixture setup.
 - **Current treatment:** keep true runtime and CLI integration coverage in `test/`, while new command-definition ownership tests live beside the slices.
 - **Follow-up direction:** continue extracting reusable integration fixtures and shrink the large cross-cutting test files opportunistically without reducing behavior coverage.
+
+### 7. Internal logger configuration is intentionally minimal for now
+- **Impact:** `orfe` now owns runtime logging policy, but log-level control currently relies on the internal `ORFE_LOG_LEVEL` environment variable rather than a documented public command/tool option.
+- **Current treatment:** keep the logger internal so CLI and OpenCode entrypoints can suppress dependency noise by default while still allowing local troubleshooting.
+- **Follow-up direction:** decide whether log-level configuration should become part of the public interface once the desired UX is clearer.

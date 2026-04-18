@@ -2,6 +2,7 @@ import { getCommandDefinition, validateCommandInput } from './commands/registry/
 import { getBotAuthConfig, loadAuthConfig, loadRepoConfig, resolveCallerBot, resolveRepository } from './config.js';
 import { OrfeError } from './errors.js';
 import { GitHubClientFactory } from './github.js';
+import { createLogger } from './logger.js';
 import { createSuccessResponse } from './response.js';
 import type { GitHubClients, MachineAuthConfig, OrfeCoreRequest, RepoLocalConfig, SuccessResponse } from './types.js';
 
@@ -42,6 +43,7 @@ export async function runOrfeCore(
   const loadAuthConfigImpl = dependencies.loadAuthConfigImpl ?? loadAuthConfig;
   const githubClientFactory = dependencies.githubClientFactory ?? new GitHubClientFactory();
   const cwd = request.cwd ?? process.cwd();
+  const logger = request.logger ?? createLogger();
 
   const repoConfig = await loadRepoConfigImpl({
     cwd,
@@ -67,8 +69,9 @@ export async function runOrfeCore(
     repoConfig,
     authConfig,
     botAuth,
+    logger,
     getGitHubClient: async () => {
-      cachedGitHubClient ??= await githubClientFactory.createClient(callerBot, botAuth, repo);
+      cachedGitHubClient ??= await githubClientFactory.createClient(callerBot, botAuth, repo, logger);
       return cachedGitHubClient;
     },
     getGitHubAuth: async () => {
@@ -76,11 +79,11 @@ export async function runOrfeCore(
         return cachedGitHubClient.auth;
       }
 
-      cachedGitHubAuth ??= {
-        botName: callerBot,
-        appSlug: botAuth.appSlug,
-        ...(await githubClientFactory.createInstallationAuth(callerBot, botAuth, repo)),
-      };
+        cachedGitHubAuth ??= {
+          botName: callerBot,
+          appSlug: botAuth.appSlug,
+          ...(await githubClientFactory.createInstallationAuth(callerBot, botAuth, repo, logger)),
+        };
 
       return cachedGitHubAuth;
     },

@@ -162,6 +162,13 @@ CLI caller resolution order:
 
 Successful commands print structured JSON to stdout. Valid commands that fail at runtime print structured JSON errors to stderr.
 
+Runtime dependency logging is internal to `orfe`:
+
+- default log level is `error`
+- CLI runtime logs write to stderr
+- OpenCode plugin runtime logs only surface errors by default
+- set `ORFE_LOG_LEVEL=warn|info|debug` to raise verbosity for local troubleshooting
+
 ## OpenCode plugin
 
 Configure OpenCode to load the packaged plugin directly:

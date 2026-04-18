@@ -1,12 +1,15 @@
 import { OrfeError } from './errors.js';
 import { getCommandDefinition } from './commands/registry/index.js';
 import { runOrfeCore, type OrfeCoreDependencies } from './core.js';
+import { createPluginLogger } from './logger.js';
 import { createErrorResponse } from './response.js';
 import type { ErrorResponse, SuccessResponse } from './types.js';
 
 export interface OpenCodeToolContext {
   agent?: unknown;
   cwd?: string;
+  stderr?: Pick<NodeJS.WriteStream, 'write'>;
+  env?: NodeJS.ProcessEnv;
 }
 
 export interface OrfeToolDependencies extends OrfeCoreDependencies {
@@ -44,6 +47,10 @@ export async function executeOrfeTool(
         input: rest,
         entrypoint: 'opencode-plugin',
         ...(context.cwd ? { cwd: context.cwd } : {}),
+        logger: createPluginLogger({
+          ...(context.env ? { env: context.env } : {}),
+          ...(context.stderr ? { stderr: context.stderr } : {}),
+        }),
       },
       dependencies,
     );
