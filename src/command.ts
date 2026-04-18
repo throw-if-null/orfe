@@ -64,6 +64,7 @@ export async function runCli(args: string[], dependencies: RunCliDependencies = 
         callerName: invocation.callerName,
         command: invocation.commandDefinition.name,
         input: invocation.input,
+        entrypoint: 'cli',
         ...(invocation.configPath ? { configPath: invocation.configPath } : {}),
         ...(invocation.authConfigPath ? { authConfigPath: invocation.authConfigPath } : {}),
       },
@@ -158,7 +159,8 @@ function parseLeafOptions(
   const allOptions = [...commandDefinition.options, ...getCliCommonOptions()];
   const byFlag = new Map(allOptions.map((option) => [option.flag, option]));
   const input: CommandInput = {};
-  const callerName = env.ORFE_CALLER_NAME;
+  const callerName = env.ORFE_CALLER_NAME ?? '';
+  const requiresCaller = commandDefinition.requiresCaller ?? true;
   let configPath: string | undefined;
   let authConfigPath: string | undefined;
 
@@ -197,7 +199,7 @@ function parseLeafOptions(
     }
   }
 
-  if (!callerName || callerName.trim().length === 0) {
+  if (requiresCaller && callerName.trim().length === 0) {
     throw createLeafUsageError(commandDefinition, 'CLI caller identity is required via ORFE_CALLER_NAME.');
   }
 

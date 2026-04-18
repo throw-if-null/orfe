@@ -851,6 +851,35 @@ test('runOrfeCore mints an auth token for the resolved caller bot', async () => 
   }
 });
 
+test('runOrfeCore returns runtime info without caller, config, auth, or GitHub access', async () => {
+  const result = await runOrfeCore(
+    {
+      callerName: '',
+      command: 'runtime info',
+      input: {},
+      entrypoint: 'cli',
+    },
+    {
+      loadRepoConfigImpl: async () => {
+        throw new Error('loadRepoConfigImpl should not run');
+      },
+      loadAuthConfigImpl: async () => {
+        throw new Error('loadAuthConfigImpl should not run');
+      },
+    },
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(result.command, 'runtime info');
+  assert.equal(result.repo, undefined);
+  const data = result.data as { orfe_version: string; entrypoint: string };
+  assert.match(data.orfe_version, /^\d+\.\d+\.\d+/);
+  assert.deepEqual(data, {
+    orfe_version: data.orfe_version,
+    entrypoint: 'cli',
+  });
+});
+
 test('runOrfeCore rejects bot override input for auth token', async () => {
   await assert.rejects(
     runOrfeCore(

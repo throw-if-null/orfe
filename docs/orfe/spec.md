@@ -77,6 +77,7 @@ For terminology in this spec:
   - `issue`
   - `pr`
   - `project`
+  - `runtime`
 
 ### Out of scope for v1
 
@@ -372,6 +373,11 @@ Root-level informational invocations must support:
 - `orfe --help`
 - `orfe --version`
 
+The runtime command surface must also support:
+
+- `orfe runtime info`
+- `{ "command": "runtime info" }`
+
 `--help` must work at three levels:
 
 - `orfe --help`
@@ -381,6 +387,9 @@ Root-level informational invocations must support:
 `orfe --version` prints the installed package version to stdout and exits `0`.
 It must not require caller identity, repo config, auth config, or any GitHub access.
 `-v` is not supported as an alias.
+
+`orfe runtime info` returns structured JSON describing the active runtime version and entrypoint.
+It must not require caller identity, repo config, auth config, or any GitHub access.
 
 Leaf-command help must include:
 
@@ -506,6 +515,8 @@ The wrapper returns the same structured success/error object shape produced by t
 
 ```text
 orfe auth token
+
+orfe runtime info
 
 orfe issue get
 orfe issue create
@@ -1011,6 +1022,42 @@ Rules:
 
 **Side effects**: mutates project field state  
 **Failure behavior**: `project_item_not_found` if the item is not on the project; `project_status_field_not_found` if the configured or overridden single-select status field does not exist on the project; invalid option => `project_status_option_not_found`  
+**Idempotency**: yes
+
+## 11.14 `runtime info`
+
+**Purpose**: Inspect the currently executing `orfe` runtime through the supported command contract.
+
+**CLI**:
+
+```text
+orfe runtime info
+```
+
+**Tool input**:
+
+```json
+{ "command": "runtime info" }
+```
+
+**Success `data` shape**:
+
+```json
+{
+  "orfe_version": "0.4.0",
+  "entrypoint": "opencode-plugin"
+}
+```
+
+Rules:
+
+- `orfe_version` must be read from `package.json` at runtime, not hardcoded
+- `entrypoint` must be `cli` for CLI execution and `opencode-plugin` for plugin execution
+- the command must not require caller identity, repo config, auth config, or GitHub access
+- the command must not call GitHub
+
+**Side effects**: none  
+**Failure behavior**: package metadata load failures remain structured  
 **Idempotency**: yes
 
 ## 12. Success/failure semantics for follow-up implementation

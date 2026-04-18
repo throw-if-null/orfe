@@ -1,4 +1,5 @@
 import type { CommandContext, CommandInput } from '../../types.js';
+import type { RuntimeEntrypoint } from '../../version.js';
 
 export type CommandOptionType = 'string' | 'number' | 'boolean' | 'enum' | 'string-array';
 
@@ -12,6 +13,12 @@ export interface CommandOptionDefinition {
   type: CommandOptionType;
   required?: boolean;
   enumValues?: readonly string[];
+}
+
+export interface RuntimeCommandContext<TName extends string = string, TInput extends CommandInput = CommandInput> {
+  command: TName;
+  input: TInput;
+  entrypoint: RuntimeEntrypoint;
 }
 
 export interface CommandDefinition<
@@ -29,8 +36,10 @@ export interface CommandDefinition<
   options: readonly CommandOptionDefinition[];
   validInputExample: TInput;
   successDataExample: TData;
+  requiresCaller?: boolean;
   validate?(input: CommandInput): TInput;
   handler(context: CommandContext<TName, TInput>): Promise<TData>;
+  runtimeHandler?(context: RuntimeCommandContext<TName, TInput>): Promise<TData> | TData;
 }
 
 export type CommandDefinitionInput<

@@ -141,6 +141,14 @@ Root help:
 orfe --help
 ```
 
+Inspect the active runtime version and entrypoint:
+
+```bash
+orfe runtime info
+```
+
+This command does not require `ORFE_CALLER_NAME`, repo-local config, machine-local auth config, or GitHub access.
+
 Leaf help:
 
 ```bash
@@ -168,6 +176,16 @@ Configure OpenCode to load the packaged plugin directly:
 - the plugin resolves a plain `callerName`
 - the plugin passes only plain data into the runtime core
 - the core does not read `context.agent`
+
+To inspect the active runtime version through the plugin/tool contract:
+
+```json
+{
+  "command": "runtime info"
+}
+```
+
+Successful output includes the active `orfe_version` and the current `entrypoint` (`cli` or `opencode-plugin`).
 
 ## Development
 

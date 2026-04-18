@@ -335,9 +335,38 @@ test('executeOrfeTool reads caller identity from context.agent and passes plain 
     callerName: 'Greg',
     command: 'issue get',
     input: { issue_number: 14 },
+    entrypoint: 'opencode-plugin',
     cwd: '/tmp/repo',
   });
   assert.equal(receivedAgentInCore, false);
+});
+
+test('executeOrfeTool returns runtime info through the shared success envelope without caller context', async () => {
+  const result = await executeOrfeTool(
+    {
+      command: 'runtime info',
+    },
+    {},
+    {
+      loadRepoConfigImpl: async () => {
+        throw new Error('loadRepoConfigImpl should not run');
+      },
+      loadAuthConfigImpl: async () => {
+        throw new Error('loadAuthConfigImpl should not run');
+      },
+    },
+  );
+
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.command, 'runtime info');
+    assert.equal(result.repo, undefined);
+    assert.match(String((result.data as { orfe_version: string }).orfe_version), /^\d+\.\d+\.\d+/);
+    assert.deepEqual(result.data, {
+      orfe_version: (result.data as { orfe_version: string }).orfe_version,
+      entrypoint: 'opencode-plugin',
+    });
+  }
 });
 
 test('executeOrfeTool returns the shared success envelope for issue get', async () => {

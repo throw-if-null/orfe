@@ -9,7 +9,7 @@ test('registry lists command names from the explicit registration array', () => 
 });
 
 test('registry derives command groups from explicit registrations', () => {
-  assert.deepEqual(listCommandGroups(), ['auth', 'issue', 'pr', 'project']);
+  assert.deepEqual(listCommandGroups(), ['auth', 'issue', 'pr', 'project', 'runtime']);
 });
 
 test('registry resolves definitions from the explicit registration array', () => {

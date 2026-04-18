@@ -1,11 +1,11 @@
 import { toOrfeError } from './errors.js';
 import type { ErrorResponse, SuccessResponse } from './types.js';
 
-export function createSuccessResponse<TData>(command: string, repo: string, data: TData): SuccessResponse<TData> {
+export function createSuccessResponse<TData>(command: string, repo: string | undefined, data: TData): SuccessResponse<TData> {
   return {
     ok: true,
     command,
-    repo,
+    ...(repo ? { repo } : {}),
     data,
   };
 }

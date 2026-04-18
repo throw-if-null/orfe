@@ -1,4 +1,5 @@
 import type { Octokit } from 'octokit';
+import type { RuntimeEntrypoint } from './version.js';
 
 export type { OrfeCommandGroup, OrfeCommandName } from './commands/index.js';
 
@@ -60,6 +61,7 @@ export interface OrfeCoreRequest {
   callerName: string;
   command: string;
   input: CommandInput;
+  entrypoint?: RuntimeEntrypoint;
   cwd?: string;
   configPath?: string;
   authConfigPath?: string;
@@ -68,7 +70,7 @@ export interface OrfeCoreRequest {
 export interface SuccessResponse<TData> {
   ok: true;
   command: string;
-  repo: string;
+  repo?: string;
   data: TData;
 }
 

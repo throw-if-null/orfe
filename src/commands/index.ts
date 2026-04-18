@@ -12,6 +12,7 @@ import { prReplyCommand } from './pr/reply/definition.js';
 import { prSubmitReviewCommand } from './pr/submit-review/definition.js';
 import { projectGetStatusCommand } from './project/get-status/definition.js';
 import { projectSetStatusCommand } from './project/set-status/definition.js';
+import { runtimeInfoCommand } from './runtime/info/definition.js';
 
 export const COMMANDS = [
   authTokenCommand,
@@ -27,6 +28,7 @@ export const COMMANDS = [
   prReplyCommand,
   projectGetStatusCommand,
   projectSetStatusCommand,
+  runtimeInfoCommand,
 ] as const satisfies readonly CommandDefinition[];
 
 export type OrfeCommandName = (typeof COMMANDS)[number]['name'];
