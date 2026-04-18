@@ -1,6 +1,6 @@
 ---
 description: "GitHub-native orchestration and workflow control agent"
-model: "github-copilot/claude-sonnet-4.6"
+model: "github-copilot/gpt-5.4"
 reasoningEffort: high
 verbosity: medium
 temperature: 0.2
@@ -15,9 +15,8 @@ permission:
     "orfe *": deny
     "ORFE_CALLER_NAME=*": deny
 
-    # Issue branch push guidance
-    "git push* issues/*": allow
-    "git push* origin issues/*": allow
+    # Issue branch push — always ask first (pushes use human credentials)
+    "git push*": ask
 
     # Main branch protection
     "git push* origin main*": deny
