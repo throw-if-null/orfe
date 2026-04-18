@@ -15,6 +15,24 @@ export async function runOrfeCore(
   request: OrfeCoreRequest,
   dependencies: OrfeCoreDependencies = {},
 ): Promise<SuccessResponse<unknown>> {
+  const commandDefinition = getCommandDefinition(request.command);
+  const validatedInput = validateCommandInput(commandDefinition, request.input);
+  const entrypoint = request.entrypoint ?? 'cli';
+
+  if (commandDefinition.runtimeHandler) {
+    if ((commandDefinition.requiresCaller ?? true) && request.callerName.trim().length === 0) {
+      throw new OrfeError('caller_name_missing', 'Caller name is required.');
+    }
+
+    const data = await commandDefinition.runtimeHandler({
+      command: commandDefinition.name,
+      input: validatedInput,
+      entrypoint,
+    });
+
+    return createSuccessResponse(commandDefinition.name, undefined, data);
+  }
+
   const callerName = request.callerName.trim();
   if (callerName.length === 0) {
     throw new OrfeError('caller_name_missing', 'Caller name is required.');
@@ -23,8 +41,6 @@ export async function runOrfeCore(
   const loadRepoConfigImpl = dependencies.loadRepoConfigImpl ?? loadRepoConfig;
   const loadAuthConfigImpl = dependencies.loadAuthConfigImpl ?? loadAuthConfig;
   const githubClientFactory = dependencies.githubClientFactory ?? new GitHubClientFactory();
-  const commandDefinition = getCommandDefinition(request.command);
-  const validatedInput = validateCommandInput(commandDefinition, request.input);
   const cwd = request.cwd ?? process.cwd();
 
   const repoConfig = await loadRepoConfigImpl({

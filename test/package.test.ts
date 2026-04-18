@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { executeOrfeTool } from '../src/wrapper.js';
+import { getRuntimeInfo } from '../src/version.js';
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(testDir, '..');
@@ -47,4 +48,13 @@ test('CLI source keeps a node shebang for packaged execution', async () => {
 
 test('wrapper exports executeOrfeTool for package entry point wiring', () => {
   assert.equal(typeof executeOrfeTool, 'function');
+});
+
+test('runtime info reads the active package version at runtime', async () => {
+  const packageJson = await readJsonFile(resolve(workspaceRoot, 'package.json'));
+
+  assert.deepEqual(getRuntimeInfo('cli'), {
+    orfe_version: packageJson.version,
+    entrypoint: 'cli',
+  });
 });

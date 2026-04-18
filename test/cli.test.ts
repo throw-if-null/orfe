@@ -836,6 +836,42 @@ test('runCli prints the package version for --version without caller, config, au
   }
 });
 
+test('runCli prints runtime info without caller, config, auth, or GitHub access', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+  const packageVersion = await readPackageVersion();
+
+  nock.disableNetConnect();
+
+  try {
+    const exitCode = await runCli(['runtime', 'info'], {
+      stdout,
+      stderr,
+      env: {},
+      loadRepoConfigImpl: async () => {
+        throw new Error('loadRepoConfigImpl should not run');
+      },
+      loadAuthConfigImpl: async () => {
+        throw new Error('loadAuthConfigImpl should not run');
+      },
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'runtime info',
+      data: {
+        orfe_version: packageVersion,
+        entrypoint: 'cli',
+      },
+    });
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
 test('runCli does not support -v as a root-level alias for --version', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();

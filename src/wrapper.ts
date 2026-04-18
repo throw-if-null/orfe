@@ -1,4 +1,5 @@
 import { OrfeError } from './errors.js';
+import { getCommandDefinition } from './commands/registry/index.js';
 import { runOrfeCore, type OrfeCoreDependencies } from './core.js';
 import { createErrorResponse } from './response.js';
 import type { ErrorResponse, SuccessResponse } from './types.js';
@@ -31,7 +32,8 @@ export async function executeOrfeTool(
       throw new OrfeError('invalid_usage', 'Tool input requires a non-empty command string.');
     }
 
-    const callerName = resolveCallerNameFromContext(context);
+    const commandDefinition = getCommandDefinition(input.command);
+    const callerName = (commandDefinition.requiresCaller ?? true) ? resolveCallerNameFromContext(context) : '';
     const rest = { ...input };
     delete rest.command;
 
@@ -40,6 +42,7 @@ export async function executeOrfeTool(
         callerName,
         command: input.command,
         input: rest,
+        entrypoint: 'opencode-plugin',
         ...(context.cwd ? { cwd: context.cwd } : {}),
       },
       dependencies,
