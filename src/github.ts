@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { Octokit } from 'octokit';
 
 import { OrfeError } from './errors.js';
-import type { GitHubAppRoleAuthConfig, GitHubClients, RepoRef } from './types.js';
+import type { GitHubAppBotAuthConfig, GitHubClients, RepoRef } from './types.js';
 
 // GitHub REST API version header reference:
 // https://docs.github.com/en/rest/about-the-rest-api/api-versions
@@ -45,8 +45,8 @@ export class GitHubClientFactory {
     this.jwtFactory = dependencies.jwtFactory ?? createGitHubAppJwt;
   }
 
-  async createClient(roleName: string, roleAuth: GitHubAppRoleAuthConfig, repo: RepoRef): Promise<GitHubClients> {
-    const auth = await this.createInstallationAuth(roleName, roleAuth, repo);
+  async createClient(botName: string, botAuth: GitHubAppBotAuthConfig, repo: RepoRef): Promise<GitHubClients> {
+    const auth = await this.createInstallationAuth(botName, botAuth, repo);
     const octokit = this.octokitFactory(auth.token);
 
     return {
@@ -54,8 +54,8 @@ export class GitHubClientFactory {
       rest: octokit.rest,
       graphql: octokit.graphql,
       auth: {
-        roleName,
-        appSlug: roleAuth.appSlug,
+        botName,
+        appSlug: botAuth.appSlug,
         installationId: auth.installationId,
         token: auth.token,
         expiresAt: auth.expiresAt,
@@ -64,12 +64,12 @@ export class GitHubClientFactory {
   }
 
   async createInstallationAuth(
-    roleName: string,
-    roleAuth: GitHubAppRoleAuthConfig,
+    botName: string,
+    botAuth: GitHubAppBotAuthConfig,
     repo: RepoRef,
   ): Promise<GitHubInstallationAuth> {
-    const privateKey = await readPrivateKey(roleAuth.privateKeyPath, this.readFileImpl);
-    const appJwt = this.jwtFactory(roleAuth.appId, privateKey);
+    const privateKey = await readPrivateKey(botAuth.privateKeyPath, this.readFileImpl);
+    const appJwt = this.jwtFactory(botAuth.appId, privateKey);
     const appOctokit = this.octokitFactory(appJwt);
 
     let installationId: number;
@@ -85,7 +85,7 @@ export class GitHubClientFactory {
       installationId = (installationResponse.data as InstallationResponse).id;
     } catch (error) {
       throw mapGitHubRequestError(error, {
-        notFoundMessage: `No GitHub App installation for ${repo.fullName} was found for app ${roleAuth.appSlug}.`,
+        notFoundMessage: `No GitHub App installation for ${repo.fullName} was found for app ${botAuth.appSlug}.`,
       });
     }
 
@@ -105,7 +105,7 @@ export class GitHubClientFactory {
       };
     } catch (error) {
       throw mapGitHubRequestError(error, {
-        fallbackMessage: `Failed to mint an installation token for role "${roleName}" on ${repo.fullName}.`,
+        fallbackMessage: `Failed to mint an installation token for bot "${botName}" on ${repo.fullName}.`,
       });
     }
   }

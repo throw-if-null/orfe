@@ -42,7 +42,7 @@ Represented by `src/core.ts` plus the command catalog under `src/commands/`.
 
 Responsibilities:
 - load repo-local config
-- resolve caller-to-role mapping
+- resolve caller-to-bot mapping
 - load machine-local auth config
 - build GitHub clients
 - look up a command definition through the generic registry in `src/commands/registry/index.ts`
@@ -57,14 +57,14 @@ Current examples include `src/config.ts` and `.orfe/config.json`.
 
 Responsibilities:
 - hold repo-local non-secret configuration
-- map caller names to GitHub roles
+- map caller names to GitHub bots
 - define repository and project defaults
 
 ### 5. Auth layer
 Current examples include `src/github.ts` and machine-local auth config.
 
 Responsibilities:
-- load machine-local per-role GitHub App credentials
+- load machine-local per-bot GitHub App credentials
 - mint installation tokens
 - keep secret-bearing auth details outside repo-local config
 
@@ -84,7 +84,7 @@ graph TD
   CLI[CLI entrypoint<br/>src/cli.ts + src/command.ts] --> Core
 
   Core --> Config[Repo config<br/>src/config.ts]
-  Core --> Auth[Caller role + auth config]
+  Core --> Auth[Caller bot + auth config]
   Core --> GitHub[GitHub client factory<br/>src/github.ts]
   Core --> Registry[Generic command registry<br/>src/commands/registry/index.ts]
 
@@ -185,7 +185,7 @@ Command-specific tests live beside the slice by default. Cross-cutting CLI, core
 - plugin entrypoint reads OpenCode context; core does not
 - core accepts plain data only
 - repo-local config contains no secrets
-- machine-local auth config contains role credentials
+- machine-local auth config contains bot credentials
 - command registry stays generic and deterministic
 - command semantics live in slice definitions and handlers, not in duplicate metadata files
 - command behavior uses Octokit, not `gh` shell-outs

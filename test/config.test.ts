@@ -6,10 +6,10 @@ import test from 'node:test';
 
 import { OrfeError } from '../src/errors.js';
 import {
-  getRoleAuthConfig,
+  getBotAuthConfig,
   loadAuthConfig,
   loadRepoConfig,
-  resolveCallerRole,
+  resolveCallerBot,
   resolveProjectCommandConfig,
   resolveRepository,
 } from '../src/config.js';
@@ -30,7 +30,7 @@ test('loadRepoConfig reads .orfe/config.json from the repo context', async () =>
         name: 'orfe',
         default_branch: 'main',
       },
-      caller_to_github_role: {
+      caller_to_bot: {
         Greg: 'greg',
       },
       projects: {
@@ -83,7 +83,7 @@ test('loadRepoConfig reports missing required repo-local fields clearly', async 
         owner: 'throw-if-null',
         name: 'orfe',
       },
-      caller_to_github_role: {
+      caller_to_bot: {
         Greg: 'greg',
       },
     }),
@@ -105,7 +105,7 @@ test('loadAuthConfig reads machine-local GitHub App credentials', async () => {
     authConfigPath,
     JSON.stringify({
       version: 1,
-      roles: {
+      bots: {
         greg: {
           provider: 'github-app',
           app_id: 123458,
@@ -117,11 +117,11 @@ test('loadAuthConfig reads machine-local GitHub App credentials', async () => {
   );
 
   const config = await loadAuthConfig({ authConfigPath, homeDirectory: '/home/test-user' });
-  const roleConfig = getRoleAuthConfig(config, 'greg');
+  const botConfig = getBotAuthConfig(config, 'greg');
 
-  assert.equal(roleConfig.provider, 'github-app');
-  assert.equal(roleConfig.appId, 123458);
-  assert.equal(roleConfig.privateKeyPath, '/home/test-user/keys/greg.pem');
+  assert.equal(botConfig.provider, 'github-app');
+  assert.equal(botConfig.appId, 123458);
+  assert.equal(botConfig.privateKeyPath, '/home/test-user/keys/greg.pem');
 });
 
 test('loadAuthConfig does not require an external token_command contract', async () => {
@@ -132,7 +132,7 @@ test('loadAuthConfig does not require an external token_command contract', async
     authConfigPath,
     JSON.stringify({
       version: 1,
-      roles: {
+      bots: {
         greg: {
           provider: 'github-app',
           app_id: 123458,
@@ -145,7 +145,7 @@ test('loadAuthConfig does not require an external token_command contract', async
 
   const config = await loadAuthConfig({ authConfigPath });
 
-  assert.equal(config.roles.greg?.provider, 'github-app');
+  assert.equal(config.bots.greg?.provider, 'github-app');
 });
 
 test('loadAuthConfig reports missing machine-local auth config clearly', async () => {
@@ -181,7 +181,7 @@ test('loadAuthConfig rejects unsupported providers', async () => {
     authConfigPath,
     JSON.stringify({
       version: 1,
-      roles: {
+      bots: {
         greg: {
           provider: 'session',
           app_id: 1,
@@ -208,7 +208,7 @@ test('loadAuthConfig rejects missing required auth fields clearly', async () => 
     authConfigPath,
     JSON.stringify({
       version: 1,
-      roles: {
+      bots: {
         greg: {
           provider: 'github-app',
           app_slug: 'GR3G-BOT',
@@ -221,12 +221,12 @@ test('loadAuthConfig rejects missing required auth fields clearly', async () => 
   await assert.rejects(loadAuthConfig({ authConfigPath }), (error: unknown) => {
     assert(error instanceof OrfeError);
     assert.equal(error.code, 'config_invalid');
-    assert.match(error.message, /roles\.greg\.app_id must be a non-negative integer/);
+    assert.match(error.message, /bots\.greg\.app_id must be a non-negative integer/);
     return true;
   });
 });
 
-test('resolveCallerRole trims and matches exact caller names', async () => {
+test('resolveCallerBot trims and matches exact caller names', async () => {
   const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
   await writeRepoConfig(
     repoDirectory,
@@ -237,7 +237,7 @@ test('resolveCallerRole trims and matches exact caller names', async () => {
         name: 'orfe',
         default_branch: 'main',
       },
-      caller_to_github_role: {
+      caller_to_bot: {
         Greg: 'greg',
       },
     }),
@@ -245,21 +245,21 @@ test('resolveCallerRole trims and matches exact caller names', async () => {
 
   const config = await loadRepoConfig({ cwd: repoDirectory });
 
-  assert.equal(resolveCallerRole(config, ' Greg '), 'greg');
-  assert.throws(() => resolveCallerRole(config, 'greg'), /not mapped/);
+  assert.equal(resolveCallerBot(config, ' Greg '), 'greg');
+  assert.throws(() => resolveCallerBot(config, 'greg'), /not mapped/);
 });
 
-test('getRoleAuthConfig reports missing caller-name to GitHub-role mappings where required', async () => {
+test('getBotAuthConfig reports missing caller-name to bot mappings where required', async () => {
   const tempDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-auth-config-'));
   const authConfigPath = path.join(tempDirectory, 'auth.json');
-  await writeFile(authConfigPath, JSON.stringify({ version: 1, roles: {} }));
+  await writeFile(authConfigPath, JSON.stringify({ version: 1, bots: {} }));
 
   const config = await loadAuthConfig({ authConfigPath });
 
-  assert.throws(() => getRoleAuthConfig(config, 'greg'), /has no entry for GitHub role "greg"/);
+  assert.throws(() => getBotAuthConfig(config, 'greg'), /has no entry for GitHub bot "greg"/);
 });
 
-test('loadAuthConfig preserves config-derived app_slug metadata for roles', async () => {
+test('loadAuthConfig preserves config-derived app_slug metadata for bots', async () => {
   const tempDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-auth-config-'));
   const authConfigPath = path.join(tempDirectory, 'auth.json');
 
@@ -267,7 +267,7 @@ test('loadAuthConfig preserves config-derived app_slug metadata for roles', asyn
     authConfigPath,
     JSON.stringify({
       version: 1,
-      roles: {
+      bots: {
         greg: {
           provider: 'github-app',
           app_id: 123458,
@@ -280,7 +280,7 @@ test('loadAuthConfig preserves config-derived app_slug metadata for roles', asyn
 
   const config = await loadAuthConfig({ authConfigPath });
 
-  assert.equal(config.roles.greg?.appSlug, 'GR3G-BOT');
+  assert.equal(config.bots.greg?.appSlug, 'GR3G-BOT');
 });
 
 test('resolveRepository uses repo override when provided', async () => {
@@ -294,7 +294,7 @@ test('resolveRepository uses repo override when provided', async () => {
         name: 'orfe',
         default_branch: 'main',
       },
-      caller_to_github_role: {
+      caller_to_bot: {
         Greg: 'greg',
       },
     }),
@@ -317,7 +317,7 @@ test('resolveProjectCommandConfig uses repo config defaults when explicit overri
         name: 'orfe',
         default_branch: 'main',
       },
-      caller_to_github_role: {
+      caller_to_bot: {
         Greg: 'greg',
       },
       projects: {
@@ -350,7 +350,7 @@ test('resolveProjectCommandConfig allows explicit overrides to replace project d
         name: 'orfe',
         default_branch: 'main',
       },
-      caller_to_github_role: {
+      caller_to_bot: {
         Greg: 'greg',
       },
       projects: {
@@ -390,7 +390,7 @@ test('resolveProjectCommandConfig requires explicit project owner when repo conf
         name: 'orfe',
         default_branch: 'main',
       },
-      caller_to_github_role: {
+      caller_to_bot: {
         Greg: 'greg',
       },
       projects: {
@@ -421,7 +421,7 @@ test('resolveProjectCommandConfig requires explicit project number when repo con
         name: 'orfe',
         default_branch: 'main',
       },
-      caller_to_github_role: {
+      caller_to_bot: {
         Greg: 'greg',
       },
       projects: {
@@ -452,7 +452,7 @@ test('resolveProjectCommandConfig falls back to literal Status when no default s
         name: 'orfe',
         default_branch: 'main',
       },
-      caller_to_github_role: {
+      caller_to_bot: {
         Greg: 'greg',
       },
       projects: {

@@ -32,7 +32,7 @@ V1 exists to provide a deterministic, reusable contract for:
 2. The OpenCode wrapper is the **only** layer allowed to read `context.agent`.
 3. The wrapper resolves a plain `callerName` string and passes that into the `orfe` core.
 4. The core never reads `context.agent` directly.
-5. Repo-local config maps `callerName` to the GitHub role used for auth.
+5. Repo-local config maps `callerName` to the GitHub bot used for auth.
 6. `orfe` uses Octokit as the GitHub API client layer.
 7. Issue and PR operations should use Octokit REST where available.
 8. GitHub Project Status operations should use Octokit GraphQL.
@@ -42,6 +42,12 @@ V1 exists to provide a deterministic, reusable contract for:
 12. `gh` and GitHub MCP are **not** the command implementation layer for `orfe` behavior.
 13. Command-level HTTP mocking uses `nock`.
 14. Full end-to-end testing is a later milestone and does not block issue #13.
+
+For terminology in this spec:
+
+- `caller` means whoever invoked `orfe`
+- `bot` means the GitHub App-backed identity used for auth
+- `role` is reserved for workflow meaning outside this auth contract
 
 ## 3. Scope
 
@@ -101,13 +107,16 @@ The wrapper must not:
 - load repo config itself except as needed to locate repo context
 - pass raw OpenCode runtime objects into the core
 
+`context.agent` is only an input source for resolving the caller.
+It is not the auth identity itself.
+
 ### 4.2 Core runtime
 
 Responsibilities:
 
 - parse/validate command input
 - load repo-local config
-- resolve `callerName -> github role`
+- resolve `callerName -> github bot`
 - acquire an auth token through the configured auth adapter
 - build Octokit clients
 - dispatch command handlers
@@ -117,14 +126,14 @@ The core is runtime-agnostic. It must be callable from both CLI and OpenCode wra
 
 ### 4.3 Auth adapter
 
-V1 auth is role-aware and internal to `orfe`.
+V1 auth is bot-aware and internal to `orfe`.
 
 Auth flow:
 
 1. the wrapper or CLI provides `callerName`
-2. the core resolves `callerName -> github role`
-3. the auth adapter loads machine-local auth config for that GitHub role
-4. the auth adapter reads the GitHub App credentials and private key path for that role
+2. the core resolves `callerName -> github bot`
+3. the auth adapter loads machine-local auth config for that GitHub bot
+4. the auth adapter reads the GitHub App credentials and private key path for that bot
 5. `orfe` creates a GitHub App JWT internally
 6. `orfe` resolves the repository installation for the target repo internally
 7. `orfe` mints a GitHub App installation token internally
@@ -223,7 +232,7 @@ CLI may override the path with `--config <path>`.
     "name": "orfe",
     "default_branch": "main"
   },
-  "caller_to_github_role": {
+  "caller_to_bot": {
     "Greg": "greg",
     "Jelena": "jelena",
     "Zoran": "zoran",
@@ -244,9 +253,8 @@ CLI may override the path with `--config <path>`.
 - `version` is required and must equal `1` for v1.
 - `repository.owner` and `repository.name` are required.
 - `repository.default_branch` is optional in principle but required by this repo's v1 usage because `pr get-or-create` needs a default base branch.
-- `caller_to_github_role` is required and maps exact `callerName` strings to GitHub role names.
+- `caller_to_bot` is required and maps exact `callerName` strings to GitHub bot names.
 - Matching is exact after trimming surrounding whitespace; no case folding is performed.
-- Repos may support aliases by adding multiple keys that point to the same role.
 - `projects.default` is optional overall, but if omitted then `project` commands must require explicit project options.
 - repo-local config must not contain private keys, GitHub App IDs, or other machine-local auth secrets.
 
@@ -265,7 +273,7 @@ Required machine-local auth config shape:
 ```json
 {
   "version": 1,
-  "roles": {
+  "bots": {
     "greg": {
       "provider": "github-app",
       "app_id": 123458,
@@ -285,10 +293,10 @@ Required machine-local auth config shape:
 Rules:
 
 - `version` is required and must equal `1`.
-- `roles` is required.
-- each GitHub role referenced by repo-local `caller_to_github_role` must have a corresponding machine-local role entry when that caller is used.
+- `bots` is required.
+- each GitHub bot referenced by repo-local `caller_to_bot` must have a corresponding machine-local bot entry when that caller is used.
 - `provider` is required and must equal `github-app` in v1.
-- `app_id`, `app_slug`, and `private_key_path` are required for each role.
+- `app_id`, `app_slug`, and `private_key_path` are required for each bot.
 - `private_key_path` may use `~` and is expanded locally at runtime.
 - this file is machine-local, must not be committed, and is outside the repo-local public contract artifact set.
 
@@ -296,8 +304,8 @@ Rules:
 
 For each command execution, `orfe` must:
 
-1. resolve the GitHub role from repo-local config
-2. load that role's GitHub App credentials from machine-local auth config
+1. resolve the GitHub bot from repo-local config
+2. load that bot's GitHub App credentials from machine-local auth config
 3. mint the GitHub App JWT internally
 4. resolve the installation for the target repository internally
 5. mint the installation token internally
@@ -519,7 +527,7 @@ orfe project set-status
 
 ## 11.1 `auth token`
 
-**Purpose**: Mint a GitHub App installation token for the resolved caller role and target repository.
+**Purpose**: Mint a GitHub App installation token for the resolved caller bot and target repository.
 
 **CLI**:
 
@@ -537,7 +545,7 @@ orfe auth token --repo <owner/name> [--config <path>] [--auth-config <path>]
 
 ```json
 {
-  "role": "greg",
+  "bot": "greg",
   "app_slug": "GR3G-BOT",
   "repo": "throw-if-null/orfe",
   "token": "ghs_123",
@@ -549,9 +557,9 @@ orfe auth token --repo <owner/name> [--config <path>] [--auth-config <path>]
 Rules:
 
 - the caller identity is resolved normally through CLI or wrapper caller resolution
-- the command mints only for that resolved caller role; it is not a cross-role impersonation feature
+- the command mints only for that resolved caller bot; it is not a cross-bot impersonation feature
 - `repo` is required and must be `owner/name`
-- `app_slug` is config-derived from the resolved role auth metadata, not looked up live from GitHub
+- `app_slug` is config-derived from the resolved bot auth metadata, not looked up live from GitHub
 - the command must not silently fall back to session or ambient auth
 
 **Side effects**: mints an installation token  

@@ -15,7 +15,7 @@ It provides two entrypoints over the same core behavior:
 Primary users include:
 - agent-based development systems that need deterministic GitHub operations
 - humans operating those systems
-- repositories that need GitHub App-based role impersonation instead of ambient session auth
+- repositories that need GitHub App-based bot auth instead of ambient session auth
 
 ## Problem it solves
 
@@ -33,7 +33,7 @@ Without a dedicated runtime, GitHub operations for agents tend to become:
 - **Deterministic contracts over ad hoc usage**
   - commands should have explicit inputs, validation rules, and success/error envelopes
 - **Explicit identity and auth boundaries**
-  - caller identity and GitHub role selection must be clear and reviewable
+  - caller identity and GitHub bot selection must be clear and reviewable
 - **Generic GitHub operations layer**
   - `orfe` should stay below repo-specific workflow policy rather than absorb it
 - **Safe failure over silent fallback**
@@ -47,7 +47,7 @@ V1 is focused on a narrow, reusable surface area:
 - issue operations
 - pull request operations
 - GitHub Project Status field operations
-- internal GitHub App auth for repo role impersonation
+- internal GitHub App auth for repository bot identities
 - shared runtime behavior across CLI and OpenCode wrapper entrypoints
 
 ## Non-goals
@@ -65,6 +65,6 @@ V1 is focused on a narrow, reusable surface area:
 `orfe` is successful when:
 - agents can call GitHub operations through a stable, documented contract
 - the same operation behaves consistently from CLI and OpenCode wrapper entrypoints
-- role-based GitHub App auth is explicit and predictable
+- bot-based GitHub App auth is explicit and predictable
 - repo-specific workflow layers can build on `orfe` without forcing `orfe` to absorb their policy
 - future contributors can understand the project from a small set of durable docs instead of chat history

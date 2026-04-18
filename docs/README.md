@@ -26,6 +26,10 @@ Use it to understand what the project is for, which constraints must hold, which
 - `docs/architecture/adrs/`
   - short records of accepted architecture decisions and their consequences
 
+### Ubiquitous language
+- `docs/glossary.md`
+  - durable definitions for caller, bot, role, and related terms
+
 ### Known compromises
 - `docs/project/debt.md`
   - known documentation, architecture, or process debt that should stay visible
@@ -46,7 +50,7 @@ Use it to understand what the project is for, which constraints must hold, which
 - `README.md`
   - project overview, setup, and development commands
 - `AGENTS.md`
-  - repository workflow rules, role boundaries, and GitHub operating conventions
+  - repository workflow rules, workflow-role boundaries, and GitHub operating conventions
 
 ## How to use this map
 
@@ -54,6 +58,7 @@ Use it to understand what the project is for, which constraints must hold, which
 - Architecture guardrails: read `docs/architecture/invariants.md`
 - System shape: read `docs/architecture/overview.md`
 - Auth and bot identity model: read `docs/architecture/auth-model.md`
+- Terminology and identity definitions: read `docs/glossary.md`
 - "Why is it designed this way?": read the ADRs
 - "What is intentionally imperfect right now?": read `docs/project/debt.md`
 - "How should agents hand work to each other?": read `docs/project/handoffs.md`

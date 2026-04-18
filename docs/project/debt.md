@@ -15,7 +15,7 @@ This file keeps known documentation, architecture, and process debt visible so i
 - **Follow-up direction:** keep generated output aligned with source and reduce confusion where stale artifacts remain visible.
 
 ### 3. Bot token minting still depends on the workspace-root `tokenner` build
-- **Impact:** agents currently rely on the workspace-root `dist/cli.js token` command to impersonate GitHub App bot identities. Without it, GitHub operations performed through `gh` would appear as the human session identity instead of the assigned bot role.
+- **Impact:** agents currently rely on the workspace-root `dist/cli.js token` command to mint GitHub App bot credentials. Without it, GitHub operations performed through `gh` would appear as the human session identity instead of the assigned bot.
 - **Current treatment:** preserve the explicit auth guidance in `AGENTS.md` and agent prompts, and do not assume the current issue worktree's build exposes the same token command.
 - **Follow-up direction:** add a native `orfe token` command or another first-class bot-token path in a dedicated issue, then retire the transitional `tokenner` dependency intentionally.
 

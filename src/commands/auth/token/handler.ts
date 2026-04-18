@@ -2,7 +2,7 @@ import { OrfeError } from '../../../errors.js';
 import type { CommandContext } from '../../../types.js';
 
 export interface AuthTokenData {
-  role: string;
+  bot: string;
   app_slug: string;
   repo: string;
   token: string;
@@ -18,11 +18,11 @@ export async function handleAuthToken(context: CommandContext<'auth token'>): Pr
   const auth = await context.getGitHubAuth();
 
   return {
-    role: context.callerRole,
-    app_slug: context.roleAuth.appSlug,
+    bot: context.callerBot,
+    app_slug: context.botAuth.appSlug,
     repo: context.repo.fullName,
     token: auth.token,
     expires_at: auth.expiresAt,
-    auth_mode: context.roleAuth.provider,
+    auth_mode: context.botAuth.provider,
   };
 }

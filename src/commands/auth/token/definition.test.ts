@@ -9,7 +9,7 @@ test('auth token slice owns its command metadata and contract examples', () => {
   assert.equal(authTokenCommand.leaf, 'token');
   assert.deepEqual(authTokenCommand.validInputExample, { repo: 'throw-if-null/orfe' });
   assert.deepEqual(authTokenCommand.successDataExample, {
-    role: 'greg',
+    bot: 'greg',
     app_slug: 'GR3G-BOT',
     repo: 'throw-if-null/orfe',
     token: 'ghs_123',

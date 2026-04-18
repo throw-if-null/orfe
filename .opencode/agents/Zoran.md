@@ -51,7 +51,7 @@ You do **not** write or edit code. You work through the repository's GitHub-nati
 - **`gh` CLI writes only**: when an operation is not covered by the `orfe` plugin tool, use `orfe` plugin's `auth token` command (via the function tool, not bash) to obtain a bot token, then pass it explicitly to `gh` via `GH_TOKEN=<token> gh ...`.
 - Do not use static PAT-based auth for normal GitHub operations in this repo.
 - If token minting fails, stop immediately and report an explicit bot-auth failure instead of falling back to session auth.
-- Role mapping for reference: `zoran` → `Z0R4N-BOT`.
+- Caller-to-bot mapping for reference: `zoran` → `Z0R4N-BOT`.
 
 ## Repository Workflow Contract
 - **GitHub Issue is the canonical task record**

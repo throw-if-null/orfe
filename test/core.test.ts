@@ -19,7 +19,7 @@ function createRepoConfig() {
       name: 'orfe',
       defaultBranch: 'main',
     },
-    callerToGitHubRole: {
+    callerToBot: {
       Greg: 'greg',
     },
     projects: {
@@ -36,7 +36,7 @@ function createAuthConfig() {
   return {
     configPath: '/tmp/auth.json',
     version: 1 as const,
-    roles: {
+    bots: {
       greg: {
         provider: 'github-app' as const,
         appId: 123458,
@@ -810,7 +810,7 @@ test('listCommandNames exposes the agreed V1 command surface', () => {
   assert.deepEqual(listCommandNames(), COMMAND_NAMES);
 });
 
-test('runOrfeCore mints an auth token for the resolved caller role', async () => {
+test('runOrfeCore mints an auth token for the resolved caller bot', async () => {
   nock.disableNetConnect();
 
   try {
@@ -836,7 +836,7 @@ test('runOrfeCore mints an auth token for the resolved caller role', async () =>
       command: 'auth token',
       repo: 'throw-if-null/orfe',
       data: {
-        role: 'greg',
+        bot: 'greg',
         app_slug: 'GR3G-BOT',
         repo: 'throw-if-null/orfe',
         token: 'ghs_123',
@@ -851,13 +851,13 @@ test('runOrfeCore mints an auth token for the resolved caller role', async () =>
   }
 });
 
-test('runOrfeCore rejects role override input for auth token', async () => {
+test('runOrfeCore rejects bot override input for auth token', async () => {
   await assert.rejects(
     runOrfeCore(
       {
         callerName: 'Greg',
         command: 'auth token',
-        input: { role: 'unknown', repo: 'throw-if-null/orfe' },
+        input: { bot: 'unknown', repo: 'throw-if-null/orfe' },
       },
       {
         loadRepoConfigImpl: async () => createRepoConfig(),
@@ -867,7 +867,7 @@ test('runOrfeCore rejects role override input for auth token', async () => {
     (error: unknown) => {
       assert(error instanceof OrfeError);
       assert.equal(error.code, 'invalid_usage');
-      assert.equal(error.message, 'Command "auth token" does not accept input field "role".');
+      assert.equal(error.message, 'Command "auth token" does not accept input field "bot".');
       return true;
     },
   );
@@ -951,7 +951,7 @@ test('runOrfeCore fails clearly for auth token when token minting is rejected', 
       (error: unknown) => {
         assert(error instanceof OrfeError);
         assert.equal(error.code, 'auth_failed');
-        assert.equal(error.message, 'Failed to mint an installation token for role "greg" on throw-if-null/orfe.');
+        assert.equal(error.message, 'Failed to mint an installation token for bot "greg" on throw-if-null/orfe.');
         return true;
       },
     );
@@ -4366,7 +4366,7 @@ test('createRuntimeSnapshot validates machine-local auth mapping', async () => {
         loadAuthConfigImpl: async () => ({
           configPath: '/tmp/auth.json',
           version: 1 as const,
-          roles: {},
+          bots: {},
         }),
       },
     ),
@@ -4391,5 +4391,5 @@ test('createRuntimeSnapshot proves auth config is separate from repo-local confi
 
   assert.equal(snapshot.repoConfig.configPath, '/tmp/.orfe/config.json');
   assert.equal(snapshot.authConfig.configPath, '/tmp/auth.json');
-  assert.equal(snapshot.callerRole, 'greg');
+  assert.equal(snapshot.callerBot, 'greg');
 });
