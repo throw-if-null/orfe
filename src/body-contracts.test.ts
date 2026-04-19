@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -16,8 +18,12 @@ const sourceDirectory = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(sourceDirectory, '..');
 
 function createRepoConfig() {
+  return createRepoConfigForPath(path.join(workspaceRoot, '.orfe', 'config.json'));
+}
+
+function createRepoConfigForPath(configPath: string) {
   return {
-    configPath: path.join(workspaceRoot, '.orfe', 'config.json'),
+    configPath,
     version: 1 as const,
     repository: {
       owner: 'throw-if-null',
@@ -28,6 +34,25 @@ function createRepoConfig() {
       Greg: 'greg',
     },
   };
+}
+
+async function writeIssueContract(options: {
+  repoRoot: string;
+  contractName: string;
+  contractVersion?: string;
+  contents: string;
+}): Promise<void> {
+  const contractVersion = options.contractVersion ?? '1.0.0';
+  const contractDirectory = path.join(
+    options.repoRoot,
+    '.orfe',
+    'contracts',
+    'issues',
+    options.contractName,
+  );
+
+  await mkdir(contractDirectory, { recursive: true });
+  await writeFile(path.join(contractDirectory, `${contractVersion}.json`), options.contents);
 }
 
 function createValidIssueBody(): string {
@@ -163,6 +188,22 @@ test('prepareArtifactBody rejects mismatched explicit and provenance contracts',
   );
 });
 
+test('prepareArtifactBody rejects body_contract when body is omitted', async () => {
+  await assert.rejects(
+    prepareArtifactBody({
+      artifactType: 'issue',
+      bodyContract: 'formal-work-item@1.0.0',
+      repoConfig: createRepoConfig(),
+    }),
+    (error: unknown) => {
+      assert(error instanceof OrfeError);
+      assert.equal(error.code, 'invalid_usage');
+      assert.match(error.message, /body_contract requires body/);
+      return true;
+    },
+  );
+});
+
 test('validateBodyAgainstContract rejects forbidden PR auto-closing keywords', async () => {
   const contract = await loadBodyContract(createRepoConfig(), {
     artifact_type: 'pr',
@@ -196,4 +237,111 @@ test('loadBodyContract loads the repository-defined versioned contract files', a
   assert.equal(issueContract.contract_name, 'formal-work-item');
   assert.equal(prContract.artifact_type, 'pr');
   assert.equal(prContract.contract_name, 'implementation-ready');
+});
+
+test('loadBodyContract reports missing contracts with contract_not_found', async () => {
+  const repoRoot = await mkdtemp(path.join(os.tmpdir(), 'orfe-body-contracts-'));
+
+  await assert.rejects(
+    loadBodyContract(createRepoConfigForPath(path.join(repoRoot, '.orfe', 'config.json')), {
+      artifact_type: 'issue',
+      contract_name: 'missing-contract',
+      contract_version: '1.0.0',
+    }),
+    (error: unknown) => {
+      assert(error instanceof OrfeError);
+      assert.equal(error.code, 'contract_not_found');
+      assert.match(error.message, /issue\/missing-contract@1\.0\.0/);
+      return true;
+    },
+  );
+});
+
+test('loadBodyContract reports invalid JSON contracts with contract_invalid', async () => {
+  const repoRoot = await mkdtemp(path.join(os.tmpdir(), 'orfe-body-contracts-'));
+  await writeIssueContract({
+    repoRoot,
+    contractName: 'broken-contract',
+    contents: '{not valid json',
+  });
+
+  await assert.rejects(
+    loadBodyContract(createRepoConfigForPath(path.join(repoRoot, '.orfe', 'config.json')), {
+      artifact_type: 'issue',
+      contract_name: 'broken-contract',
+      contract_version: '1.0.0',
+    }),
+    (error: unknown) => {
+      assert(error instanceof OrfeError);
+      assert.equal(error.code, 'contract_invalid');
+      assert.match(error.message, /is not valid JSON/);
+      return true;
+    },
+  );
+});
+
+test('loadBodyContract resolves contracts from the discovered canonical .orfe root', async () => {
+  const repoRoot = await mkdtemp(path.join(os.tmpdir(), 'orfe-body-contracts-'));
+  await mkdir(path.join(repoRoot, '.orfe'), { recursive: true });
+  await writeFile(path.join(repoRoot, '.orfe', 'config.json'), '{}');
+  await writeIssueContract({
+    repoRoot,
+    contractName: 'temp-contract',
+    contents: JSON.stringify({
+      schema_version: 1,
+      artifact_type: 'issue',
+      contract_name: 'temp-contract',
+      contract_version: '1.0.0',
+      sections: [],
+    }),
+  });
+
+  const contract = await loadBodyContract(createRepoConfigForPath(path.join(repoRoot, 'nested', 'custom-config.json')), {
+    artifact_type: 'issue',
+    contract_name: 'temp-contract',
+    contract_version: '1.0.0',
+  });
+
+  assert.equal(contract.contract_name, 'temp-contract');
+  assert.equal(contract.contract_version, '1.0.0');
+});
+
+test('loadBodyContract falls back to source-relative bundled contracts when configPath is external', async () => {
+  const externalDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-body-contracts-'));
+  const previousCwd = process.cwd();
+
+  process.chdir(externalDirectory);
+
+  try {
+    const contract = await loadBodyContract(createRepoConfigForPath(path.join(externalDirectory, 'nested', 'config.json')), {
+      artifact_type: 'issue',
+      contract_name: 'formal-work-item',
+      contract_version: '1.0.0',
+    });
+
+    assert.equal(contract.contract_name, 'formal-work-item');
+    assert.equal(contract.artifact_type, 'issue');
+  } finally {
+    process.chdir(previousCwd);
+  }
+});
+
+test('validateBodyAgainstContract rejects overlapping docs-impact values not allowed by the formal work-item contract', async () => {
+  const contract = await loadBodyContract(createRepoConfig(), {
+    artifact_type: 'issue',
+    contract_name: 'formal-work-item',
+    contract_version: '1.0.0',
+  });
+
+  assert.throws(
+    () =>
+      validateBodyAgainstContract(
+        createValidIssueBody().replace(
+          '- Docs impact: add new durable docs',
+          '- Docs impact: update existing docs and add new durable docs',
+        ),
+        contract,
+      ),
+    /must be one of none, update existing docs, add new durable docs/,
+  );
 });

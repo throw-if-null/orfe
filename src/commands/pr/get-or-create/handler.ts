@@ -14,7 +14,6 @@ export async function handlePrGetOrCreate(context: CommandContext<'pr get-or-cre
   const base = (context.input.base as string | undefined) ?? context.repoConfig.repository.defaultBranch;
   const title = context.input.title as string;
   const draft = context.input.draft === true;
-  const body = await preparePullRequestBodyFromInput(context);
 
   let existingPullRequests: PullRequestSummaryData[];
 
@@ -54,6 +53,8 @@ export async function handlePrGetOrCreate(context: CommandContext<'pr get-or-cre
       created: false,
     };
   }
+
+  const body = await preparePullRequestBodyFromInput(context);
 
   try {
     const { rest } = await context.getGitHubClient();

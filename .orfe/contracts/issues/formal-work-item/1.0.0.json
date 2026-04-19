@@ -50,9 +50,7 @@
           "allowed_values": [
             "none",
             "update existing docs",
-            "add new durable docs",
-            "update existing docs and add new durable docs",
-            "add new durable docs and update existing docs"
+            "add new durable docs"
           ]
         }
       ]

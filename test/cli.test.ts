@@ -1748,39 +1748,52 @@ test('runCli prints structured contract-validation failures for invalid PR bodie
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
 
-  const exitCode = await runCli(
-    [
-      'pr',
-      'get-or-create',
-      '--head',
-      'issues/orfe-59',
-      '--title',
-      'Introduce versioned body-contract support',
-      '--body',
-      'Ref: #59\n\nCloses: #59',
-      '--body-contract',
-      'implementation-ready@1.0.0',
-    ],
-    {
-      stdout,
-      stderr,
-      env: { ORFE_CALLER_NAME: 'Greg' },
-      ...createRuntimeDependencies(),
-      githubClientFactory: createGitHubClientFactory(),
-    },
-  );
+  nock.disableNetConnect();
 
-  assert.equal(exitCode, 1);
-  assert.equal(stdout.output, '');
-  assert.deepEqual(JSON.parse(stderr.output), {
-    ok: false,
-    command: 'pr get-or-create',
-    error: {
-      code: 'contract_validation_failed',
-      message: 'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
-      retryable: false,
-    },
-  });
+  try {
+    const api = mockPullRequestGetOrCreateRequest({
+      head: 'issues/orfe-59',
+      existingPullRequests: [],
+    });
+
+    const exitCode = await runCli(
+      [
+        'pr',
+        'get-or-create',
+        '--head',
+        'issues/orfe-59',
+        '--title',
+        'Introduce versioned body-contract support',
+        '--body',
+        'Ref: #59\n\nCloses: #59',
+        '--body-contract',
+        'implementation-ready@1.0.0',
+      ],
+      {
+        stdout,
+        stderr,
+        env: { ORFE_CALLER_NAME: 'Greg' },
+        ...createRuntimeDependencies(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'pr get-or-create',
+      error: {
+        code: 'contract_validation_failed',
+        message: 'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
 });
 
 test('runCli prints structured auth failures for pr get-or-create lookup', async () => {

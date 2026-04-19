@@ -897,6 +897,7 @@ Rules:
 - `--base` defaults to `repository.default_branch`
 - lookup key is `(repo, head, base, state=open)`
 - if one open PR matches, return it unchanged
+- when an open PR is reused, provided `body` and `body_contract` inputs are ignored and not validated
 - if more than one open PR matches, fail with `github_conflict`
 - if none match, create a new PR
 
