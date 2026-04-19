@@ -7,13 +7,14 @@ import {
   type PullRequestGetResponseData,
   type PullRequestSummaryData,
 } from '../shared.js';
+import { preparePullRequestBodyFromInput } from '../../body-contract-shared.js';
 
 export async function handlePrGetOrCreate(context: CommandContext<'pr get-or-create'>): Promise<PullRequestGetOrCreateData> {
   const head = context.input.head as string;
   const base = (context.input.base as string | undefined) ?? context.repoConfig.repository.defaultBranch;
   const title = context.input.title as string;
-  const body = context.input.body as string | undefined;
   const draft = context.input.draft === true;
+  const body = await preparePullRequestBodyFromInput(context);
 
   let existingPullRequests: PullRequestSummaryData[];
 

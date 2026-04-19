@@ -37,7 +37,7 @@ async function readPackageVersion(): Promise<string> {
 function createRuntimeDependencies() {
   return {
     loadRepoConfigImpl: async () => ({
-      configPath: '/tmp/.orfe/config.json',
+      configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
       version: 1 as const,
       repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
       callerToBot: { Greg: 'greg' },
@@ -188,6 +188,14 @@ function mockIssueCreateRequest(options: {
         html_url: `https://github.com/${owner}/${repo}/issues/21`,
       },
      );
+}
+
+function renderIssueBodyContractMarker() {
+  return '<!-- orfe-body-contract: issue/formal-work-item@1.0.0 -->';
+}
+
+function renderPrBodyContractMarker() {
+  return '<!-- orfe-body-contract: pr/implementation-ready@1.0.0 -->';
 }
 
 function mockIssueUpdateRequest(options: {
@@ -1059,7 +1067,7 @@ test('runCli prints structured config failures for auth token', async () => {
     stderr,
     env: { ORFE_CALLER_NAME: 'Greg' },
     loadRepoConfigImpl: async () => ({
-      configPath: '/tmp/.orfe/config.json',
+      configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
       version: 1 as const,
       repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
       callerToBot: { Greg: 'greg' },
@@ -1277,6 +1285,10 @@ test('runCli prints structured success JSON for issue create', async () => {
       },
     );
 
+    if (exitCode !== 0) {
+      assert.fail(`Unexpected stderr output: ${stderr.output}`);
+    }
+
     assert.equal(exitCode, 0);
     assert.equal(stderr.output, '');
     assert.deepEqual(JSON.parse(stdout.output), {
@@ -1291,6 +1303,74 @@ test('runCli prints structured success JSON for issue create', async () => {
         created: true,
       },
     });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli validates issue bodies against explicit contracts and appends provenance', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const issueBody = [
+      '## Problem / context',
+      '',
+      'Need deterministic validation for issue bodies.',
+      '',
+      '## Desired outcome',
+      '',
+      'Issue bodies validate against declarative contracts.',
+      '',
+      '## Scope',
+      '',
+      '### In scope',
+      '- declarative contracts',
+      '',
+      '### Out of scope',
+      '- executable plugins',
+      '',
+      '## Acceptance criteria',
+      '',
+      '- [ ] contracts load from .orfe/contracts',
+      '',
+      '## Docs impact',
+      '',
+      '- Docs impact: add new durable docs',
+      '',
+      '## ADR needed?',
+      '',
+      '- ADR needed: yes',
+    ].join('\n');
+
+    const api = mockIssueCreateRequest({
+      requestBody: {
+        title: 'New issue title',
+        body: `${issueBody}\n\n${renderIssueBodyContractMarker()}`,
+      },
+    });
+
+    const exitCode = await runCli(
+      ['issue', 'create', '--title', 'New issue title', '--body', issueBody, '--body-contract', 'formal-work-item@1.0.0'],
+      {
+        stdout,
+        stderr,
+        env: { ORFE_CALLER_NAME: 'Greg' },
+        ...createRuntimeDependencies(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    if (exitCode !== 0) {
+      assert.fail(`Unexpected stderr output: ${stderr.output}`);
+    }
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
     assert.equal(api.isDone(), true);
   } finally {
     nock.cleanAll();
@@ -1576,6 +1656,131 @@ test('runCli prints structured success JSON for pr get-or-create when creating a
     nock.cleanAll();
     nock.enableNetConnect();
   }
+});
+
+test('runCli validates PR bodies against explicit contracts and appends provenance', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const prBody = [
+      'Ref: #59',
+      '',
+      '## Summary',
+      '',
+      '- add body-contract support',
+      '',
+      '## Verification',
+      '',
+      '- `npm test` ✅',
+      '- `npm run lint` ✅',
+      '- `npm run typecheck` ✅',
+      '- `npm run build` ✅',
+      '',
+      '## Docs / ADR / debt',
+      '',
+      '- docs updated: yes',
+      '- ADR updated: yes',
+      '- debt updated: yes',
+      '- details: updated docs and added ADR',
+      '',
+      '## Risks / follow-ups',
+      '',
+      '- richer generation is follow-up work',
+    ].join('\n');
+
+    const api = mockPullRequestGetOrCreateRequest({
+      head: 'issues/orfe-59',
+      existingPullRequests: [],
+      createRequestBody: {
+        head: 'issues/orfe-59',
+        base: 'main',
+        title: 'Introduce versioned body-contract support',
+        body: `${prBody}\n\n${renderPrBodyContractMarker()}`,
+        draft: false,
+      },
+      createResponseBody: {
+        number: 59,
+        title: 'Introduce versioned body-contract support',
+        body: `${prBody}\n\n${renderPrBodyContractMarker()}`,
+        state: 'open',
+        draft: false,
+        head: { ref: 'issues/orfe-59' },
+        base: { ref: 'main' },
+        html_url: 'https://github.com/throw-if-null/orfe/pull/59',
+      },
+    });
+
+    const exitCode = await runCli(
+      [
+        'pr',
+        'get-or-create',
+        '--head',
+        'issues/orfe-59',
+        '--title',
+        'Introduce versioned body-contract support',
+        '--body',
+        prBody,
+        '--body-contract',
+        'implementation-ready@1.0.0',
+      ],
+      {
+        stdout,
+        stderr,
+        env: { ORFE_CALLER_NAME: 'Greg' },
+        ...createRuntimeDependencies(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured contract-validation failures for invalid PR bodies', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(
+    [
+      'pr',
+      'get-or-create',
+      '--head',
+      'issues/orfe-59',
+      '--title',
+      'Introduce versioned body-contract support',
+      '--body',
+      'Ref: #59\n\nCloses: #59',
+      '--body-contract',
+      'implementation-ready@1.0.0',
+    ],
+    {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    },
+  );
+
+  assert.equal(exitCode, 1);
+  assert.equal(stdout.output, '');
+  assert.deepEqual(JSON.parse(stderr.output), {
+    ok: false,
+    command: 'pr get-or-create',
+    error: {
+      code: 'contract_validation_failed',
+      message: 'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
+      retryable: false,
+    },
+  });
 });
 
 test('runCli prints structured auth failures for pr get-or-create lookup', async () => {

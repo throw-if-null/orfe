@@ -43,7 +43,14 @@ Use it to understand what the project is for, which constraints must hold, which
 
 - `docs/orfe/spec.md`
   - detailed v1 runtime, command, and behavior specification
+  - includes the canonical body-contract model for issue and PR artifact validation/provenance
   - use this after the higher-level product and architecture docs when you need command semantics or deeper implementation detail
+
+## Repo-local contract artifacts
+
+- `.orfe/contracts/`
+  - versioned declarative issue and PR body contracts consumed by `orfe`
+  - separate from `.orfe/config.json` and machine-local auth config
 
 ## Related repository guidance
 
@@ -63,5 +70,6 @@ Use it to understand what the project is for, which constraints must hold, which
 - "What is intentionally imperfect right now?": read `docs/project/debt.md`
 - "How should agents hand work to each other?": read `docs/project/handoffs.md`
 - Detailed command/runtime behavior: read `docs/orfe/spec.md`
+- Repo-defined issue/PR body contract rules: read `docs/orfe/spec.md` and `docs/architecture/invariants.md`
 
 If these docs drift from implementation, prefer the source code for observed behavior and record the mismatch in `docs/project/debt.md` or a follow-up issue.

@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "artifact_type": "issue",
+  "contract_name": "formal-work-item",
+  "contract_version": "1.0.0",
+  "description": "Declarative issue-body contract for formal work-item issues.",
+  "allow_additional_sections": false,
+  "sections": [
+    {
+      "id": "problem-context",
+      "heading": "Problem / context",
+      "required": true,
+      "allow_empty": false
+    },
+    {
+      "id": "desired-outcome",
+      "heading": "Desired outcome",
+      "required": true,
+      "allow_empty": false
+    },
+    {
+      "id": "scope",
+      "heading": "Scope",
+      "required": true,
+      "allow_empty": false,
+      "required_patterns": [
+        "^### In scope\\s*$",
+        "^### Out of scope\\s*$"
+      ]
+    },
+    {
+      "id": "acceptance-criteria",
+      "heading": "Acceptance criteria",
+      "required": true,
+      "allow_empty": false,
+      "required_patterns": [
+        "^- \\[(?: |x|X)\\]\\s+"
+      ]
+    },
+    {
+      "id": "docs-impact",
+      "heading": "Docs impact",
+      "required": true,
+      "allow_empty": false,
+      "fields": [
+        {
+          "key": "docs-impact",
+          "label": "Docs impact",
+          "required": true,
+          "allowed_values": [
+            "none",
+            "update existing docs",
+            "add new durable docs",
+            "update existing docs and add new durable docs",
+            "add new durable docs and update existing docs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "adr-needed",
+      "heading": "ADR needed?",
+      "required": true,
+      "allow_empty": false,
+      "fields": [
+        {
+          "key": "adr-needed",
+          "label": "ADR needed",
+          "required": true,
+          "allowed_values": [
+            "no",
+            "yes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "heading": "Dependencies / sequencing notes",
+      "required": false,
+      "allow_empty": true
+    },
+    {
+      "id": "risks",
+      "heading": "Risks / open questions / non-goals",
+      "required": false,
+      "allow_empty": true
+    }
+  ]
+}

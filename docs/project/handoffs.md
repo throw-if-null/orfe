@@ -13,6 +13,12 @@ These are different artifacts and both matter:
 A handoff message does **not** replace the required `[WORKFLOW]` issue event.
 Use the handoff template for communication, and post the matching issue-level workflow event for the official record.
 
+These templates are also distinct from repo-defined body contracts under `.orfe/contracts/`:
+
+- handoff templates are workflow communication defaults for humans and agents
+- body contracts are runtime-consumed validation/provenance artifacts for issue and PR bodies created through `orfe`
+- the templates may inform contract content over time, but `orfe` contract behavior must not depend on `.github` templates or these handoff docs
+
 ## Zoran → Jelena
 
 Use when a discussion becomes a formal work item or when a formal work item is materially reshaped.

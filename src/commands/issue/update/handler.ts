@@ -7,6 +7,7 @@ import {
   type IssueGetResponseData,
   type IssueUpdateData,
 } from '../shared.js';
+import { prepareIssueBodyFromInput } from '../../body-contract-shared.js';
 
 interface IssueUpdateMutation {
   title?: string;
@@ -17,7 +18,7 @@ interface IssueUpdateMutation {
 
 export async function handleIssueUpdate(context: CommandContext<'issue update'>): Promise<IssueUpdateData> {
   const issueNumber = context.input.issue_number as number;
-  const mutation = buildIssueUpdateMutation(context.input);
+  const mutation = await buildIssueUpdateMutation(context);
 
   try {
     const { rest } = await context.getGitHubClient();
@@ -42,15 +43,18 @@ export async function handleIssueUpdate(context: CommandContext<'issue update'>)
   }
 }
 
-function buildIssueUpdateMutation(input: CommandInput): IssueUpdateMutation {
+async function buildIssueUpdateMutation(context: CommandContext<'issue update'>): Promise<IssueUpdateMutation> {
+  const input = context.input as CommandInput;
   const mutation: IssueUpdateMutation = {};
 
   if (typeof input.title === 'string') {
     mutation.title = input.title;
   }
 
-  if (typeof input.body === 'string') {
-    mutation.body = input.body;
+  const body = await prepareIssueBodyFromInput(context);
+
+  if (typeof body === 'string') {
+    mutation.body = body;
   }
 
   if (input.clear_labels === true) {

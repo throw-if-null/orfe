@@ -1,6 +1,7 @@
 import { OrfeError } from '../../../errors.js';
 import type { CommandContext, CommandInput } from '../../../types.js';
 import { getGitHubRequestStatus, normalizeIssueCreateResponse, type IssueCreateData, type IssueGetResponseData } from '../shared.js';
+import { prepareIssueBodyFromInput } from '../../body-contract-shared.js';
 
 interface IssueCreateMutation {
   title: string;
@@ -10,7 +11,7 @@ interface IssueCreateMutation {
 }
 
 export async function handleIssueCreate(context: CommandContext<'issue create'>): Promise<IssueCreateData> {
-  const mutation = buildIssueCreateMutation(context.input);
+  const mutation = await buildIssueCreateMutation(context);
 
   try {
     const { rest } = await context.getGitHubClient();
@@ -26,13 +27,16 @@ export async function handleIssueCreate(context: CommandContext<'issue create'>)
   }
 }
 
-function buildIssueCreateMutation(input: CommandInput): IssueCreateMutation {
+async function buildIssueCreateMutation(context: CommandContext<'issue create'>): Promise<IssueCreateMutation> {
+  const input = context.input as CommandInput;
   const mutation: IssueCreateMutation = {
     title: input.title as string,
   };
 
-  if (typeof input.body === 'string') {
-    mutation.body = input.body;
+  const body = await prepareIssueBodyFromInput(context);
+
+  if (typeof body === 'string') {
+    mutation.body = body;
   }
 
   if (Array.isArray(input.labels)) {
