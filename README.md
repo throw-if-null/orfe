@@ -102,12 +102,14 @@ Example:
   "projects": {
     "default": {
       "owner": "throw-if-null",
-      "project_number": 1,
+      "project_number": 2,
       "status_field_name": "Status"
     }
   }
 }
 ```
+
+For this repository, the default GitHub Project is `Orfe` and its current project number is `2`.
 
 ## Machine-local auth config
 

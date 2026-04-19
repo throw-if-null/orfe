@@ -242,7 +242,7 @@ CLI may override the path with `--config <path>`.
   "projects": {
     "default": {
       "owner": "throw-if-null",
-      "project_number": 1,
+      "project_number": 2,
       "status_field_name": "Status"
     }
   }
@@ -979,7 +979,7 @@ Resolution order:
 ```json
 {
   "project_owner": "throw-if-null",
-  "project_number": 1,
+  "project_number": 2,
   "status_field_name": "Status",
   "status_field_id": "PVTSSF_lAHOABCD1234",
   "item_type": "issue",
@@ -1014,7 +1014,7 @@ Rules:
 ```json
 {
   "project_owner": "throw-if-null",
-  "project_number": 1,
+  "project_number": 2,
   "status_field_name": "Status",
   "status_field_id": "PVTSSF_lAHOABCD1234",
   "item_type": "issue",

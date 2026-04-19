@@ -14,7 +14,7 @@
   "projects": {
     "default": {
       "owner": "throw-if-null",
-      "project_number": 1,
+      "project_number": 2,
       "status_field_name": "Status"
     }
   }
