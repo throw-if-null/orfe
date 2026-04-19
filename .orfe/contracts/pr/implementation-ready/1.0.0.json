@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "artifact_type": "pr",
+  "contract_name": "implementation-ready",
+  "contract_version": "1.0.0",
+  "description": "Declarative PR-body contract for implementation-ready review handoffs.",
+  "allow_additional_sections": false,
+  "preamble_required_patterns": [
+    "^Ref: #\\d+\\s*$"
+  ],
+  "forbidden_patterns": [
+    "(?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+"
+  ],
+  "sections": [
+    {
+      "id": "summary",
+      "heading": "Summary",
+      "required": true,
+      "allow_empty": false
+    },
+    {
+      "id": "verification",
+      "heading": "Verification",
+      "required": true,
+      "allow_empty": false,
+      "required_patterns": [
+        "^- `npm test` (?:✅|❌|not run)$",
+        "^- `npm run lint` (?:✅|❌|not run)$",
+        "^- `npm run typecheck` (?:✅|❌|not run)$",
+        "^- `npm run build` (?:✅|❌|not run)$"
+      ]
+    },
+    {
+      "id": "docs-adr-debt",
+      "heading": "Docs / ADR / debt",
+      "required": true,
+      "allow_empty": false,
+      "fields": [
+        {
+          "key": "docs-updated",
+          "label": "docs updated",
+          "required": true,
+          "allowed_values": [
+            "yes",
+            "no"
+          ]
+        },
+        {
+          "key": "adr-updated",
+          "label": "ADR updated",
+          "required": true,
+          "allowed_values": [
+            "yes",
+            "no"
+          ]
+        },
+        {
+          "key": "debt-updated",
+          "label": "debt updated",
+          "required": true,
+          "allowed_values": [
+            "yes",
+            "no"
+          ]
+        },
+        {
+          "key": "details",
+          "label": "details",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "risks-follow-ups",
+      "heading": "Risks / follow-ups",
+      "required": true,
+      "allow_empty": false
+    }
+  ]
+}

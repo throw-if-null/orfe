@@ -89,6 +89,14 @@ function mockIssueCreateRequest(requestBody: Record<string, unknown>) {
     });
 }
 
+function renderIssueBodyContractMarker() {
+  return '<!-- orfe-body-contract: issue/formal-work-item@1.0.0 -->';
+}
+
+function renderPrBodyContractMarker() {
+  return '<!-- orfe-body-contract: pr/implementation-ready@1.0.0 -->';
+}
+
 function mockPullRequestGetRequest(prNumber: number) {
   return nock('https://api.github.com')
     .get('/repos/throw-if-null/orfe/installation')
@@ -389,7 +397,7 @@ test('executeOrfeTool returns the shared success envelope for issue get', async 
       },
       {
         loadRepoConfigImpl: async () => ({
-          configPath: '/tmp/.orfe/config.json',
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
           callerToBot: { Greg: 'greg' },
@@ -454,7 +462,7 @@ test('executeOrfeTool returns the shared success envelope for issue update', asy
       },
       {
         loadRepoConfigImpl: async () => ({
-          configPath: '/tmp/.orfe/config.json',
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
           callerToBot: { Greg: 'greg' },
@@ -519,7 +527,7 @@ test('executeOrfeTool returns the shared success envelope for issue create', asy
       },
       {
         loadRepoConfigImpl: async () => ({
-          configPath: '/tmp/.orfe/config.json',
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
           callerToBot: { Greg: 'greg' },
@@ -559,6 +567,87 @@ test('executeOrfeTool returns the shared success envelope for issue create', asy
   }
 });
 
+test('executeOrfeTool validates issue bodies through body contracts before create', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const issueBody = [
+      '## Problem / context',
+      '',
+      'Need deterministic validation for issue bodies.',
+      '',
+      '## Desired outcome',
+      '',
+      'Issue bodies validate against declarative contracts.',
+      '',
+      '## Scope',
+      '',
+      '### In scope',
+      '- declarative contracts',
+      '',
+      '### Out of scope',
+      '- executable plugins',
+      '',
+      '## Acceptance criteria',
+      '',
+      '- [ ] contracts load from .orfe/contracts',
+      '',
+      '## Docs impact',
+      '',
+      '- Docs impact: add new durable docs',
+      '',
+      '## ADR needed?',
+      '',
+      '- ADR needed: yes',
+    ].join('\n');
+
+    const api = mockIssueCreateRequest({
+      title: 'New issue title',
+      body: `${issueBody}\n\n${renderIssueBodyContractMarker()}`,
+    });
+
+    const result = await executeOrfeTool(
+      {
+        command: 'issue create',
+        title: 'New issue title',
+        body: issueBody,
+        body_contract: 'formal-work-item@1.0.0',
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => ({
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
+          version: 1,
+          repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
+          callerToBot: { Greg: 'greg' },
+        }),
+        loadAuthConfigImpl: async () => ({
+          configPath: '/tmp/auth.json',
+          version: 1,
+          bots: {
+            greg: {
+              provider: 'github-app',
+              appId: 123,
+              appSlug: 'GR3G-BOT',
+              privateKeyPath: '/tmp/greg.pem',
+            },
+          },
+        }),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.equal(result.ok, true);
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
 test('executeOrfeTool returns the shared success envelope for pr get', async () => {
   nock.disableNetConnect();
 
@@ -576,7 +665,7 @@ test('executeOrfeTool returns the shared success envelope for pr get', async () 
       },
       {
         loadRepoConfigImpl: async () => ({
-          configPath: '/tmp/.orfe/config.json',
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
           callerToBot: { Greg: 'greg' },
@@ -651,7 +740,7 @@ test('executeOrfeTool returns the shared success envelope for pr get-or-create',
       },
       {
         loadRepoConfigImpl: async () => ({
-          configPath: '/tmp/.orfe/config.json',
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
           callerToBot: { Greg: 'greg' },
@@ -692,6 +781,101 @@ test('executeOrfeTool returns the shared success envelope for pr get-or-create',
   }
 });
 
+test('executeOrfeTool validates PR bodies through body contracts before create', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const prBody = [
+      'Ref: #59',
+      '',
+      '## Summary',
+      '',
+      '- add body-contract support',
+      '',
+      '## Verification',
+      '',
+      '- `npm test` ✅',
+      '- `npm run lint` ✅',
+      '- `npm run typecheck` ✅',
+      '- `npm run build` ✅',
+      '',
+      '## Docs / ADR / debt',
+      '',
+      '- docs updated: yes',
+      '- ADR updated: yes',
+      '- debt updated: yes',
+      '- details: updated docs and added ADR',
+      '',
+      '## Risks / follow-ups',
+      '',
+      '- richer generation is follow-up work',
+    ].join('\n');
+
+    const api = mockPullRequestGetOrCreateRequest({
+      head: 'issues/orfe-59',
+      existingPullRequests: [],
+      createRequestBody: {
+        head: 'issues/orfe-59',
+        base: 'main',
+        title: 'Introduce versioned body-contract support',
+        body: `${prBody}\n\n${renderPrBodyContractMarker()}`,
+        draft: false,
+      },
+      createResponseBody: {
+        number: 59,
+        title: 'Introduce versioned body-contract support',
+        body: `${prBody}\n\n${renderPrBodyContractMarker()}`,
+        state: 'open',
+        draft: false,
+        head: { ref: 'issues/orfe-59' },
+        base: { ref: 'main' },
+        html_url: 'https://github.com/throw-if-null/orfe/pull/59',
+      },
+    });
+
+    const result = await executeOrfeTool(
+      {
+        command: 'pr get-or-create',
+        head: 'issues/orfe-59',
+        title: 'Introduce versioned body-contract support',
+        body: prBody,
+        body_contract: 'implementation-ready@1.0.0',
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => ({
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
+          version: 1,
+          repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
+          callerToBot: { Greg: 'greg' },
+        }),
+        loadAuthConfigImpl: async () => ({
+          configPath: '/tmp/auth.json',
+          version: 1,
+          bots: {
+            greg: {
+              provider: 'github-app',
+              appId: 123,
+              appSlug: 'GR3G-BOT',
+              privateKeyPath: '/tmp/greg.pem',
+            },
+          },
+        }),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.equal(result.ok, true);
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
 test('executeOrfeTool returns the shared success envelope for pr comment', async () => {
   nock.disableNetConnect();
 
@@ -710,7 +894,7 @@ test('executeOrfeTool returns the shared success envelope for pr comment', async
       },
       {
         loadRepoConfigImpl: async () => ({
-          configPath: '/tmp/.orfe/config.json',
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
           callerToBot: { Greg: 'greg' },
@@ -768,7 +952,7 @@ test('executeOrfeTool returns the shared success envelope for pr submit-review',
       },
       {
         loadRepoConfigImpl: async () => ({
-          configPath: '/tmp/.orfe/config.json',
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
           callerToBot: { Greg: 'greg' },
@@ -826,7 +1010,7 @@ test('executeOrfeTool returns the shared success envelope for pr reply', async (
       },
       {
         loadRepoConfigImpl: async () => ({
-          configPath: '/tmp/.orfe/config.json',
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
           callerToBot: { Greg: 'greg' },
@@ -960,7 +1144,7 @@ test('executeOrfeTool returns the shared success envelope for project get-status
       },
       {
         loadRepoConfigImpl: async () => ({
-          configPath: '/tmp/.orfe/config.json',
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
           callerToBot: { Greg: 'greg' },
@@ -1162,7 +1346,7 @@ test('executeOrfeTool returns the shared success envelope for project set-status
       },
       {
         loadRepoConfigImpl: async () => ({
-          configPath: '/tmp/.orfe/config.json',
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
           callerToBot: { Greg: 'greg' },
@@ -1273,7 +1457,7 @@ test('executeOrfeTool resolves auth token from context.agent and returns shared 
       },
       {
         loadRepoConfigImpl: async () => ({
-          configPath: '/tmp/.orfe/config.json',
+          configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
           version: 1,
           repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
           callerToBot: { Greg: 'greg' },

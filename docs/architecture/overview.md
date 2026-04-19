@@ -59,8 +59,18 @@ Responsibilities:
 - hold repo-local non-secret configuration
 - map caller names to GitHub bots
 - define repository and project defaults
+- stay separate from repo-defined body-contract artifacts under `.orfe/contracts/`
 
-### 5. Auth layer
+### 5. Body-contract layer
+Current examples include `src/body-contracts.ts`, `src/commands/body-contract-shared.ts`, and `.orfe/contracts/`.
+
+Responsibilities:
+- load versioned declarative issue and PR body contracts from the repository
+- validate or minimally normalize issue and PR bodies deterministically
+- append and read HTML comment provenance markers
+- stay below repository workflow policy rather than interpreting ownership or orchestration semantics
+
+### 6. Auth layer
 Current examples include `src/github.ts` and machine-local auth config.
 
 Responsibilities:
@@ -68,7 +78,7 @@ Responsibilities:
 - mint installation tokens
 - keep secret-bearing auth details outside repo-local config
 
-### 6. GitHub adapter layer
+### 7. GitHub adapter layer
 Current examples include the slice handlers under `src/commands/**/handler.ts` and the shared GitHub client factory in `src/github.ts`.
 
 Responsibilities:
@@ -84,6 +94,7 @@ graph TD
   CLI[CLI entrypoint<br/>src/cli.ts + src/command.ts] --> Core
 
   Core --> Config[Repo config<br/>src/config.ts]
+  Core --> BodyContracts[Body contracts<br/>src/body-contracts.ts]
   Core --> Auth[Caller bot + auth config]
   Core --> GitHub[GitHub client factory<br/>src/github.ts]
   Core --> Registry[Generic command registry<br/>src/commands/registry/index.ts]
@@ -185,10 +196,12 @@ Command-specific tests live beside the slice by default. Cross-cutting CLI, core
 - plugin entrypoint reads OpenCode context; core does not
 - core accepts plain data only
 - repo-local config contains no secrets
+- repo-defined body contracts live beside config under `.orfe/contracts/`, not inside config
 - machine-local auth config contains bot credentials
 - command registry stays generic and deterministic
 - command semantics live in slice definitions and handlers, not in duplicate metadata files
 - command behavior uses Octokit, not `gh` shell-outs
+- body contracts stay declarative and do not encode repository workflow orchestration
 - repo workflow policy belongs above `orfe`, not inside it
 
 These file references are descriptive of the current layout, not a promise that file organization will never change.
