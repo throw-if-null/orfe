@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import nock from 'nock';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { COMMANDS } from '../src/commands/index.js';
 import { listCommandNames } from '../src/commands/registry/index.js';
@@ -9,10 +11,12 @@ import { GitHubClientFactory } from '../src/github.js';
 import { createRuntimeSnapshot, runOrfeCore } from '../src/core.js';
 
 const COMMAND_NAMES = COMMANDS.map((definition) => definition.name);
+const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoConfigPath = path.join(workspaceRoot, '.orfe', 'config.json');
 
 function createRepoConfig() {
   return {
-    configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
+    configPath: repoConfigPath,
     version: 1 as const,
     repository: {
       owner: 'throw-if-null',
@@ -4740,7 +4744,7 @@ test('createRuntimeSnapshot proves auth config is separate from repo-local confi
     },
   );
 
-  assert.equal(snapshot.repoConfig.configPath, '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json');
+  assert.equal(snapshot.repoConfig.configPath, repoConfigPath);
   assert.equal(snapshot.authConfig.configPath, '/tmp/auth.json');
   assert.equal(snapshot.callerBot, 'greg');
 });

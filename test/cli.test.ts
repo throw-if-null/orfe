@@ -22,6 +22,7 @@ class MemoryStream {
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(testDir, '..');
+const repoConfigPath = resolve(workspaceRoot, '.orfe', 'config.json');
 
 const COMMAND_GROUPS: readonly OrfeCommandGroup[] = listCommandGroups();
 const ALL_COMMANDS: readonly OrfeCommandName[] = listCommandNames();
@@ -37,7 +38,7 @@ async function readPackageVersion(): Promise<string> {
 function createRuntimeDependencies() {
   return {
     loadRepoConfigImpl: async () => ({
-      configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
+      configPath: repoConfigPath,
       version: 1 as const,
       repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
       callerToBot: { Greg: 'greg' },
@@ -1067,7 +1068,7 @@ test('runCli prints structured config failures for auth token', async () => {
     stderr,
     env: { ORFE_CALLER_NAME: 'Greg' },
     loadRepoConfigImpl: async () => ({
-      configPath: '/home/backsippan/gh/tin/orfe/.worktrees/orfe-59/.orfe/config.json',
+      configPath: repoConfigPath,
       version: 1 as const,
       repository: { owner: 'throw-if-null', name: 'orfe', defaultBranch: 'main' },
       callerToBot: { Greg: 'greg' },
