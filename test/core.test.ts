@@ -1835,34 +1835,48 @@ test('runOrfeCore validates PR bodies against explicit contracts and appends pro
 });
 
 test('runOrfeCore fails clearly when contract validation fails', async () => {
-  await assert.rejects(
-    runOrfeCore(
-      {
-        callerName: 'Greg',
-        command: 'pr get-or-create',
-        input: {
-          head: 'issues/orfe-59',
-          title: 'Introduce versioned body-contract support',
-          body: 'Ref: #59\n\nCloses: #59',
-          body_contract: 'implementation-ready@1.0.0',
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetOrCreateRequest({
+      head: 'issues/orfe-59',
+      existingPullRequests: [],
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'pr get-or-create',
+          input: {
+            head: 'issues/orfe-59',
+            title: 'Introduce versioned body-contract support',
+            body: 'Ref: #59\n\nCloses: #59',
+            body_contract: 'implementation-ready@1.0.0',
+          },
         },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'contract_validation_failed');
+        assert.equal(
+          error.message,
+          'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
+        );
+        return true;
       },
-      {
-        loadRepoConfigImpl: async () => createRepoConfig(),
-        loadAuthConfigImpl: async () => createAuthConfig(),
-        githubClientFactory: createGitHubClientFactory(),
-      },
-    ),
-    (error: unknown) => {
-      assert(error instanceof OrfeError);
-      assert.equal(error.code, 'contract_validation_failed');
-      assert.equal(
-        error.message,
-        'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
-      );
-      return true;
-    },
-  );
+    );
+
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
 });
 
 test('runOrfeCore sets project status for an issue and returns structured success output', async () => {
@@ -2664,6 +2678,64 @@ test('runOrfeCore reuses an existing pull request for pr get-or-create', async (
         callerName: 'Greg',
         command: 'pr get-or-create',
         input: { head: 'issues/orfe-13', title: 'Design the `orfe` custom tool and CLI contract' },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'pr get-or-create',
+      repo: 'throw-if-null/orfe',
+      data: {
+        pr_number: 9,
+        html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+        head: 'issues/orfe-13',
+        base: 'main',
+        draft: false,
+        created: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore reuses an existing pull request before validating unused body contract input', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetOrCreateRequest({
+      head: 'issues/orfe-13',
+      existingPullRequests: [
+        {
+          number: 9,
+          title: 'Design the `orfe` custom tool and CLI contract',
+          body: 'PR body',
+          state: 'open',
+          draft: false,
+          head: { ref: 'issues/orfe-13' },
+          base: { ref: 'main' },
+          html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+        },
+      ],
+    });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'pr get-or-create',
+        input: {
+          head: 'issues/orfe-13',
+          title: 'Design the `orfe` custom tool and CLI contract',
+          body: 'Ref: #13\n\nCloses: #13',
+          body_contract: 'implementation-ready@1.0.0',
+        },
       },
       {
         loadRepoConfigImpl: async () => createRepoConfig(),
