@@ -5,6 +5,7 @@ import { issueCreateCommand } from './issue/create/definition.js';
 import { issueGetCommand } from './issue/get/definition.js';
 import { issueSetStateCommand } from './issue/set-state/definition.js';
 import { issueUpdateCommand } from './issue/update/definition.js';
+import { issueValidateCommand } from './issue/validate/definition.js';
 import { prCommentCommand } from './pr/comment/definition.js';
 import { prGetOrCreateCommand } from './pr/get-or-create/definition.js';
 import { prGetCommand } from './pr/get/definition.js';
@@ -20,6 +21,7 @@ export const COMMANDS = [
   issueGetCommand,
   issueCreateCommand,
   issueUpdateCommand,
+  issueValidateCommand,
   issueCommentCommand,
   issueSetStateCommand,
   prGetCommand,

@@ -296,6 +296,80 @@ test('validateArtifactBody requires explicit contract selection or provenance', 
   });
 });
 
+test('validateArtifactBody returns structured issue validation output agents can act on', async () => {
+  const result = await validateArtifactBody({
+    artifactType: 'issue',
+    body: [
+      '## Problem / context',
+      '',
+      'Need deterministic issue-body validation.',
+      '',
+      '## Desired outcome',
+      '',
+      'Issue bodies validate against a versioned contract.',
+      '',
+      '## Scope',
+      '',
+      '### In scope',
+      '- declarative contracts',
+      '',
+      '## Docs impact',
+      '',
+      '- Docs impact: maybe',
+      '',
+      '## ADR needed?',
+      '',
+      '- ADR needed: no',
+    ].join('\n'),
+    bodyContract: 'formal-work-item@1.0.0',
+    repoConfig: createRepoConfig(),
+  });
+
+  assert.deepEqual(result.contract, {
+    artifact_type: 'issue',
+    contract_name: 'formal-work-item',
+    contract_version: '1.0.0',
+  });
+  assert.equal(result.contract_source, 'explicit');
+  assert.equal(result.valid, false);
+  assert.equal(result.normalized_body, undefined);
+  assert.deepEqual(
+    result.errors.map((issue) => issue.kind),
+    ['missing_required_pattern', 'missing_required_section', 'invalid_allowed_value'],
+  );
+  assert.equal(result.errors[0]?.scope, 'section');
+  assert.equal(result.errors[0]?.section_heading, 'Scope');
+  assert.equal(result.errors[1]?.scope, 'section');
+  assert.equal(result.errors[1]?.section_heading, 'Acceptance criteria');
+  assert.equal(result.errors[2]?.scope, 'field');
+  assert.equal(result.errors[2]?.field_label, 'Docs impact');
+});
+
+test('validateArtifactBody normalizes valid issue bodies with provenance', async () => {
+  const result = await validateArtifactBody({
+    artifactType: 'issue',
+    body: createValidIssueBody(),
+    bodyContract: 'formal-work-item@1.0.0',
+    repoConfig: createRepoConfig(),
+  });
+
+  assert.deepEqual(result, {
+    valid: true,
+    contract: {
+      artifact_type: 'issue',
+      contract_name: 'formal-work-item',
+      contract_version: '1.0.0',
+    },
+    contract_source: 'explicit',
+    normalized_body: `${createValidIssueBody()}\n\n${renderBodyContractProvenance({
+      artifact_type: 'issue',
+      contract_name: 'formal-work-item',
+      contract_version: '1.0.0',
+    })}`,
+    errors: [],
+  });
+});
+
 test('loadBodyContract loads the repository-defined versioned contract files', async () => {
   const issueContract = await loadBodyContract(createRepoConfig(), {
     artifact_type: 'issue',

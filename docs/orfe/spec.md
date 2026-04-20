@@ -552,6 +552,7 @@ orfe runtime info
 orfe issue get
 orfe issue create
 orfe issue update
+orfe issue validate
 orfe issue comment
 orfe issue set-state
 
@@ -673,6 +674,7 @@ Body-contract rules:
 - when provided, the body must validate against the selected issue contract
 - when a provenance marker is already present in `body`, validation may use that marker even if `body_contract` is omitted
 - when both explicit selection and provenance marker are present, they must match exactly
+- issue-body validation remains fully contract-driven; repo-specific structure such as required headings, list fields, and allowed values lives in `.orfe/contracts/issues/...`, not in hardcoded runtime workflow logic
 - successful validation appends or normalizes an HTML comment provenance marker in this form:
 
 ```html
@@ -716,6 +718,8 @@ Rules:
 
 Body-contract rules match `issue create`.
 
+The current repository formal work-item contract is represented by `.orfe/contracts/issues/formal-work-item/1.0.0.json`, which validates the repository's existing issue structure declaratively rather than through special-case runtime logic.
+
 **Success `data` shape**:
 
 ```json
@@ -732,7 +736,101 @@ Body-contract rules match `issue create`.
 **Failure behavior**: invalid field combinations => `invalid_usage`; missing issue => `github_not_found`  
 **Idempotency**: yes when the requested state already matches the current issue state
 
-## 11.5 `issue comment`
+## 11.5 `issue validate`
+
+**Purpose**: Validate an issue body against a repository-defined, versioned body contract without creating or updating an issue.
+
+**CLI**:
+
+```text
+orfe issue validate --body <text> [--body-contract <name@version>] [--repo <owner/name>] [--config <path>]
+```
+
+**Tool input**:
+
+```json
+{
+  "command": "issue validate",
+  "body": "## Problem / context\n\n...",
+  "body_contract": "formal-work-item@1.0.0"
+}
+```
+
+Rules:
+
+- `body` is required
+- validation requires either `body_contract` or an existing provenance marker in `body`
+- when both explicit selection and provenance marker are present, they must match exactly
+- repo-specific issue structure remains defined by the repository contract artifact, not by hardcoded issue-workflow logic inside `orfe`
+- this command is a generic validation surface; it does not create workflow side effects or derive labels, assignees, or project changes from issue content
+
+Structured validation behavior:
+
+- success and validation-failure results both return `ok: true` with structured `data`
+- `data.valid` distinguishes pass/fail
+- `data.errors` provides actionable, typed validation issues for agents before issue creation or refinement
+- validation issues may identify provenance, body patterns, missing sections, empty sections, missing or duplicate fields, and invalid allowed values
+- when validation passes, `normalized_body` returns the body with canonical provenance appended or normalized
+
+The current repository issue contract enforces these rules through `.orfe/contracts/issues/formal-work-item/1.0.0.json`:
+
+- required top-level sections such as `Problem / context`, `Desired outcome`, `Scope`, and `Acceptance criteria`
+- required `Scope` subsections for `In scope` and `Out of scope`
+- allowed-value validation for single-answer fields such as `Docs impact` and `ADR needed`
+- optional sequencing/risk sections without promoting issue-body content into workflow side effects
+
+**Success `data` shape**:
+
+```json
+{
+  "valid": true,
+  "contract": {
+    "artifact_type": "issue",
+    "contract_name": "formal-work-item",
+    "contract_version": "1.0.0"
+  },
+  "contract_source": "explicit",
+  "normalized_body": "## Problem / context\n\n...\n\n<!-- orfe-body-contract: issue/formal-work-item@1.0.0 -->",
+  "errors": []
+}
+```
+
+Representative invalid result:
+
+```json
+{
+  "valid": false,
+  "contract": {
+    "artifact_type": "issue",
+    "contract_name": "formal-work-item",
+    "contract_version": "1.0.0"
+  },
+  "contract_source": "explicit",
+  "errors": [
+    {
+      "kind": "invalid_allowed_value",
+      "scope": "field",
+      "section_heading": "Docs impact",
+      "field_label": "Docs impact",
+      "expected_values": ["none", "update existing docs", "add new durable docs"],
+      "actual_value": "maybe",
+      "message": "Body contract validation failed: field \"Docs impact\" in section \"Docs impact\" must be one of none, update existing docs, add new durable docs."
+    }
+  ]
+}
+```
+
+Minimal generation/normalization note:
+
+- this issue slice does not add interactive or inferred issue authoring
+- the only body-generation behavior in scope is deterministic normalization of the provided body plus provenance insertion after successful validation
+- the contract file and version remain the source of that normalization provenance
+
+**Side effects**: none  
+**Failure behavior**: malformed command input => `invalid_usage`; invalid contract files => `contract_invalid` / `contract_not_found`  
+**Idempotency**: yes
+
+## 11.6 `issue comment`
 
 **Purpose**: Add a top-level issue comment.
 
@@ -757,7 +855,7 @@ orfe issue comment --issue-number <number> --body <text> [--repo <owner/name>] [
 **Failure behavior**: missing issue => `github_not_found`  
 **Idempotency**: no
 
-## 11.6 `issue set-state`
+## 11.7 `issue set-state`
 
 **Purpose**: Set issue open/closed state.
 
@@ -852,7 +950,7 @@ For duplicate closure, the success payload must instead include the canonical is
 **Failure behavior**: invalid combination => `invalid_usage`; missing duplicate target => `github_not_found`  
 **Idempotency**: yes
 
-## 11.7 `pr get`
+## 11.8 `pr get`
 
 **Purpose**: Read one pull request.
 
@@ -881,7 +979,7 @@ orfe pr get --pr-number <number> [--repo <owner/name>] [--config <path>]
 **Failure behavior**: missing PR => `github_not_found`  
 **Idempotency**: yes
 
-## 11.8 `pr get-or-create`
+## 11.9 `pr get-or-create`
 
 **Purpose**: Reuse an existing open PR for a branch pair or create one if none exists.
 
@@ -931,7 +1029,7 @@ Body-contract rules:
 **Failure behavior**: `github_conflict` if the lookup is ambiguous  
 **Idempotency**: yes by lookup key
 
-## 11.9 `pr validate`
+## 11.10 `pr validate`
 
 **Purpose**: Validate a pull request body against a repository-defined, versioned body contract without creating or updating a PR.
 
@@ -1016,7 +1114,7 @@ Representative invalid result:
 **Failure behavior**: malformed command input => `invalid_usage`; invalid contract files => `contract_invalid` / `contract_not_found`  
 **Idempotency**: yes
 
-## 11.10 `pr comment`
+## 11.11 `pr comment`
 
 **Purpose**: Add a top-level issue-style comment on a PR conversation.
 
@@ -1041,7 +1139,7 @@ orfe pr comment --pr-number <number> --body <text> [--repo <owner/name>] [--conf
 **Failure behavior**: missing PR => `github_not_found`  
 **Idempotency**: no
 
-## 11.11 `pr submit-review`
+## 11.12 `pr submit-review`
 
 **Purpose**: Submit a completed PR review without line comments.
 
@@ -1071,7 +1169,7 @@ Rules:
 **Failure behavior**: invalid `event` => `invalid_input`; missing PR => `github_not_found`  
 **Idempotency**: no
 
-## 11.12 `pr reply`
+## 11.13 `pr reply`
 
 **Purpose**: Reply to an existing pull request review comment.
 
@@ -1096,7 +1194,7 @@ orfe pr reply --pr-number <number> --comment-id <number> --body <text> [--repo <
 **Failure behavior**: missing PR or parent comment => `github_not_found`; invalid or non-repliable targets => `github_conflict`  
 **Idempotency**: no
 
-## 11.13 `project get-status`
+## 11.14 `project get-status`
 
 **Purpose**: Read the current Status-field value for a project item.
 
@@ -1132,7 +1230,7 @@ Resolution order:
 **Failure behavior**: `project_item_not_found` if the item is not on the project; `project_status_field_not_found` if the configured Status field is missing on the project  
 **Idempotency**: yes
 
-## 11.14 `project set-status`
+## 11.15 `project set-status`
 
 **Purpose**: Set the Status-field value for a project item.
 
@@ -1170,7 +1268,7 @@ Rules:
 **Failure behavior**: `project_item_not_found` if the item is not on the project; `project_status_field_not_found` if the configured or overridden single-select status field does not exist on the project; invalid option => `project_status_option_not_found`  
 **Idempotency**: yes
 
-## 11.15 `runtime info`
+## 11.16 `runtime info`
 
 **Purpose**: Inspect the currently executing `orfe` runtime through the supported command contract.
 

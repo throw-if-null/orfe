@@ -1,3 +1,4 @@
+import type { ArtifactBodyValidationResult } from '../../body-contracts.js';
 import { OrfeError } from '../../errors.js';
 import type { GitHubClients } from '../../types.js';
 
@@ -34,6 +35,8 @@ export interface IssueUpdateData {
   html_url: string;
   changed: boolean;
 }
+
+export type IssueValidateData = ArtifactBodyValidationResult;
 
 export interface IssueGetResponseData {
   number?: unknown;

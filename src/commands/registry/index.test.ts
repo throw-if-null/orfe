@@ -16,6 +16,10 @@ test('registry lists the PR validation command from explicit registrations', () 
   assert(listCommandNames().includes('pr validate'));
 });
 
+test('registry lists the issue validation command from explicit registrations', () => {
+  assert(listCommandNames().includes('issue validate'));
+});
+
 test('registry resolves definitions from the explicit registration array', () => {
   for (const definition of COMMANDS) {
     assert.equal(getCommandDefinition(definition.name), definition);

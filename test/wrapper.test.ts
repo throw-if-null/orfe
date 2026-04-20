@@ -880,6 +880,127 @@ test('executeOrfeTool returns structured PR validation output', async () => {
   }
 });
 
+test('executeOrfeTool returns structured issue validation output', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const result = await executeOrfeTool(
+      {
+        command: 'issue validate',
+        body: [
+          '## Problem / context',
+          '',
+          'Need deterministic issue-body validation.',
+          '',
+          '## Desired outcome',
+          '',
+          'Issue bodies validate against a versioned contract.',
+          '',
+          '## Scope',
+          '',
+          '### In scope',
+          '- declarative contracts',
+          '',
+          '### Out of scope',
+          '- executable plugins',
+          '',
+          '## Acceptance criteria',
+          '',
+          '- [ ] contracts load from .orfe/contracts',
+          '',
+          '## Docs impact',
+          '',
+          '- Docs impact: update existing docs',
+          '- Details: update docs/orfe/spec.md',
+          '',
+          '## ADR needed?',
+          '',
+          '- ADR needed: no',
+          '- Details: covered by ADR 0009',
+          '',
+          '## Dependencies / sequencing notes',
+          '',
+          '- depends on #59',
+          '',
+          '## Risks / open questions / non-goals',
+          '',
+          '- keep repo-specific structure out of runtime logic',
+        ].join('\n'),
+        body_contract: 'formal-work-item@1.0.0',
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'issue validate',
+      repo: 'throw-if-null/orfe',
+      data: {
+        valid: true,
+        contract: {
+          artifact_type: 'issue',
+          contract_name: 'formal-work-item',
+          contract_version: '1.0.0',
+        },
+        contract_source: 'explicit',
+        normalized_body: [
+          '## Problem / context',
+          '',
+          'Need deterministic issue-body validation.',
+          '',
+          '## Desired outcome',
+          '',
+          'Issue bodies validate against a versioned contract.',
+          '',
+          '## Scope',
+          '',
+          '### In scope',
+          '- declarative contracts',
+          '',
+          '### Out of scope',
+          '- executable plugins',
+          '',
+          '## Acceptance criteria',
+          '',
+          '- [ ] contracts load from .orfe/contracts',
+          '',
+          '## Docs impact',
+          '',
+          '- Docs impact: update existing docs',
+          '- Details: update docs/orfe/spec.md',
+          '',
+          '## ADR needed?',
+          '',
+          '- ADR needed: no',
+          '- Details: covered by ADR 0009',
+          '',
+          '## Dependencies / sequencing notes',
+          '',
+          '- depends on #59',
+          '',
+          '## Risks / open questions / non-goals',
+          '',
+          '- keep repo-specific structure out of runtime logic',
+          '',
+          renderIssueBodyContractMarker(),
+        ].join('\n'),
+        errors: [],
+      },
+    });
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
 test('executeOrfeTool returns the shared success envelope for pr comment', async () => {
   nock.disableNetConnect();
 
