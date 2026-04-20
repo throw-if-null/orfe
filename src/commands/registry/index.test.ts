@@ -12,6 +12,10 @@ test('registry derives command groups from explicit registrations', () => {
   assert.deepEqual(listCommandGroups(), ['auth', 'issue', 'pr', 'project', 'runtime']);
 });
 
+test('registry lists the PR validation command from explicit registrations', () => {
+  assert(listCommandNames().includes('pr validate'));
+});
+
 test('registry resolves definitions from the explicit registration array', () => {
   for (const definition of COMMANDS) {
     assert.equal(getCommandDefinition(definition.name), definition);

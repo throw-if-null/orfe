@@ -556,6 +556,7 @@ orfe issue comment
 orfe issue set-state
 
 orfe pr get
+orfe pr validate
 orfe pr get-or-create
 orfe pr comment
 orfe pr submit-review
@@ -930,7 +931,92 @@ Body-contract rules:
 **Failure behavior**: `github_conflict` if the lookup is ambiguous  
 **Idempotency**: yes by lookup key
 
-## 11.9 `pr comment`
+## 11.9 `pr validate`
+
+**Purpose**: Validate a pull request body against a repository-defined, versioned body contract without creating or updating a PR.
+
+**CLI**:
+
+```text
+orfe pr validate --body <text> [--body-contract <name@version>] [--repo <owner/name>] [--config <path>]
+```
+
+**Tool input**:
+
+```json
+{
+  "command": "pr validate",
+  "body": "Ref: #58\n\n## Summary\n- ...",
+  "body_contract": "implementation-ready@1.0.0"
+}
+```
+
+Rules:
+
+- `body` is required
+- validation requires either `body_contract` or an existing provenance marker in `body`
+- when both explicit selection and provenance marker are present, they must match exactly
+- repo-specific rules such as the `Ref: #<issue-number>` first-line requirement and auto-closing keyword rejection stay in the repository contract artifact, not in hardcoded PR workflow logic
+- required-section validation is implemented in this slice through the shared contract section model
+- this command is a generic validation surface; it does not create workflow side effects or turn `orfe` into a workflow engine
+
+Structured validation behavior:
+
+- success and validation-failure results both return `ok: true` with structured `data`
+- `data.valid` distinguishes pass/fail
+- `data.errors` provides actionable, typed validation issues for agents
+- validation issues may identify provenance, preamble/body patterns, missing or forbidden sections, and invalid fields/allowed values
+- when validation passes, `normalized_body` returns the body with canonical provenance appended or normalized
+
+The current repository PR contract enforces these rules through `.orfe/contracts/pr/implementation-ready/1.0.0.json`:
+
+- the first line must match `Ref: #<issue-number>`
+- auto-closing keywords such as `Closes`, `Fixes`, and `Resolves` are forbidden by default
+- the `Summary`, `Verification`, `Docs / ADR / debt`, and `Risks / follow-ups` sections are required
+
+**Success `data` shape**:
+
+```json
+{
+  "valid": true,
+  "contract": {
+    "artifact_type": "pr",
+    "contract_name": "implementation-ready",
+    "contract_version": "1.0.0"
+  },
+  "contract_source": "explicit",
+  "normalized_body": "Ref: #58\n\n## Summary\n- ...\n\n<!-- orfe-body-contract: pr/implementation-ready@1.0.0 -->",
+  "errors": []
+}
+```
+
+Representative invalid result:
+
+```json
+{
+  "valid": false,
+  "contract": {
+    "artifact_type": "pr",
+    "contract_name": "implementation-ready",
+    "contract_version": "1.0.0"
+  },
+  "contract_source": "explicit",
+  "errors": [
+    {
+      "kind": "matched_forbidden_pattern",
+      "scope": "body",
+      "pattern": "(?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+",
+      "message": "Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+."
+    }
+  ]
+}
+```
+
+**Side effects**: none  
+**Failure behavior**: malformed command input => `invalid_usage`; invalid contract files => `contract_invalid` / `contract_not_found`  
+**Idempotency**: yes
+
+## 11.10 `pr comment`
 
 **Purpose**: Add a top-level issue-style comment on a PR conversation.
 
@@ -955,7 +1041,7 @@ orfe pr comment --pr-number <number> --body <text> [--repo <owner/name>] [--conf
 **Failure behavior**: missing PR => `github_not_found`  
 **Idempotency**: no
 
-## 11.10 `pr submit-review`
+## 11.11 `pr submit-review`
 
 **Purpose**: Submit a completed PR review without line comments.
 
@@ -985,7 +1071,7 @@ Rules:
 **Failure behavior**: invalid `event` => `invalid_input`; missing PR => `github_not_found`  
 **Idempotency**: no
 
-## 11.11 `pr reply`
+## 11.12 `pr reply`
 
 **Purpose**: Reply to an existing pull request review comment.
 
@@ -1010,7 +1096,7 @@ orfe pr reply --pr-number <number> --comment-id <number> --body <text> [--repo <
 **Failure behavior**: missing PR or parent comment => `github_not_found`; invalid or non-repliable targets => `github_conflict`  
 **Idempotency**: no
 
-## 11.12 `project get-status`
+## 11.13 `project get-status`
 
 **Purpose**: Read the current Status-field value for a project item.
 
@@ -1046,7 +1132,7 @@ Resolution order:
 **Failure behavior**: `project_item_not_found` if the item is not on the project; `project_status_field_not_found` if the configured Status field is missing on the project  
 **Idempotency**: yes
 
-## 11.13 `project set-status`
+## 11.14 `project set-status`
 
 **Purpose**: Set the Status-field value for a project item.
 
@@ -1084,7 +1170,7 @@ Rules:
 **Failure behavior**: `project_item_not_found` if the item is not on the project; `project_status_field_not_found` if the configured or overridden single-select status field does not exist on the project; invalid option => `project_status_option_not_found`  
 **Idempotency**: yes
 
-## 11.14 `runtime info`
+## 11.15 `runtime info`
 
 **Purpose**: Inspect the currently executing `orfe` runtime through the supported command contract.
 

@@ -47,6 +47,45 @@ export interface PreparedArtifactBody {
   contract: BodyContractRef;
 }
 
+export type BodyContractSource = 'explicit' | 'provenance' | 'explicit-and-provenance';
+
+export type BodyValidationIssueScope = 'provenance' | 'preamble' | 'body' | 'section' | 'field';
+
+export type BodyValidationIssueKind =
+  | 'contract_selection_required'
+  | 'multiple_provenance_markers'
+  | 'provenance_artifact_type_mismatch'
+  | 'contract_provenance_mismatch'
+  | 'missing_required_pattern'
+  | 'matched_forbidden_pattern'
+  | 'duplicate_section_heading'
+  | 'section_not_allowed'
+  | 'missing_required_section'
+  | 'empty_section'
+  | 'missing_required_field'
+  | 'duplicate_field'
+  | 'empty_field'
+  | 'invalid_allowed_value';
+
+export interface BodyValidationIssue {
+  kind: BodyValidationIssueKind;
+  scope: BodyValidationIssueScope;
+  message: string;
+  pattern?: string;
+  section_heading?: string;
+  field_label?: string;
+  expected_values?: string[];
+  actual_value?: string;
+}
+
+export interface ArtifactBodyValidationResult {
+  valid: boolean;
+  contract?: BodyContractRef;
+  contract_source?: BodyContractSource;
+  normalized_body?: string;
+  errors: BodyValidationIssue[];
+}
+
 interface ParsedBodySection {
   heading: string;
   content: string;
@@ -55,6 +94,12 @@ interface ParsedBodySection {
 interface ParsedBodyStructure {
   preamble: string;
   sections: ParsedBodySection[];
+}
+
+interface ContractResolutionResult {
+  contract?: BodyContractRef;
+  contractSource?: BodyContractSource;
+  issues: BodyValidationIssue[];
 }
 
 const CONTRACT_SELECTION_PATTERN = /^(?:(issue|pr)\/)?([a-z0-9][a-z0-9-]*)@([A-Za-z0-9._-]+)$/;
@@ -75,22 +120,66 @@ export async function prepareArtifactBody(options: {
     return undefined;
   }
 
-  const explicitContract =
-    typeof options.bodyContract === 'string' ? parseContractSelection(options.bodyContract, options.artifactType) : undefined;
-  const markerContract = extractBodyContractProvenance(options.body);
-  const resolvedContract = resolveContractRef(options.artifactType, explicitContract, markerContract);
+  const contractResolution = resolveBodyContractSelection({
+    artifactType: options.artifactType,
+    body: options.body,
+    ...(typeof options.bodyContract === 'string' ? { bodyContract: options.bodyContract } : {}),
+  });
 
-  if (!resolvedContract) {
+  if (contractResolution.issues.length > 0) {
+    throwFirstValidationIssue(contractResolution.issues);
+  }
+
+  if (!contractResolution.contract) {
     return undefined;
   }
 
-  const contract = await loadBodyContract(options.repoConfig, resolvedContract);
+  const contract = await loadBodyContract(options.repoConfig, contractResolution.contract);
   const bodyWithoutMarker = stripBodyContractProvenance(options.body);
-  validateBodyAgainstContract(bodyWithoutMarker, contract);
+  const validationResult = validateBodyAgainstContractDetailed(bodyWithoutMarker, contract);
+
+  if (!validationResult.valid) {
+    throwFirstValidationIssue(validationResult.errors);
+  }
 
   return {
     body: renderBodyWithContractProvenance(bodyWithoutMarker, contract),
     contract: toContractRef(contract),
+  };
+}
+
+export async function validateArtifactBody(options: {
+  artifactType: BodyArtifactType;
+  body: string;
+  bodyContract?: string;
+  repoConfig: RepoLocalConfig;
+}): Promise<ArtifactBodyValidationResult> {
+  const contractResolution = resolveBodyContractSelection({
+    artifactType: options.artifactType,
+    body: options.body,
+    ...(typeof options.bodyContract === 'string' ? { bodyContract: options.bodyContract } : {}),
+    requireContract: true,
+  });
+
+  if (contractResolution.issues.length > 0 || !contractResolution.contract) {
+    return {
+      valid: false,
+      ...(contractResolution.contract ? { contract: contractResolution.contract } : {}),
+      ...(contractResolution.contractSource ? { contract_source: contractResolution.contractSource } : {}),
+      errors: contractResolution.issues,
+    };
+  }
+
+  const contract = await loadBodyContract(options.repoConfig, contractResolution.contract);
+  const bodyWithoutMarker = stripBodyContractProvenance(options.body);
+  const validationResult = validateBodyAgainstContractDetailed(bodyWithoutMarker, contract);
+
+  return {
+    valid: validationResult.valid,
+    contract: toContractRef(contract),
+    ...(contractResolution.contractSource ? { contract_source: contractResolution.contractSource } : {}),
+    ...(validationResult.valid ? { normalized_body: renderBodyWithContractProvenance(bodyWithoutMarker, contract) } : {}),
+    errors: validationResult.errors,
   };
 }
 
@@ -129,26 +218,13 @@ export async function loadBodyContract(config: RepoLocalConfig, ref: BodyContrac
 }
 
 export function extractBodyContractProvenance(body: string): BodyContractRef | undefined {
-  const matches = [...body.matchAll(new RegExp(PROVENANCE_PATTERN_SOURCE, 'g'))];
+  const provenance = inspectBodyContractProvenance(body);
 
-  if (matches.length === 0) {
-    return undefined;
+  if (provenance.issues.length > 0) {
+    throwFirstValidationIssue(provenance.issues);
   }
 
-  if (matches.length > 1) {
-    throw new OrfeError('contract_validation_failed', 'Artifact body contains multiple body-contract provenance markers.');
-  }
-
-  const match = matches[0];
-  if (!match) {
-    return undefined;
-  }
-
-  return {
-    artifact_type: match[1] as BodyArtifactType,
-    contract_name: match[2]!,
-    contract_version: match[3]!,
-  };
+  return provenance.contract;
 }
 
 export function stripBodyContractProvenance(body: string): string {
@@ -171,17 +247,36 @@ export function renderBodyWithContractProvenance(body: string, ref: BodyContract
 }
 
 export function validateBodyAgainstContract(body: string, contract: BodyContractDefinition): void {
-  const parsedBody = parseBodyStructure(body);
+  const validationResult = validateBodyAgainstContractDetailed(body, contract);
 
-  assertPatternsMatch(parsedBody.preamble, contract.preamble_required_patterns, 'preamble', 'required');
-  assertPatternsMatch(parsedBody.preamble, contract.preamble_forbidden_patterns, 'preamble', 'forbidden');
-  assertPatternsMatch(body, contract.required_patterns, 'body', 'required');
-  assertPatternsMatch(body, contract.forbidden_patterns, 'body', 'forbidden');
+  if (!validationResult.valid) {
+    throwFirstValidationIssue(validationResult.errors);
+  }
+}
+
+export function validateBodyAgainstContractDetailed(
+  body: string,
+  contract: BodyContractDefinition,
+): Pick<ArtifactBodyValidationResult, 'valid' | 'errors'> {
+  const parsedBody = parseBodyStructure(body);
+  const issues: BodyValidationIssue[] = [];
+
+  issues.push(...collectPatternIssues(parsedBody.preamble, contract.preamble_required_patterns, { scope: 'preamble' }, 'required'));
+  issues.push(...collectPatternIssues(parsedBody.preamble, contract.preamble_forbidden_patterns, { scope: 'preamble' }, 'forbidden'));
+  issues.push(...collectPatternIssues(body, contract.required_patterns, { scope: 'body' }, 'required'));
+  issues.push(...collectPatternIssues(body, contract.forbidden_patterns, { scope: 'body' }, 'forbidden'));
 
   const sectionsByHeading = new Map<string, ParsedBodySection>();
   for (const section of parsedBody.sections) {
     if (sectionsByHeading.has(section.heading)) {
-      throw new OrfeError('contract_validation_failed', `Body contract validation failed: duplicate section heading "${section.heading}".`);
+      issues.push({
+        kind: 'duplicate_section_heading',
+        scope: 'section',
+        section_heading: section.heading,
+        message: `Body contract validation failed: duplicate section heading "${section.heading}".`,
+      });
+
+      continue;
     }
 
     sectionsByHeading.set(section.heading, section);
@@ -192,10 +287,12 @@ export function validateBodyAgainstContract(body: string, contract: BodyContract
 
     for (const section of parsedBody.sections) {
       if (!allowedHeadings.has(section.heading)) {
-        throw new OrfeError(
-          'contract_validation_failed',
-          `Body contract validation failed: section "${section.heading}" is not allowed by ${formatBodyContractRef(contract)}.`,
-        );
+        issues.push({
+          kind: 'section_not_allowed',
+          scope: 'section',
+          section_heading: section.heading,
+          message: `Body contract validation failed: section "${section.heading}" is not allowed by ${formatBodyContractRef(contract)}.`,
+        });
       }
     }
   }
@@ -205,59 +302,52 @@ export function validateBodyAgainstContract(body: string, contract: BodyContract
 
     if (!parsedSection) {
       if (sectionDefinition.required !== false) {
-        throw new OrfeError(
-          'contract_validation_failed',
-          `Body contract validation failed: missing required section "${sectionDefinition.heading}".`,
-        );
+        issues.push({
+          kind: 'missing_required_section',
+          scope: 'section',
+          section_heading: sectionDefinition.heading,
+          message: `Body contract validation failed: missing required section "${sectionDefinition.heading}".`,
+        });
       }
 
       continue;
     }
 
     if (sectionDefinition.allow_empty !== true && parsedSection.content.trim().length === 0) {
-      throw new OrfeError(
-        'contract_validation_failed',
-        `Body contract validation failed: section "${sectionDefinition.heading}" must not be empty.`,
-      );
+      issues.push({
+        kind: 'empty_section',
+        scope: 'section',
+        section_heading: sectionDefinition.heading,
+        message: `Body contract validation failed: section "${sectionDefinition.heading}" must not be empty.`,
+      });
     }
 
-    assertPatternsMatch(parsedSection.content, sectionDefinition.required_patterns, `section "${sectionDefinition.heading}"`, 'required');
-    assertPatternsMatch(parsedSection.content, sectionDefinition.forbidden_patterns, `section "${sectionDefinition.heading}"`, 'forbidden');
+    issues.push(
+      ...collectPatternIssues(
+        parsedSection.content,
+        sectionDefinition.required_patterns,
+        { scope: 'section', section_heading: sectionDefinition.heading },
+        'required',
+      ),
+    );
+    issues.push(
+      ...collectPatternIssues(
+        parsedSection.content,
+        sectionDefinition.forbidden_patterns,
+        { scope: 'section', section_heading: sectionDefinition.heading },
+        'forbidden',
+      ),
+    );
 
     for (const fieldDefinition of sectionDefinition.fields ?? []) {
-      validateSectionField(parsedSection, fieldDefinition, contract);
+      issues.push(...validateSectionFieldDetailed(parsedSection, fieldDefinition, contract));
     }
   }
-}
 
-function resolveContractRef(
-  artifactType: BodyArtifactType,
-  explicitContract: BodyContractRef | undefined,
-  markerContract: BodyContractRef | undefined,
-): BodyContractRef | undefined {
-  if (markerContract && markerContract.artifact_type !== artifactType) {
-    throw new OrfeError(
-      'contract_validation_failed',
-      `Artifact body provenance ${formatBodyContractRef(markerContract)} does not match ${artifactType} body validation.`,
-    );
-  }
-
-  if (explicitContract && markerContract) {
-    if (
-      explicitContract.artifact_type !== markerContract.artifact_type ||
-      explicitContract.contract_name !== markerContract.contract_name ||
-      explicitContract.contract_version !== markerContract.contract_version
-    ) {
-      throw new OrfeError(
-        'contract_validation_failed',
-        `Explicit body contract ${formatBodyContractRef(explicitContract)} does not match provenance marker ${formatBodyContractRef(markerContract)}.`,
-      );
-    }
-
-    return explicitContract;
-  }
-
-  return explicitContract ?? markerContract;
+  return {
+    valid: issues.length === 0,
+    errors: issues,
+  };
 }
 
 function parseContractSelection(selection: string, expectedArtifactType: BodyArtifactType): BodyContractRef {
@@ -327,66 +417,226 @@ function parseBodyStructure(body: string): ParsedBodyStructure {
   };
 }
 
-function validateSectionField(
+function validateSectionFieldDetailed(
   parsedSection: ParsedBodySection,
   fieldDefinition: BodyContractFieldDefinition,
   contract: BodyContractDefinition,
-): void {
+): BodyValidationIssue[] {
   const fieldPattern = new RegExp(`^\\s*-\\s*${escapeRegExp(fieldDefinition.label)}:\\s*(.+?)\\s*$`, 'gm');
   const matches = [...parsedSection.content.matchAll(fieldPattern)].map((match) => match[1]!.trim());
+  const issues: BodyValidationIssue[] = [];
 
   if (matches.length === 0) {
     if (fieldDefinition.required !== false) {
-      throw new OrfeError(
-        'contract_validation_failed',
-        `Body contract validation failed: missing required field "${fieldDefinition.label}" in section "${parsedSection.heading}" for ${formatBodyContractRef(contract)}.`,
-      );
+      issues.push({
+        kind: 'missing_required_field',
+        scope: 'field',
+        section_heading: parsedSection.heading,
+        field_label: fieldDefinition.label,
+        message: `Body contract validation failed: missing required field "${fieldDefinition.label}" in section "${parsedSection.heading}" for ${formatBodyContractRef(contract)}.`,
+      });
     }
 
-    return;
+    return issues;
   }
 
   if (matches.length > 1) {
-    throw new OrfeError(
-      'contract_validation_failed',
-      `Body contract validation failed: field "${fieldDefinition.label}" appears multiple times in section "${parsedSection.heading}".`,
-    );
+    issues.push({
+      kind: 'duplicate_field',
+      scope: 'field',
+      section_heading: parsedSection.heading,
+      field_label: fieldDefinition.label,
+      message: `Body contract validation failed: field "${fieldDefinition.label}" appears multiple times in section "${parsedSection.heading}".`,
+    });
+
+    return issues;
   }
 
   const fieldValue = matches[0];
   if (!fieldValue || fieldValue.length === 0) {
-    throw new OrfeError(
-      'contract_validation_failed',
-      `Body contract validation failed: field "${fieldDefinition.label}" in section "${parsedSection.heading}" must not be empty.`,
-    );
+    issues.push({
+      kind: 'empty_field',
+      scope: 'field',
+      section_heading: parsedSection.heading,
+      field_label: fieldDefinition.label,
+      message: `Body contract validation failed: field "${fieldDefinition.label}" in section "${parsedSection.heading}" must not be empty.`,
+    });
+
+    return issues;
   }
 
   if (fieldDefinition.allowed_values && !fieldDefinition.allowed_values.includes(fieldValue)) {
-    throw new OrfeError(
-      'contract_validation_failed',
-      `Body contract validation failed: field "${fieldDefinition.label}" in section "${parsedSection.heading}" must be one of ${fieldDefinition.allowed_values.join(', ')}.`,
-    );
+    issues.push({
+      kind: 'invalid_allowed_value',
+      scope: 'field',
+      section_heading: parsedSection.heading,
+      field_label: fieldDefinition.label,
+      expected_values: [...fieldDefinition.allowed_values],
+      actual_value: fieldValue,
+      message: `Body contract validation failed: field "${fieldDefinition.label}" in section "${parsedSection.heading}" must be one of ${fieldDefinition.allowed_values.join(', ')}.`,
+    });
   }
+
+  return issues;
 }
 
-function assertPatternsMatch(
+function collectPatternIssues(
   value: string,
   patterns: string[] | undefined,
-  label: string,
+  context: Pick<BodyValidationIssue, 'scope' | 'section_heading'>,
   mode: 'required' | 'forbidden',
-): void {
+): BodyValidationIssue[] {
+  const issues: BodyValidationIssue[] = [];
+
   for (const pattern of patterns ?? []) {
-    const regex = createContractPattern(pattern, label);
+    const regex = createContractPattern(pattern, context.scope);
     const matched = regex.test(value);
 
     if (mode === 'required' && !matched) {
-      throw new OrfeError('contract_validation_failed', `Body contract validation failed: ${label} is missing required pattern ${pattern}.`);
+      issues.push({
+        kind: 'missing_required_pattern',
+        ...context,
+        pattern,
+        message: `Body contract validation failed: ${formatValidationScope(context)} is missing required pattern ${pattern}.`,
+      });
     }
 
     if (mode === 'forbidden' && matched) {
-      throw new OrfeError('contract_validation_failed', `Body contract validation failed: ${label} matched forbidden pattern ${pattern}.`);
+      issues.push({
+        kind: 'matched_forbidden_pattern',
+        ...context,
+        pattern,
+        message: `Body contract validation failed: ${formatValidationScope(context)} matched forbidden pattern ${pattern}.`,
+      });
     }
   }
+
+  return issues;
+}
+
+function resolveBodyContractSelection(options: {
+  artifactType: BodyArtifactType;
+  body: string;
+  bodyContract?: string;
+  requireContract?: boolean;
+}): ContractResolutionResult {
+  const explicitContract =
+    typeof options.bodyContract === 'string' ? parseContractSelection(options.bodyContract, options.artifactType) : undefined;
+  const provenance = inspectBodyContractProvenance(options.body);
+  const markerContract = provenance.contract;
+  const issues = [...provenance.issues];
+
+  if (markerContract && markerContract.artifact_type !== options.artifactType) {
+    issues.push({
+      kind: 'provenance_artifact_type_mismatch',
+      scope: 'provenance',
+      message: `Artifact body provenance ${formatBodyContractRef(markerContract)} does not match ${options.artifactType} body validation.`,
+    });
+  }
+
+  if (explicitContract && markerContract) {
+    if (
+      explicitContract.artifact_type !== markerContract.artifact_type ||
+      explicitContract.contract_name !== markerContract.contract_name ||
+      explicitContract.contract_version !== markerContract.contract_version
+    ) {
+      issues.push({
+        kind: 'contract_provenance_mismatch',
+        scope: 'provenance',
+        message: `Explicit body contract ${formatBodyContractRef(explicitContract)} does not match provenance marker ${formatBodyContractRef(markerContract)}.`,
+      });
+    }
+  }
+
+  if (issues.length > 0) {
+    return {
+      ...(explicitContract && markerContract ? { contractSource: 'explicit-and-provenance' as const } : {}),
+      issues,
+    };
+  }
+
+  if (explicitContract && markerContract) {
+    return {
+      contract: explicitContract,
+      contractSource: 'explicit-and-provenance',
+      issues,
+    };
+  }
+
+  if (explicitContract) {
+    return {
+      contract: explicitContract,
+      contractSource: 'explicit',
+      issues,
+    };
+  }
+
+  if (markerContract) {
+    return {
+      contract: markerContract,
+      contractSource: 'provenance',
+      issues,
+    };
+  }
+
+  if (options.requireContract === true) {
+    issues.push({
+      kind: 'contract_selection_required',
+      scope: 'provenance',
+      message: 'Body validation requires body_contract or an existing body-contract provenance marker.',
+    });
+  }
+
+  return { issues };
+}
+
+function inspectBodyContractProvenance(body: string): Pick<ContractResolutionResult, 'contract' | 'issues'> {
+  const matches = [...body.matchAll(new RegExp(PROVENANCE_PATTERN_SOURCE, 'g'))];
+
+  if (matches.length === 0) {
+    return { issues: [] };
+  }
+
+  if (matches.length > 1) {
+    return {
+      issues: [
+        {
+          kind: 'multiple_provenance_markers',
+          scope: 'provenance',
+          message: 'Artifact body contains multiple body-contract provenance markers.',
+        },
+      ],
+    };
+  }
+
+  const match = matches[0];
+  if (!match) {
+    return { issues: [] };
+  }
+
+  return {
+    contract: {
+      artifact_type: match[1] as BodyArtifactType,
+      contract_name: match[2]!,
+      contract_version: match[3]!,
+    },
+    issues: [],
+  };
+}
+
+function formatValidationScope(context: Pick<BodyValidationIssue, 'scope' | 'section_heading'>): string {
+  if (context.scope === 'section' && context.section_heading) {
+    return `section "${context.section_heading}"`;
+  }
+
+  return context.scope;
+}
+
+function throwFirstValidationIssue(issues: BodyValidationIssue[]): never {
+  throw new OrfeError(
+    'contract_validation_failed',
+    issues[0]?.message ?? 'Body contract validation failed.',
+  );
 }
 
 function createContractPattern(pattern: string, label: string): RegExp {

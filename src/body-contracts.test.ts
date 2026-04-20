@@ -10,6 +10,7 @@ import {
   loadBodyContract,
   prepareArtifactBody,
   renderBodyContractProvenance,
+  validateArtifactBody,
   validateBodyAgainstContract,
 } from './body-contracts.js';
 import { OrfeError } from './errors.js';
@@ -219,6 +220,80 @@ test('validateBodyAgainstContract rejects forbidden PR auto-closing keywords', a
       ),
     /matched forbidden pattern/,
   );
+});
+
+test('validateBodyAgainstContract enforces the Ref line as the first preamble line', async () => {
+  const contract = await loadBodyContract(createRepoConfig(), {
+    artifact_type: 'pr',
+    contract_name: 'implementation-ready',
+    contract_version: '1.0.0',
+  });
+
+  assert.throws(
+    () => validateBodyAgainstContract(`Intro line\n${createValidPrBody()}`, contract),
+    /preamble is missing required pattern/,
+  );
+});
+
+test('validateArtifactBody returns structured PR validation output agents can act on', async () => {
+  const result = await validateArtifactBody({
+    artifactType: 'pr',
+    body: [
+      'Intro line',
+      'Ref: #58',
+      '',
+      '## Summary',
+      '',
+      '- add PR validation',
+      '',
+      '## Docs / ADR / debt',
+      '',
+      '- docs updated: yes',
+      '- ADR updated: no',
+      '- debt updated: no',
+      '- details: updated the spec',
+      '',
+      'Closes: #58',
+    ].join('\n'),
+    bodyContract: 'implementation-ready@1.0.0',
+    repoConfig: createRepoConfig(),
+  });
+
+  assert.deepEqual(result.contract, {
+    artifact_type: 'pr',
+    contract_name: 'implementation-ready',
+    contract_version: '1.0.0',
+  });
+  assert.equal(result.contract_source, 'explicit');
+  assert.equal(result.valid, false);
+  assert.equal(result.normalized_body, undefined);
+  assert.deepEqual(
+    result.errors.map((issue) => issue.kind),
+    ['missing_required_pattern', 'matched_forbidden_pattern', 'missing_required_section', 'missing_required_section'],
+  );
+  assert.equal(result.errors[0]?.scope, 'preamble');
+  assert.equal(result.errors[1]?.scope, 'body');
+  assert.equal(result.errors[2]?.section_heading, 'Verification');
+  assert.equal(result.errors[3]?.section_heading, 'Risks / follow-ups');
+});
+
+test('validateArtifactBody requires explicit contract selection or provenance', async () => {
+  const result = await validateArtifactBody({
+    artifactType: 'pr',
+    body: createValidPrBody(),
+    repoConfig: createRepoConfig(),
+  });
+
+  assert.deepEqual(result, {
+    valid: false,
+    errors: [
+      {
+        kind: 'contract_selection_required',
+        scope: 'provenance',
+        message: 'Body validation requires body_contract or an existing body-contract provenance marker.',
+      },
+    ],
+  });
 });
 
 test('loadBodyContract loads the repository-defined versioned contract files', async () => {
