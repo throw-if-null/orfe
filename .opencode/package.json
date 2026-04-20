@@ -1,7 +1,7 @@
 {
   "type": "module",
   "dependencies": {
-    "@mirzamerdovic/orfe": "0.6.0",
+    "@mirzamerdovic/orfe": "0.7.0",
     "@opencode-ai/plugin": "1.3.17"
   }
 }

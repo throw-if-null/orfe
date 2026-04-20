@@ -34,7 +34,9 @@ auth:
   preferred_mode: bot
   allowed_modes: [bot, session]
   primary_mechanism: opencode-orfe-tool
-  gh_write_token_command: "ORFE_CALLER_NAME=<CallerName> orfe auth token --repo throw-if-null/orfe"
+  gh_write_token_tool:
+    command: auth token
+    repo: throw-if-null/orfe
   caller_to_bot:
     zoran: Z0R4N-BOT
     jelena: J3L3N4-BOT
@@ -97,9 +99,9 @@ auth:
 - Allowed auth modes: **bot** and **session**.
 - **No silent fallback from bot to session auth.** If bot auth fails, stop, report it, and explicitly confirm or document the switch to session auth.
 - Use the OpenCode `orfe` tool as the primary path for GitHub operations. The wrapper resolves caller identity from `context.agent` automatically; do not inject `ORFE_CALLER_NAME` inside tool execution.
-- For **`gh` CLI writes only**, mint a bot token with `ORFE_CALLER_NAME=<AgentName> orfe auth token --repo throw-if-null/orfe` and pass it explicitly to `gh`.
+- For **`gh` CLI writes only**, mint a bot token via the OpenCode `orfe` function tool with `command: auth token` and `repo: throw-if-null/orfe`, then pass it explicitly to `gh`.
 - When acting as a bot, use the repo caller-to-bot mapping from the YAML config. Critical role-specific behavior belongs in the relevant agent definition/prompt.
-- The CLI fallback remains explicit bot auth; do not use static PATs or ambient session auth for normal repository operations.
+- The `gh` fallback remains explicit bot auth; do not use static PATs or ambient session auth for normal repository operations.
 
 ## Skill usage by phase
 

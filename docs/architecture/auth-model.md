@@ -5,7 +5,7 @@
 `orfe` separates GitHub command behavior from GitHub identity handling.
 
 For runtime command behavior, `orfe` uses internal GitHub App auth.
-For agent-driven `gh` CLI operations outside runtime commands, the repository still depends on the workspace-root `tokenner` build to mint bot tokens.
+For agent-driven `gh` CLI operations outside runtime commands, agents mint bot tokens through the OpenCode `orfe` function tool and pass them explicitly to `gh`.
 
 This document explains both paths and why they currently coexist.
 
@@ -35,20 +35,19 @@ For `orfe` command execution:
 
 This is the intended v1 runtime auth model.
 
-## Transitional `tokenner` dependency
+## Function-tool token minting for `gh` writes
 
-The repository evolved from a smaller CLI named `tokenner` into the broader `orfe` runtime.
+When an operation is not covered by the OpenCode `orfe` tool directly, agents still sometimes need to use `gh`.
 
-Agents still use the workspace-root helper defined in `AGENTS.md`.
+In those cases the supported procedure is:
 
-That helper remains necessary for bot-authenticated `gh` CLI operations performed by agents.
+1. call the OpenCode `orfe` function tool with `command: auth token`
+2. receive a bot-scoped installation token through the same self-identity path used by runtime commands
+3. run `gh` with that token via `GH_TOKEN`
 
-## Why the workspace-root helper matters
+This keeps bot identity explicit without relying on shelling out to a workspace-local helper.
 
-Do not assume the current issue worktree's `dist/cli.js` exposes the same token command.
-The supported helper is the workspace-root build named in `AGENTS.md`.
-
-This prevents worktree-local build drift from breaking bot-authenticated GitHub operations.
+The function-tool path is also why the workflow skills explicitly say not to use bash for token minting.
 
 ## Current two-path model
 
@@ -64,17 +63,17 @@ Path B is repository operating procedure used by agents when they perform `gh` C
 
 ### Path B: agent `gh` CLI operations (repository operating procedure)
 - used for GitHub issue, PR, project, and review actions outside direct runtime command execution
-- bot token is minted first via the workspace-root helper referenced in `AGENTS.md`
+- bot token is minted first via the OpenCode `orfe` function tool referenced in `AGENTS.md`
 - `gh` is then run with `GH_TOKEN`
 
 ## Future direction
 
-The long-term simplification path is to adopt the native `orfe auth token` path for repository procedures intentionally, then retire the transitional `tokenner` dependency in follow-up migration work.
+The long-term simplification path is to keep shrinking the set of repository procedures that need `gh` CLI writes at all by covering more operations directly in the OpenCode `orfe` tool.
 
 Until that happens:
-- preserve the current helper path explicitly
-- do not treat it as accidental legacy drift
-- do not remove or simplify it without a planned migration
+- preserve the current function-tool token-minting path explicitly
+- do not silently fall back to session auth
+- do not replace the function-tool path with bash token minting
 
 ## Related docs
 
