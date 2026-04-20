@@ -39,6 +39,10 @@ export async function executeOrfeTool(
     const callerName = (commandDefinition.requiresCaller ?? true) ? resolveCallerNameFromContext(context) : '';
     const rest = { ...input };
     delete rest.command;
+    const configPath = readWrapperPathInput(rest, 'config');
+    const authConfigPath = readWrapperPathInput(rest, 'auth_config');
+    delete rest.config;
+    delete rest.auth_config;
 
     return await runOrfeCoreImpl(
       {
@@ -46,6 +50,8 @@ export async function executeOrfeTool(
         command: input.command,
         input: rest,
         entrypoint: 'opencode-plugin',
+        ...(configPath ? { configPath } : {}),
+        ...(authConfigPath ? { authConfigPath } : {}),
         ...(context.cwd ? { cwd: context.cwd } : {}),
         logger: createPluginLogger({
           ...(context.env ? { env: context.env } : {}),
@@ -77,4 +83,17 @@ export function resolveCallerNameFromContext(context: OpenCodeToolContext): stri
   }
 
   throw new OrfeError('caller_context_missing', 'OpenCode caller context is missing.');
+}
+
+function readWrapperPathInput(input: Record<string, unknown>, key: 'config' | 'auth_config'): string | undefined {
+  const value = input[key];
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new OrfeError('invalid_usage', `Option "${key}" must be a non-empty string.`);
+  }
+
+  return value;
 }
