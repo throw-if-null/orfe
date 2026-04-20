@@ -15,6 +15,13 @@ These are the architecture constraints that future work must preserve unless a n
 - The core must stay callable from both CLI and OpenCode wrapper entrypoints.
 - The core must not depend on OpenCode-specific APIs or ambient agent identity.
 
+## Artifact contract invariants
+
+- Repo-defined issue and PR body contracts are versioned declarative artifacts under `.orfe/contracts/`, not fields inside `.orfe/config.json`.
+- Body contracts may validate and minimally normalize rendered artifact bodies, but they must not execute code, prompt interactively, or cause workflow side effects.
+- HTML comment provenance markers are allowed as deterministic machine-readable metadata on rendered issue and PR bodies.
+- Contract expressiveness must stay narrow enough that `orfe` remains a generic runtime rather than absorbing repository orchestration semantics.
+
 ## Auth and security invariants
 
 - Repo-local config must not contain private keys or machine-local secrets.

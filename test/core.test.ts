@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import nock from 'nock';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { COMMANDS } from '../src/commands/index.js';
 import { listCommandNames } from '../src/commands/registry/index.js';
@@ -9,10 +11,12 @@ import { GitHubClientFactory } from '../src/github.js';
 import { createRuntimeSnapshot, runOrfeCore } from '../src/core.js';
 
 const COMMAND_NAMES = COMMANDS.map((definition) => definition.name);
+const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoConfigPath = path.join(workspaceRoot, '.orfe', 'config.json');
 
 function createRepoConfig() {
   return {
-    configPath: '/tmp/.orfe/config.json',
+    configPath: repoConfigPath,
     version: 1 as const,
     repository: {
       owner: 'throw-if-null',
@@ -171,6 +175,14 @@ function mockIssueCreateRequest(options: {
         html_url: `https://github.com/${owner}/${repo}/issues/21`,
       },
      );
+}
+
+function renderIssueBodyContractMarker(): string {
+  return '<!-- orfe-body-contract: issue/formal-work-item@1.0.0 -->';
+}
+
+function renderPrBodyContractMarker(): string {
+  return '<!-- orfe-body-contract: pr/implementation-ready@1.0.0 -->';
 }
 
 function mockIssueUpdateRequest(options: {
@@ -1615,6 +1627,262 @@ test('runOrfeCore supports explicit status field overrides for project get-statu
   }
 });
 
+test('runOrfeCore validates issue-create bodies against explicit contracts and appends provenance', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const issueBody = [
+      '## Problem / context',
+      '',
+      'Need deterministic issue-body validation.',
+      '',
+      '## Desired outcome',
+      '',
+      'Agent-authored issues validate against a versioned contract.',
+      '',
+      '## Scope',
+      '',
+      '### In scope',
+      '- declarative contracts',
+      '',
+      '### Out of scope',
+      '- executable plugins',
+      '',
+      '## Acceptance criteria',
+      '',
+      '- [ ] contracts load from .orfe/contracts',
+      '',
+      '## Docs impact',
+      '',
+      '- Docs impact: add new durable docs',
+      '',
+      '## ADR needed?',
+      '',
+      '- ADR needed: yes',
+    ].join('\n');
+
+    const api = mockIssueCreateRequest({
+      requestBody: {
+        title: 'New issue title',
+        body: `${issueBody}\n\n${renderIssueBodyContractMarker()}`,
+      },
+    });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'issue create',
+        input: {
+          title: 'New issue title',
+          body: issueBody,
+          body_contract: 'formal-work-item@1.0.0',
+        },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.equal(result.ok, true);
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore allows provenance-only issue-update validation when no explicit contract is provided', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const issueBody = [
+      '## Problem / context',
+      '',
+      'Need deterministic issue-body validation.',
+      '',
+      '## Desired outcome',
+      '',
+      'Agent-authored issues validate against a versioned contract.',
+      '',
+      '## Scope',
+      '',
+      '### In scope',
+      '- declarative contracts',
+      '',
+      '### Out of scope',
+      '- executable plugins',
+      '',
+      '## Acceptance criteria',
+      '',
+      '- [ ] contracts load from .orfe/contracts',
+      '',
+      '## Docs impact',
+      '',
+      '- Docs impact: add new durable docs',
+      '',
+      '## ADR needed?',
+      '',
+      '- ADR needed: yes',
+      '',
+      renderIssueBodyContractMarker(),
+    ].join('\n');
+
+    const api = mockIssueUpdateRequest({
+      issueNumber: 14,
+      requestBody: {
+        body: issueBody,
+      },
+    });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'issue update',
+        input: {
+          issue_number: 14,
+          body: issueBody,
+        },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.equal(result.ok, true);
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore validates PR bodies against explicit contracts and appends provenance on create', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const prBody = [
+      'Ref: #59',
+      '',
+      '## Summary',
+      '',
+      '- add versioned body-contract support',
+      '',
+      '## Verification',
+      '',
+      '- `npm test` ✅',
+      '- `npm run lint` ✅',
+      '- `npm run typecheck` ✅',
+      '- `npm run build` ✅',
+      '',
+      '## Docs / ADR / debt',
+      '',
+      '- docs updated: yes',
+      '- ADR updated: yes',
+      '- debt updated: yes',
+      '- details: updated docs and added ADR',
+      '',
+      '## Risks / follow-ups',
+      '',
+      '- generation is still minimal in this slice',
+    ].join('\n');
+
+    const api = mockPullRequestGetOrCreateRequest({
+      head: 'issues/orfe-59',
+      existingPullRequests: [],
+      createRequestBody: {
+        head: 'issues/orfe-59',
+        base: 'main',
+        title: 'Introduce versioned body-contract support',
+        body: `${prBody}\n\n${renderPrBodyContractMarker()}`,
+        draft: false,
+      },
+      createResponseBody: {
+        number: 59,
+        title: 'Introduce versioned body-contract support',
+        body: `${prBody}\n\n${renderPrBodyContractMarker()}`,
+        state: 'open',
+        draft: false,
+        head: { ref: 'issues/orfe-59' },
+        base: { ref: 'main' },
+        html_url: 'https://github.com/throw-if-null/orfe/pull/59',
+      },
+    });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'pr get-or-create',
+        input: {
+          head: 'issues/orfe-59',
+          title: 'Introduce versioned body-contract support',
+          body: prBody,
+          body_contract: 'implementation-ready@1.0.0',
+        },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.equal(result.ok, true);
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore fails clearly when contract validation fails', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetOrCreateRequest({
+      head: 'issues/orfe-59',
+      existingPullRequests: [],
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'pr get-or-create',
+          input: {
+            head: 'issues/orfe-59',
+            title: 'Introduce versioned body-contract support',
+            body: 'Ref: #59\n\nCloses: #59',
+            body_contract: 'implementation-ready@1.0.0',
+          },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'contract_validation_failed');
+        assert.equal(
+          error.message,
+          'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
+        );
+        return true;
+      },
+    );
+
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
 test('runOrfeCore sets project status for an issue and returns structured success output', async () => {
   nock.disableNetConnect();
 
@@ -2414,6 +2682,64 @@ test('runOrfeCore reuses an existing pull request for pr get-or-create', async (
         callerName: 'Greg',
         command: 'pr get-or-create',
         input: { head: 'issues/orfe-13', title: 'Design the `orfe` custom tool and CLI contract' },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'pr get-or-create',
+      repo: 'throw-if-null/orfe',
+      data: {
+        pr_number: 9,
+        html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+        head: 'issues/orfe-13',
+        base: 'main',
+        draft: false,
+        created: false,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore reuses an existing pull request before validating unused body contract input', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestGetOrCreateRequest({
+      head: 'issues/orfe-13',
+      existingPullRequests: [
+        {
+          number: 9,
+          title: 'Design the `orfe` custom tool and CLI contract',
+          body: 'PR body',
+          state: 'open',
+          draft: false,
+          head: { ref: 'issues/orfe-13' },
+          base: { ref: 'main' },
+          html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+        },
+      ],
+    });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'pr get-or-create',
+        input: {
+          head: 'issues/orfe-13',
+          title: 'Design the `orfe` custom tool and CLI contract',
+          body: 'Ref: #13\n\nCloses: #13',
+          body_contract: 'implementation-ready@1.0.0',
+        },
       },
       {
         loadRepoConfigImpl: async () => createRepoConfig(),
@@ -4418,7 +4744,7 @@ test('createRuntimeSnapshot proves auth config is separate from repo-local confi
     },
   );
 
-  assert.equal(snapshot.repoConfig.configPath, '/tmp/.orfe/config.json');
+  assert.equal(snapshot.repoConfig.configPath, repoConfigPath);
   assert.equal(snapshot.authConfig.configPath, '/tmp/auth.json');
   assert.equal(snapshot.callerBot, 'greg');
 });

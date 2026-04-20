@@ -23,6 +23,7 @@ Without a dedicated runtime, GitHub operations for agents tend to become:
 - loosely defined shell usage around `gh`
 - dependent on ambient auth state
 - hard to validate consistently
+- prone to drift in agent-authored issue and PR bodies
 - mixed together with repo-specific workflow policy
 - brittle across wrappers, prompts, and local tooling
 
@@ -48,6 +49,7 @@ V1 is focused on a narrow, reusable surface area:
 - pull request operations
 - GitHub Project Status field operations
 - internal GitHub App auth for repository bot identities
+- versioned declarative body contracts for agent-authored issue and PR artifacts
 - shared runtime behavior across CLI and OpenCode wrapper entrypoints
 
 ## Non-goals
@@ -56,6 +58,7 @@ V1 is focused on a narrow, reusable surface area:
 - become a repo-specific workflow engine
 - replace task orchestration agents such as Zoran or Jelena
 - own branch/worktree workflow policy
+- host executable issue/PR body plugins or interactive authoring flows
 - rely on `gh` command behavior as the implementation path for runtime commands
 - depend on ambient session auth as the normal auth model
 - block progress on full end-to-end live GitHub validation

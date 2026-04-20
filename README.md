@@ -111,6 +111,15 @@ Example:
 
 For this repository, the default GitHub Project is `Orfe` and its current project number is `2`.
 
+Repo-defined issue and PR body contracts live separately under:
+
+```text
+.orfe/contracts/issues/
+.orfe/contracts/pr/
+```
+
+These versioned JSON artifacts are declarative runtime inputs for issue/PR body validation and provenance. They are not part of `.orfe/config.json`.
+
 ## Machine-local auth config
 
 Default path:

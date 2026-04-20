@@ -50,6 +50,41 @@ test('loadRepoConfig reads .orfe/config.json from the repo context', async () =>
   assert.equal(config.projects?.default?.projectNumber, 1);
 });
 
+test('loadRepoConfig ignores contract files because they live outside .orfe/config.json', async () => {
+  const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
+  await writeRepoConfig(
+    repoDirectory,
+    JSON.stringify({
+      version: 1,
+      repository: {
+        owner: 'throw-if-null',
+        name: 'orfe',
+        default_branch: 'main',
+      },
+      caller_to_bot: {
+        Greg: 'greg',
+      },
+    }),
+  );
+
+  await mkdir(path.join(repoDirectory, '.orfe', 'contracts', 'issues', 'formal-work-item'), { recursive: true });
+  await writeFile(
+    path.join(repoDirectory, '.orfe', 'contracts', 'issues', 'formal-work-item', '1.0.0.json'),
+    JSON.stringify({
+      schema_version: 1,
+      artifact_type: 'issue',
+      contract_name: 'formal-work-item',
+      contract_version: '1.0.0',
+      sections: [],
+    }),
+  );
+
+  const config = await loadRepoConfig({ cwd: repoDirectory });
+
+  assert.equal('bodyContracts' in config, false);
+  assert.equal(config.repository.name, 'orfe');
+});
+
 test('loadRepoConfig reports missing repo-local config clearly', async () => {
   const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
 

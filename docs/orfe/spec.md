@@ -323,6 +323,25 @@ The config file does not define:
 - permission policy
 - git workflow rules
 
+### 6.6 Repo-local body contracts
+
+Versioned issue and PR body contracts are separate repo-local artifacts, not fields inside `.orfe/config.json`.
+
+Canonical location:
+
+```text
+.orfe/contracts/issues/<contract-name>/<version>.json
+.orfe/contracts/pr/<contract-name>/<version>.json
+```
+
+Rules:
+
+- contracts are repository-defined JSON artifacts
+- contracts are declarative only; they must not contain executable code
+- contracts are part of the repo-local public contract surface, but remain distinct from both repo config and machine-local auth config
+- contract loading is deterministic by artifact type, contract name, and version
+- GitHub-native issue and PR templates may remain transitional human-facing aids, but `orfe` contract behavior must not depend on them
+
 ## 7. Naming conventions
 
 ### 7.1 CLI names
@@ -478,6 +497,9 @@ At minimum, v1 must use these stable codes where applicable:
 - `auth_failed`
 - `github_not_found`
 - `github_conflict`
+- `contract_not_found`
+- `contract_invalid`
+- `contract_validation_failed`
 - `project_item_not_found`
 - `project_status_field_not_found`
 - `project_status_option_not_found`
@@ -512,6 +534,7 @@ Rules:
 - `command` is required.
 - `command` uses the canonical space-separated vocabulary, matching the CLI subcommands exactly.
 - command-specific fields use `snake_case`.
+- body-contract selection uses `body_contract` in tool input when applicable.
 - `caller_name` is **not** accepted from tool input.
 - the wrapper injects `callerName` from `context.agent`.
 
@@ -627,7 +650,7 @@ orfe issue get --issue-number <number> [--repo <owner/name>] [--config <path>]
 **CLI**:
 
 ```text
-orfe issue create --title <text> [--body <text>] [--label <name> ...] [--assignee <login> ...] [--repo <owner/name>] [--config <path>]
+orfe issue create --title <text> [--body <text>] [--body-contract <name@version>] [--label <name> ...] [--assignee <login> ...] [--repo <owner/name>] [--config <path>]
 ```
 
 **Tool input**:
@@ -637,9 +660,22 @@ orfe issue create --title <text> [--body <text>] [--label <name> ...] [--assigne
   "command": "issue create",
   "title": "New issue title",
   "body": "Body text",
+  "body_contract": "formal-work-item@1.0.0",
   "labels": ["needs-input"],
   "assignees": ["greg"]
 }
+```
+
+Body-contract rules:
+
+- `body_contract` is optional
+- when provided, the body must validate against the selected issue contract
+- when a provenance marker is already present in `body`, validation may use that marker even if `body_contract` is omitted
+- when both explicit selection and provenance marker are present, they must match exactly
+- successful validation appends or normalizes an HTML comment provenance marker in this form:
+
+```html
+<!-- orfe-body-contract: issue/<contract-name>@<version> -->
 ```
 
 **Success `data` shape**:
@@ -665,7 +701,7 @@ orfe issue create --title <text> [--body <text>] [--label <name> ...] [--assigne
 **CLI**:
 
 ```text
-orfe issue update --issue-number <number> [--title <text>] [--body <text>] [--label <name> ...] [--assignee <login> ...] [--clear-labels] [--clear-assignees] [--repo <owner/name>] [--config <path>]
+orfe issue update --issue-number <number> [--title <text>] [--body <text>] [--body-contract <name@version>] [--label <name> ...] [--assignee <login> ...] [--clear-labels] [--clear-assignees] [--repo <owner/name>] [--config <path>]
 ```
 
 Rules:
@@ -675,6 +711,9 @@ Rules:
 - provided assignees replace the full assignee set
 - `--clear-labels` sets labels to `[]`
 - `--clear-assignees` sets assignees to `[]`
+- `--body-contract` does not count as a mutation by itself; it only constrains `--body` validation
+
+Body-contract rules match `issue create`.
 
 **Success `data` shape**:
 
@@ -848,7 +887,7 @@ orfe pr get --pr-number <number> [--repo <owner/name>] [--config <path>]
 **CLI**:
 
 ```text
-orfe pr get-or-create --head <branch> --title <text> [--body <text>] [--base <branch>] [--draft] [--repo <owner/name>] [--config <path>]
+orfe pr get-or-create --head <branch> --title <text> [--body <text>] [--body-contract <name@version>] [--base <branch>] [--draft] [--repo <owner/name>] [--config <path>]
 ```
 
 Rules:
@@ -858,8 +897,21 @@ Rules:
 - `--base` defaults to `repository.default_branch`
 - lookup key is `(repo, head, base, state=open)`
 - if one open PR matches, return it unchanged
+- when an open PR is reused, provided `body` and `body_contract` inputs are ignored and not validated
 - if more than one open PR matches, fail with `github_conflict`
 - if none match, create a new PR
+
+Body-contract rules:
+
+- `body_contract` is optional
+- when provided, the PR body must validate against the selected PR contract
+- when a provenance marker is already present in `body`, validation may use that marker even if `body_contract` is omitted
+- when both explicit selection and provenance marker are present, they must match exactly
+- successful validation appends or normalizes an HTML comment provenance marker in this form:
+
+```html
+<!-- orfe-body-contract: pr/<contract-name>@<version> -->
+```
 
 **Success `data` shape**:
 

@@ -38,3 +38,8 @@ This file keeps known documentation, architecture, and process debt visible so i
 - **Impact:** `orfe` now owns runtime logging policy, but log-level control currently relies on the internal `ORFE_LOG_LEVEL` environment variable rather than a documented public command/tool option.
 - **Current treatment:** keep the logger internal so CLI and OpenCode entrypoints can suppress dependency noise by default while still allowing local troubleshooting.
 - **Follow-up direction:** decide whether log-level configuration should become part of the public interface once the desired UX is clearer.
+
+### 8. GitHub-native issue and PR templates are now transitional relative to body contracts
+- **Impact:** the repository now has a versioned body-contract foundation under `.orfe/contracts/`, but `.github/ISSUE_TEMPLATE/feature.md` and `.github/pull_request_template.md` still remain active human-facing fallback aids. That creates a temporary dual-source risk for artifact structure expectations.
+- **Current treatment:** treat versioned body contracts as the canonical runtime source for validated agent-authored artifacts, while keeping the GitHub-native templates as transitional workflow aids that `orfe` does not read or depend on.
+- **Follow-up direction:** once contract-driven authoring and validation are in routine use, reduce or realign the GitHub-native templates intentionally so durable structure expectations do not drift.
