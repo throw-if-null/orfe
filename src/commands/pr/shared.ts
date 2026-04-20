@@ -1,3 +1,4 @@
+import type { ArtifactBodyValidationResult } from '../../body-contracts.js';
 import { OrfeError } from '../../errors.js';
 import type { CommandContext } from '../../types.js';
 
@@ -43,6 +44,8 @@ export interface PullRequestGetOrCreateData {
   draft: boolean;
   created: boolean;
 }
+
+export type PullRequestValidateData = ArtifactBodyValidationResult;
 
 export interface PullRequestSummaryData {
   pr_number: number;

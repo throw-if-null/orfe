@@ -6,7 +6,7 @@
   "description": "Declarative PR-body contract for implementation-ready review handoffs.",
   "allow_additional_sections": false,
   "preamble_required_patterns": [
-    "^Ref: #\\d+\\s*$"
+    "(?<![\\s\\S])Ref: #\\d+\\s*$"
   ],
   "forbidden_patterns": [
     "(?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+"

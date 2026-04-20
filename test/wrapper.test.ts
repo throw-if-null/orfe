@@ -806,6 +806,80 @@ test('executeOrfeTool validates PR bodies through body contracts before create',
   }
 });
 
+test('executeOrfeTool returns structured PR validation output', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const result = await executeOrfeTool(
+      {
+        command: 'pr validate',
+        body: 'Ref: #58\n\nCloses: #58',
+        body_contract: 'implementation-ready@1.0.0',
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'pr validate',
+      repo: 'throw-if-null/orfe',
+      data: {
+        valid: false,
+        contract: {
+          artifact_type: 'pr',
+          contract_name: 'implementation-ready',
+          contract_version: '1.0.0',
+        },
+        contract_source: 'explicit',
+        errors: [
+          {
+            kind: 'matched_forbidden_pattern',
+            scope: 'body',
+            pattern: '(?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+',
+            message:
+              'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
+          },
+          {
+            kind: 'missing_required_section',
+            scope: 'section',
+            section_heading: 'Summary',
+            message: 'Body contract validation failed: missing required section "Summary".',
+          },
+          {
+            kind: 'missing_required_section',
+            scope: 'section',
+            section_heading: 'Verification',
+            message: 'Body contract validation failed: missing required section "Verification".',
+          },
+          {
+            kind: 'missing_required_section',
+            scope: 'section',
+            section_heading: 'Docs / ADR / debt',
+            message: 'Body contract validation failed: missing required section "Docs / ADR / debt".',
+          },
+          {
+            kind: 'missing_required_section',
+            scope: 'section',
+            section_heading: 'Risks / follow-ups',
+            message: 'Body contract validation failed: missing required section "Risks / follow-ups".',
+          },
+        ],
+      },
+    });
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
 test('executeOrfeTool returns the shared success envelope for pr comment', async () => {
   nock.disableNetConnect();
 
