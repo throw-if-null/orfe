@@ -152,6 +152,15 @@ Root help:
 orfe --help
 ```
 
+Structured runtime help:
+
+```bash
+orfe help
+orfe help --command-name "issue get"
+```
+
+These commands return the normal structured success envelope and do not require `ORFE_CALLER_NAME`, repo-local config, machine-local auth config, or GitHub access.
+
 Inspect the active runtime version and entrypoint:
 
 ```bash
@@ -204,6 +213,23 @@ To inspect the active runtime version through the plugin/tool contract:
 ```
 
 Successful output includes the active `orfe_version` and the current `entrypoint` (`cli` or `opencode-plugin`).
+
+To discover the tool command surface or request help for one command through structured output:
+
+```json
+{
+  "command": "help"
+}
+```
+
+```json
+{
+  "command": "help",
+  "command_name": "issue get"
+}
+```
+
+The top-level `help` command is available without caller context, repo-local config, machine-local auth config, or GitHub access.
 
 ## Development
 

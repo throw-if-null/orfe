@@ -5,6 +5,7 @@ import { executeOrfeTool } from './wrapper.js';
 
 const args = {
   command: tool.schema.string().min(1),
+  command_name: tool.schema.string().optional(),
   repo: tool.schema.string().optional(),
   issue_number: tool.schema.number().int().positive().optional(),
   pr_number: tool.schema.number().int().positive().optional(),

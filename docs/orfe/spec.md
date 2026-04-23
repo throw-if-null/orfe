@@ -391,11 +391,15 @@ Root-level informational invocations must support:
 
 - `orfe --help`
 - `orfe --version`
+- `orfe help`
 
 The runtime command surface must also support:
 
 - `orfe runtime info`
 - `{ "command": "runtime info" }`
+- `orfe help`
+- `{ "command": "help" }`
+- `{ "command": "help", "command_name": "issue get" }`
 
 `--help` must work at three levels:
 
@@ -409,6 +413,26 @@ It must not require caller identity, repo config, auth config, or any GitHub acc
 
 `orfe runtime info` returns structured JSON describing the active runtime version and entrypoint.
 It must not require caller identity, repo config, auth config, or any GitHub access.
+
+`orfe help` returns structured JSON describing the public command surface.
+It must not require caller identity, repo config, auth config, or any GitHub access.
+
+Targeted runtime help must accept the documented input shape:
+
+```json
+{ "command": "help", "command_name": "issue get" }
+```
+
+Command-specific runtime help must include at least:
+
+1. canonical command name
+2. purpose
+3. usage
+4. required options
+5. optional options
+6. examples
+7. success output summary
+8. whether caller context is required
 
 Leaf-command help must include:
 
@@ -565,6 +589,8 @@ orfe pr reply
 
 orfe project get-status
 orfe project set-status
+
+orfe help
 ```
 
 ## 11. Command reference
@@ -1302,6 +1328,65 @@ Rules:
 
 **Side effects**: none  
 **Failure behavior**: package metadata load failures remain structured  
+**Idempotency**: yes
+
+## 11.17 `help`
+
+**Purpose**: Discover the public `orfe` command surface and retrieve structured help for a specific command.
+
+**CLI**:
+
+```text
+orfe help [--command-name <command>]
+```
+
+**Tool input**:
+
+```json
+{ "command": "help" }
+```
+
+Targeted command help uses:
+
+```json
+{ "command": "help", "command_name": "issue get" }
+```
+
+**Success `data` shape**:
+
+Root help returns structured discovery data, including:
+
+- `scope: "root"`
+- `canonical_command_name: "help"`
+- `usage`
+- `top_level_commands`
+- `command_groups`
+- `examples`
+
+Targeted command help returns structured command help, including:
+
+- `scope: "command"`
+- `canonical_command_name`
+- `purpose`
+- `usage`
+- `required_options`
+- `optional_options`
+- `examples`
+- `success_output_summary`
+- `success_data_example`
+- `caller_context_required`
+
+Rules:
+
+- help is a deliberate public runtime command, not a wrapper-only special case
+- root help must expose enough structured information for an agent to discover available commands and choose the correct one
+- targeted help must resolve commands by canonical command name
+- help must use the normal structured success envelope
+- help must not require caller identity, repo config, auth config, or GitHub access
+- existing CLI `--help` behavior remains a separate human-oriented help path and continues to work
+
+**Side effects**: none  
+**Failure behavior**: unknown `command_name` => `invalid_usage`  
 **Idempotency**: yes
 
 ## 12. Success/failure semantics for follow-up implementation

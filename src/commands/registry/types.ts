@@ -3,8 +3,8 @@ import type { RuntimeEntrypoint } from '../../version.js';
 
 export type CommandOptionType = 'string' | 'number' | 'boolean' | 'enum' | 'string-array';
 
-export type CommandGroupFromName<TName extends string> = TName extends `${infer TGroup} ${string}` ? TGroup : never;
-export type CommandLeafFromName<TName extends string> = TName extends `${string} ${infer TLeaf}` ? TLeaf : never;
+export type CommandGroupFromName<TName extends string> = TName extends `${infer TGroup} ${string}` ? TGroup : TName;
+export type CommandLeafFromName<TName extends string> = TName extends `${string} ${infer TLeaf}` ? TLeaf : TName;
 
 export interface CommandOptionDefinition {
   key: string;
@@ -29,6 +29,7 @@ export interface CommandDefinition<
   name: TName;
   group: CommandGroupFromName<TName>;
   leaf: CommandLeafFromName<TName>;
+  topLevel?: boolean;
   purpose: string;
   usage: string;
   successSummary: string;

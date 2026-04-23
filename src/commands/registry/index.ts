@@ -21,6 +21,11 @@ export function listCommandGroups(): OrfeCommandGroup[] {
   return [...COMMAND_GROUPS];
 }
 
+export function getTopLevelCommandDefinition(commandName: string): CommandDefinition | undefined {
+  const commandDefinition = COMMAND_DEFINITION_MAP.get(commandName);
+  return commandDefinition?.topLevel ? commandDefinition : undefined;
+}
+
 export function getCommandDefinition<TName extends OrfeCommandName | string>(commandName: TName): CommandDefinition {
   const commandDefinition = COMMAND_DEFINITION_MAP.get(commandName);
   if (!commandDefinition) {
@@ -31,7 +36,7 @@ export function getCommandDefinition<TName extends OrfeCommandName | string>(com
 }
 
 export function getGroupDefinitions(group: OrfeCommandGroup): CommandDefinition[] {
-  return COMMANDS.filter((definition) => definition.group === group);
+  return COMMANDS.filter((definition) => !definition.topLevel && definition.group === group);
 }
 
 export function getCliCommonOptions(): readonly CommandOptionDefinition[] {
@@ -84,6 +89,10 @@ function createCommandGroupList(commandDefinitions: readonly CommandDefinition[]
   const groups: OrfeCommandGroup[] = [];
 
   for (const definition of commandDefinitions) {
+    if (definition.topLevel) {
+      continue;
+    }
+
     if (seen.has(definition.group)) {
       continue;
     }
