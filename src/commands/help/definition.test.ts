@@ -26,8 +26,10 @@ test('help root data exposes discovery flow and grouped next steps for agents', 
     github_access: 'not_required',
   });
   assert.match(rootHelp.discovery_flow[0] ?? '', /Start with \{ "command": "help" \}/);
+  assert.match(rootHelp.discovery_flow[1] ?? '', /Choose a canonical command from command_groups/);
   assert.equal(rootHelp.top_level_help.next_step.tool_input.command, 'help');
   assert.equal(rootHelp.top_level_help.next_step.tool_input.command_name, 'issue get');
+  assert.equal('top_level_commands' in rootHelp, false);
   assert.equal(rootHelp.command_groups.some((group) => group.name === 'issue'), true);
   assert.equal(rootHelp.command_groups.some((group) => group.name === 'pr'), true);
   assert.equal(rootHelp.command_groups.some((group) => group.name === 'project'), true);

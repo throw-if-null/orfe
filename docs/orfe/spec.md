@@ -1362,7 +1362,6 @@ Root help returns structured discovery data, including:
 - `usage`
 - `requirements`
 - `top_level_help`
-- `top_level_commands` (top-level commands other than `help` itself, so the root payload does not self-reference)
 - `command_groups`
 - `examples`
 
@@ -1375,7 +1374,7 @@ Representative root help shape:
   "purpose": "Discover available orfe commands and how to request targeted command help.",
   "discovery_flow": [
     "Start with { \"command\": \"help\" } to inspect the public command surface.",
-    "Choose a command from top_level_commands or command_groups.",
+    "Choose a canonical command from command_groups.",
     "Request targeted help with { \"command\": \"help\", \"command_name\": \"<canonical command name>\" } before executing the command."
   ],
   "usage": {
@@ -1391,13 +1390,12 @@ Representative root help shape:
     "github_access": "not_required"
   },
   "top_level_help": {
-    "summary": "Use help as the primary agent discovery path. Start here, then request targeted help for the command you want to run next.",
+    "summary": "Use help as the primary agent discovery path. Start here, choose a command from command_groups, then request targeted help for that command.",
     "next_step": {
       "tool_input": { "command": "help", "command_name": "issue get" },
       "purpose": "Inspect one canonical command in detail before executing it."
     }
   },
-  "top_level_commands": [],
   "command_groups": [
     {
       "name": "issue",
@@ -1505,7 +1503,7 @@ Rules:
 - root help must expose enough structured information for an agent to discover available commands and choose the correct one
 - root help is the canonical agent discovery entrypoint for OpenCode tool usage
 - root help must make the recommended discovery flow explicit: start with root help, then request targeted help for a canonical command name
-- root help must describe `help` in the top-level payload fields and omit `help` from `top_level_commands`
+- root help must avoid recursive self-discovery cues and direct agents to choose canonical commands from `command_groups`
 - targeted help must resolve commands by canonical command name
 - targeted help must explicitly describe required vs optional input fields and whether caller context, repo-local config, machine-local auth config, or GitHub access are required
 - help must use the normal structured success envelope

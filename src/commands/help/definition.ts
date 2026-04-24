@@ -62,7 +62,6 @@ export interface HelpRootData {
       purpose: string;
     };
   };
-  top_level_commands: HelpCommandSummaryData[];
   command_groups: Array<{
     name: string;
     purpose: string;
@@ -246,9 +245,6 @@ function buildHelpData(input: HelpInput, commandDefinitions: readonly CommandDef
 }
 
 function buildRootHelpData(commandDefinitions: readonly CommandDefinition[]): HelpRootData {
-  const topLevelCommands = commandDefinitions
-    .filter((definition) => definition.topLevel && definition.name !== 'help')
-    .map(toCommandSummary);
   const groupMap = new Map<string, HelpCommandSummaryData[]>();
 
   for (const definition of commandDefinitions) {
@@ -267,7 +263,7 @@ function buildRootHelpData(commandDefinitions: readonly CommandDefinition[]): He
     purpose: 'Discover available orfe commands and how to request targeted command help.',
     discovery_flow: [
       'Start with { "command": "help" } to inspect the public command surface.',
-      'Choose a command from top_level_commands or command_groups.',
+      'Choose a canonical command from command_groups.',
       'Request targeted help with { "command": "help", "command_name": "<canonical command name>" } before executing the command.',
     ],
     usage: {
@@ -288,7 +284,7 @@ function buildRootHelpData(commandDefinitions: readonly CommandDefinition[]): He
       requiresGitHubAccess: false,
     }),
     top_level_help: {
-      summary: 'Use help as the primary agent discovery path. Start here, then request targeted help for the command you want to run next.',
+      summary: 'Use help as the primary agent discovery path. Start here, choose a command from command_groups, then request targeted help for that command.',
       next_step: {
         tool_input: {
           command: 'help',
@@ -297,7 +293,6 @@ function buildRootHelpData(commandDefinitions: readonly CommandDefinition[]): He
         purpose: 'Inspect one canonical command in detail before executing it.',
       },
     },
-    top_level_commands: topLevelCommands,
     command_groups: Array.from(groupMap.entries()).map(([name, commands]) => ({
       name,
       purpose: describeGroup(name),
