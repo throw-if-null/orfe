@@ -34,6 +34,52 @@ export async function runOrfeCore(
     return createSuccessResponse(commandDefinition.name, undefined, data);
   }
 
+  if ((commandDefinition.requiresGitHubAccess ?? true) === false) {
+    const callerName = request.callerName.trim();
+    if ((commandDefinition.requiresCaller ?? true) && callerName.length === 0) {
+      throw new OrfeError('caller_name_missing', 'Caller name is required.');
+    }
+
+    const loadRepoConfigImpl = dependencies.loadRepoConfigImpl ?? loadRepoConfig;
+    const cwd = request.cwd ?? process.cwd();
+    const logger = request.logger ?? createLogger();
+    const repoConfig = await loadRepoConfigImpl({
+      cwd,
+      ...(request.configPath ? { configPath: request.configPath } : {}),
+    });
+    const repo = resolveRepository(repoConfig, typeof validatedInput.repo === 'string' ? validatedInput.repo : undefined);
+    const callerBot = callerName.length > 0 ? resolveRequiredCallerBot(repoConfig, callerName) : '';
+
+    const data = await commandDefinition.handler({
+      callerName,
+      callerBot,
+      command: commandDefinition.name,
+      input: validatedInput,
+      repo,
+      repoConfig,
+      authConfig: {
+        configPath: request.authConfigPath ?? '',
+        version: 1,
+        bots: {},
+      },
+      botAuth: {
+        provider: 'github-app',
+        appId: 0,
+        appSlug: '',
+        privateKeyPath: '',
+      },
+      logger,
+      getGitHubClient: async () => {
+        throw new OrfeError('github_not_found', 'GitHub client is not available for this command.');
+      },
+      getGitHubAuth: async () => {
+        throw new OrfeError('auth_failed', 'GitHub auth is not available for this command.');
+      },
+    });
+
+    return createSuccessResponse(commandDefinition.name, repo.fullName, data);
+  }
+
   const callerName = request.callerName.trim();
   if (callerName.length === 0) {
     throw new OrfeError('caller_name_missing', 'Caller name is required.');

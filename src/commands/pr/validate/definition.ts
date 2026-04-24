@@ -38,5 +38,8 @@ export const prValidateCommand = createCommandDefinition({
       'Ref: #58\n\n## Summary\n- add PR validation\n\n## Verification\n- `npm test` ✅\n- `npm run lint` ✅\n- `npm run typecheck` ✅\n- `npm run build` ✅\n\n## Docs / ADR / debt\n- docs updated: yes\n- ADR updated: no\n- debt updated: no\n- details: updated the spec\n\n## Risks / follow-ups\n- none\n\n<!-- orfe-body-contract: pr/implementation-ready@1.0.0 -->',
     errors: [],
   },
+  requiresCaller: false,
+  requiresAuthConfig: false,
+  requiresGitHubAccess: false,
   handler: handlePrValidate,
 });

@@ -12,6 +12,7 @@ Agents in this repository operate inside the **OpenCode agent environment**. Ope
 - **Skills**: reusable workflow guidance discovered from `.opencode/skills/*/SKILL.md` and loaded on demand. If a relevant skill exists, agents should prefer it over improvising a workflow.
 - **Commands**: reusable prompt entrypoints from `.opencode/commands/*`, useful for repeated human-triggered workflows.
 - **Tools**: callable capabilities used to perform actions. Custom tools from `.opencode/tools/*` should be used for deterministic helpers such as auth helpers, GitHub wrappers, validation, and similar automation.
+- For `orfe` tool discovery, start with `{ "command": "help" }`, then request `{ "command": "help", "command_name": "<canonical command>" }` for the command you need.
 - If `AGENTS.md` and a loaded skill disagree, **ask for clarification before proceeding**.
 
 ## Repository workflow config

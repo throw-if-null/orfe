@@ -1358,30 +1358,154 @@ Root help returns structured discovery data, including:
 
 - `scope: "root"`
 - `canonical_command_name: "help"`
+- `discovery_flow`
 - `usage`
-- `top_level_commands` (top-level commands other than `help` itself, so the root payload does not self-reference)
+- `requirements`
+- `top_level_help`
 - `command_groups`
 - `examples`
+
+Representative root help shape:
+
+```json
+{
+  "scope": "root",
+  "canonical_command_name": "help",
+  "purpose": "Discover available orfe commands and how to request targeted command help.",
+  "discovery_flow": [
+    "Start with { \"command\": \"help\" } to inspect the public command surface.",
+    "Choose a canonical command from command_groups.",
+    "Request targeted help with { \"command\": \"help\", \"command_name\": \"<canonical command name>\" } before executing the command."
+  ],
+  "usage": {
+    "cli": "orfe help [--command-name <command>]",
+    "tool_input": { "command": "help" },
+    "targeted_tool_input": { "command": "help", "command_name": "issue get" }
+  },
+  "caller_context_required": false,
+  "requirements": {
+    "caller_context": "not_required",
+    "repo_local_config": "not_required",
+    "machine_local_auth_config": "not_required",
+    "github_access": "not_required"
+  },
+  "top_level_help": {
+    "summary": "Use help as the primary agent discovery path. Start here, choose a command from command_groups, then request targeted help for that command.",
+    "next_step": {
+      "tool_input": { "command": "help", "command_name": "issue get" },
+      "purpose": "Inspect one canonical command in detail before executing it."
+    }
+  },
+  "command_groups": [
+    {
+      "name": "issue",
+      "purpose": "GitHub issue read, write, validation, comment, and state commands.",
+      "commands": [
+        {
+          "canonical_command_name": "issue get",
+          "purpose": "Read one issue.",
+          "required_input_fields": ["issue_number"],
+          "optional_input_fields": ["repo", "config", "auth_config"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Each root command summary should include enough next-step discovery information for agents, including:
+
+- `canonical_command_name`
+- `purpose`
+- `usage`
+- `supported_input_fields`
+- `required_input_fields`
+- `optional_input_fields`
+- `next_step`
+- `requirements`
 
 Targeted command help returns structured command help, including:
 
 - `scope: "command"`
 - `canonical_command_name`
 - `purpose`
+- `summary`
 - `usage`
+- `supported_input_fields`
 - `required_options`
 - `optional_options`
+- `requirements`
 - `examples`
 - `success_output_summary`
 - `success_data_example`
 - `caller_context_required`
 
+Representative targeted help shape:
+
+```json
+{
+  "scope": "command",
+  "canonical_command_name": "issue get",
+  "purpose": "Read one issue.",
+  "summary": "Read one issue. Required input fields: issue_number.",
+  "usage": {
+    "cli": "orfe issue get --issue-number <number> [--repo <owner/name>] [--config <path>] [--auth-config <path>]",
+    "tool_input": { "command": "issue get", "issue_number": 13 }
+  },
+  "supported_input_fields": [
+    {
+      "input_key": "issue_number",
+      "cli_flag": "--issue-number",
+      "description": "Issue number.",
+      "type": "number",
+      "required": true
+    }
+  ],
+  "required_options": [
+    {
+      "input_key": "issue_number",
+      "cli_flag": "--issue-number",
+      "description": "Issue number.",
+      "type": "number",
+      "required": true
+    }
+  ],
+  "optional_options": [
+    {
+      "input_key": "repo",
+      "cli_flag": "--repo",
+      "description": "Override the target repository as owner/name.",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "requirements": {
+    "caller_context": "required",
+    "repo_local_config": "required",
+    "machine_local_auth_config": "required",
+    "github_access": "required"
+  },
+  "examples": [
+    { "tool_input": { "command": "issue get", "issue_number": 13 } }
+  ],
+  "success_output_summary": "Prints a structured JSON issue payload.",
+  "success_data_example": {
+    "issue_number": 13,
+    "title": "Design the `orfe` custom tool and CLI contract"
+  },
+  "caller_context_required": true
+}
+```
+
 Rules:
 
 - help is a deliberate public runtime command, not a wrapper-only special case
 - root help must expose enough structured information for an agent to discover available commands and choose the correct one
-- root help must describe `help` in the top-level payload fields and omit `help` from `top_level_commands`
+- root help is the canonical agent discovery entrypoint for OpenCode tool usage
+- root help must make the recommended discovery flow explicit: start with root help, then request targeted help for a canonical command name
+- root help must avoid recursive self-discovery cues and direct agents to choose canonical commands from `command_groups`
 - targeted help must resolve commands by canonical command name
+- targeted help must explicitly describe required vs optional input fields and whether caller context, repo-local config, machine-local auth config, or GitHub access are required
 - help must use the normal structured success envelope
 - help must not require caller identity, repo config, auth config, or GitHub access
 - existing CLI `--help` behavior remains a separate human-oriented help path and continues to work

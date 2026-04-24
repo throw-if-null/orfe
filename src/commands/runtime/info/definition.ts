@@ -15,5 +15,8 @@ export const runtimeInfoCommand = createCommandDefinition({
     entrypoint: 'opencode-plugin' as const,
   },
   requiresCaller: false,
+  requiresRepoConfig: false,
+  requiresAuthConfig: false,
+  requiresGitHubAccess: false,
   runtimeHandler: ({ entrypoint }) => getRuntimeInfo(entrypoint),
 });

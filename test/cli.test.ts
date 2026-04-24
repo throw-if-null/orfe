@@ -5,7 +5,8 @@ import nock from 'nock';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { getCommandDefinition, getGroupDefinitions, listCommandGroups, listCommandNames } from '../src/commands/registry/index.js';
+import { createHelpCommandSuccessData, createHelpRootSuccessData } from '../src/commands/help/definition.js';
+import { getCommandDefinition, getGroupDefinitions, listCommandDefinitions, listCommandGroups, listCommandNames } from '../src/commands/registry/index.js';
 import { OrfeError } from '../src/errors.js';
 import { GitHubClientFactory } from '../src/github.js';
 import { parseInvocationForCli, runCli } from '../src/command.js';
@@ -905,118 +906,7 @@ test('runCli prints structured root help for the runtime help command without ca
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
       command: 'help',
-      data: {
-        scope: 'root',
-        canonical_command_name: 'help',
-        purpose: 'Discover available orfe commands and how to request targeted command help.',
-        usage: {
-          cli: 'orfe help [--command-name <command>]',
-          tool_input: {
-            command: 'help',
-          },
-          targeted_tool_input: {
-            command: 'help',
-            command_name: 'issue get',
-          },
-        },
-        caller_context_required: false,
-        top_level_commands: [],
-        command_groups: [
-          {
-            name: 'auth',
-            commands: [
-              {
-                canonical_command_name: 'auth token',
-                purpose: 'Mint a GitHub App installation token for the resolved caller bot and repository.',
-                usage: {
-                  cli: 'orfe auth token --repo <owner/name> [--config <path>] [--auth-config <path>]',
-                  tool_input: {
-                    command: 'auth token',
-                    repo: 'throw-if-null/orfe',
-                  },
-                },
-                caller_context_required: true,
-                top_level: false,
-              },
-            ],
-          },
-          {
-            name: 'issue',
-            commands: getGroupDefinitions('issue').map((definition) => ({
-              canonical_command_name: definition.name,
-              purpose: definition.purpose,
-              usage: {
-                cli: definition.usage,
-                tool_input: {
-                  command: definition.name,
-                  ...definition.validInputExample,
-                },
-              },
-              caller_context_required: definition.requiresCaller ?? true,
-              top_level: false,
-            })),
-          },
-          {
-            name: 'pr',
-            commands: getGroupDefinitions('pr').map((definition) => ({
-              canonical_command_name: definition.name,
-              purpose: definition.purpose,
-              usage: {
-                cli: definition.usage,
-                tool_input: {
-                  command: definition.name,
-                  ...definition.validInputExample,
-                },
-              },
-              caller_context_required: definition.requiresCaller ?? true,
-              top_level: false,
-            })),
-          },
-          {
-            name: 'project',
-            commands: getGroupDefinitions('project').map((definition) => ({
-              canonical_command_name: definition.name,
-              purpose: definition.purpose,
-              usage: {
-                cli: definition.usage,
-                tool_input: {
-                  command: definition.name,
-                  ...definition.validInputExample,
-                },
-              },
-              caller_context_required: definition.requiresCaller ?? true,
-              top_level: false,
-            })),
-          },
-          {
-            name: 'runtime',
-            commands: [
-              {
-                canonical_command_name: 'runtime info',
-                purpose: 'Inspect the active orfe runtime version and entrypoint.',
-                usage: {
-                  cli: 'orfe runtime info',
-                  tool_input: {
-                    command: 'runtime info',
-                  },
-                },
-                caller_context_required: false,
-                top_level: false,
-              },
-            ],
-          },
-        ],
-        examples: [
-          {
-            cli: 'orfe help',
-            tool_input: { command: 'help' },
-          },
-          {
-            cli: 'orfe help --command-name "issue get"',
-            tool_input: { command: 'help', command_name: 'issue get' },
-          },
-        ],
-      },
+      data: createHelpRootSuccessData(listCommandDefinitions()),
     });
   } finally {
     nock.cleanAll();
@@ -1048,74 +938,42 @@ test('runCli prints targeted structured help for the requested command', async (
     assert.deepEqual(JSON.parse(stdout.output), {
       ok: true,
       command: 'help',
-      data: {
-        scope: 'command',
-        canonical_command_name: 'issue get',
-        purpose: 'Read one issue.',
-        usage: {
-          cli: 'orfe issue get --issue-number <number> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
-          tool_input: {
-            command: 'issue get',
-            issue_number: 13,
-          },
-        },
-        required_options: [
-          {
-            input_key: 'issue_number',
-            cli_flag: '--issue-number',
-            description: 'Issue number.',
-            type: 'number',
-            required: true,
-          },
-        ],
-        optional_options: [
-          {
-            input_key: 'repo',
-            cli_flag: '--repo',
-            description: 'Override the target repository as owner/name.',
-            type: 'string',
-            required: false,
-          },
-          {
-            input_key: 'config',
-            cli_flag: '--config',
-            description: 'Override the repo-local config path.',
-            type: 'string',
-            required: false,
-          },
-          {
-            input_key: 'auth_config',
-            cli_flag: '--auth-config',
-            description: 'Override the machine-local auth config path.',
-            type: 'string',
-            required: false,
-          },
-        ],
-        examples: [
-          {
-            cli: 'ORFE_CALLER_NAME=Greg orfe issue get --issue-number 14',
-          },
-          {
-            tool_input: {
-              command: 'issue get',
-              issue_number: 13,
-            },
-          },
-        ],
-        success_output_summary: 'Prints a structured JSON issue payload.',
-        success_data_example: {
-          issue_number: 13,
-          title: 'Design the `orfe` custom tool and CLI contract',
-          body: '...',
-          state: 'open',
-          state_reason: null,
-          labels: ['needs-input'],
-          assignees: ['greg'],
-          html_url: 'https://github.com/throw-if-null/orfe/issues/13',
-        },
-        caller_context_required: true,
-      },
+      data: createHelpCommandSuccessData(listCommandDefinitions(), 'issue get'),
     });
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints representative targeted structured help for issue, pr, and project commands', async () => {
+  nock.disableNetConnect();
+
+  try {
+    for (const commandName of ['issue get', 'pr get-or-create', 'project set-status'] as const) {
+      const stdout = new MemoryStream();
+      const stderr = new MemoryStream();
+
+      const exitCode = await runCli(['help', '--command-name', commandName], {
+        stdout,
+        stderr,
+        env: {},
+        loadRepoConfigImpl: async () => {
+          throw new Error('loadRepoConfigImpl should not run');
+        },
+        loadAuthConfigImpl: async () => {
+          throw new Error('loadAuthConfigImpl should not run');
+        },
+      });
+
+      assert.equal(exitCode, 0);
+      assert.equal(stderr.output, '');
+      assert.deepEqual(JSON.parse(stdout.output), {
+        ok: true,
+        command: 'help',
+        data: createHelpCommandSuccessData(listCommandDefinitions(), commandName),
+      });
+    }
   } finally {
     nock.cleanAll();
     nock.enableNetConnect();

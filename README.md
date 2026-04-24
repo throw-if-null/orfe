@@ -231,6 +231,14 @@ To discover the tool command surface or request help for one command through str
 
 The top-level `help` command is available without caller context, repo-local config, machine-local auth config, or GitHub access.
 
+Use the structured discovery flow:
+
+1. start with `{ "command": "help" }`
+2. choose a canonical command from `command_groups`
+3. request `{ "command": "help", "command_name": "<canonical command>" }` before executing it
+
+Targeted command help includes the canonical command name, supported input fields, required vs optional fields, example structured input, and whether caller context, repo-local config, machine-local auth config, or GitHub access are required.
+
 ## Development
 
 ```bash
