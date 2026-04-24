@@ -16,6 +16,14 @@ permission:
     "git show*": allow
     "git branch*": allow
 
+    # gh CLI usage must be explicitly approved so gaps are visible
+    "gh": ask
+    "gh *": ask
+    "* gh *": ask
+    "GH_TOKEN=* gh": ask
+    "GH_TOKEN=* gh *": ask
+    "* GH_TOKEN=* gh *": ask
+
     # Read-only verification
     "npm install*": allow
     "*test*": allow
@@ -24,15 +32,6 @@ permission:
     "*check*": allow
     "*typecheck*": allow
     "node *": allow
-
-    # GitHub review/comment operations
-    "gh pr view*": allow
-    "gh pr review*": allow
-    "gh pr comment*": allow
-    "gh issue view*": allow
-    "gh issue comment*": allow
-    "gh api*": allow
-    "gh auth status*": allow
 
     # Deny orfe CLI usage — use the orfe plugin tool instead
     "orfe": deny
@@ -76,9 +75,9 @@ You do not change code or branch state. You review, verify, and communicate outc
 
 ## GitHub auth operating procedure
 - **Primary path**: use the OpenCode `orfe` plugin tool for all GitHub operations. Caller identity is provided automatically from `context.agent`; do not inject `ORFE_CALLER_NAME` and do not run `orfe` from bash.
-- **`gh` CLI writes only**: when an operation is not covered by the `orfe` plugin tool, use `orfe` plugin's `auth token` command (via the function tool, not bash) to obtain a bot token, then pass it explicitly to `gh` via `GH_TOKEN=<token> gh ...`.
+- **`gh` CLI is not a normal path in this repository.** If you think `gh` is required because the `orfe` plugin tool does not cover an operation, stop and request approval first so the gap can be evaluated explicitly.
 - Do not use static PAT-based auth for normal GitHub operations in this repo.
-- If token minting fails, stop immediately and report an explicit bot-auth failure instead of falling back to session auth.
+- If bot auth or the `orfe` plugin path fails, stop immediately and report the failure instead of falling back to session auth. Do not switch to `gh` unless approval was explicitly granted.
 - Caller-to-bot mapping for reference: `klarissa` → `KL4R1554-BOT`.
 
 ## Repository Workflow Contract
