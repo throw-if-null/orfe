@@ -1,5 +1,6 @@
 import type { CommandDefinition } from './registry/types.js';
 import { authTokenCommand } from './auth/token/definition.js';
+import { createHelpCommand } from './help/definition.js';
 import { issueCommentCommand } from './issue/comment/definition.js';
 import { issueCreateCommand } from './issue/create/definition.js';
 import { issueGetCommand } from './issue/get/definition.js';
@@ -16,7 +17,7 @@ import { projectGetStatusCommand } from './project/get-status/definition.js';
 import { projectSetStatusCommand } from './project/set-status/definition.js';
 import { runtimeInfoCommand } from './runtime/info/definition.js';
 
-export const COMMANDS = [
+const BASE_COMMANDS = [
   authTokenCommand,
   issueGetCommand,
   issueCreateCommand,
@@ -35,5 +36,15 @@ export const COMMANDS = [
   runtimeInfoCommand,
 ] as const satisfies readonly CommandDefinition[];
 
+export const helpCommand = createHelpCommand(() => COMMANDS);
+
+export const COMMANDS = [...BASE_COMMANDS, helpCommand] as const satisfies readonly CommandDefinition[];
+
 export type OrfeCommandName = (typeof COMMANDS)[number]['name'];
-export type OrfeCommandGroup = (typeof COMMANDS)[number]['group'];
+type GroupedCommandDefinition = (typeof COMMANDS)[number] extends infer TDefinition
+  ? TDefinition extends { topLevel: true }
+    ? never
+    : TDefinition
+  : never;
+
+export type OrfeCommandGroup = GroupedCommandDefinition['group'];

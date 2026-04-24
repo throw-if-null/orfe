@@ -1,20 +1,52 @@
 import type { CommandDefinition, CommandDefinitionInput, CommandGroupFromName, CommandLeafFromName } from './types.js';
 
 export function createCommandDefinition<
-  const TName extends `${string} ${string}`,
+  const TName extends string,
+  TInput extends Record<string, unknown>,
+  TData extends object,
+>(definition: Extract<CommandDefinitionInput<TName, TInput, TData>, { execution: 'runtime' }>): Extract<
+  CommandDefinition<TName, TInput, TData>,
+  { execution: 'runtime' }
+>;
+
+export function createCommandDefinition<
+  const TName extends string,
+  TInput extends Record<string, unknown>,
+  TData extends object,
+>(definition: CommandDefinitionInput<TName, TInput, TData>): CommandDefinition<TName, TInput, TData>;
+
+export function createCommandDefinition<
+  const TName extends string,
   TInput extends Record<string, unknown>,
   TData extends object,
 >(definition: CommandDefinitionInput<TName, TInput, TData>): CommandDefinition<TName, TInput, TData> {
-  const separatorIndex = definition.name.indexOf(' ');
-  if (separatorIndex <= 0 || separatorIndex >= definition.name.length - 1) {
+  const segments = definition.name.split(' ').filter((segment) => segment.length > 0);
+  if (segments.length === 0) {
+    throw new Error('Command name must not be empty.');
+  }
+
+  if (definition.topLevel) {
+    if (segments.length !== 1) {
+      throw new Error(`Top-level command name "${definition.name}" must be a single token.`);
+    }
+  } else if (segments.length !== 2) {
     throw new Error(`Command name "${definition.name}" must be in "group leaf" format.`);
   }
 
-  const group = definition.name.slice(0, separatorIndex) as CommandGroupFromName<TName>;
-  const leaf = definition.name.slice(separatorIndex + 1) as CommandLeafFromName<TName>;
+  const group = segments[0] as CommandGroupFromName<TName>;
+  const leaf = (segments[1] ?? segments[0]) as CommandLeafFromName<TName>;
+
+  if (definition.execution === 'runtime') {
+    return {
+      ...definition,
+      group,
+      leaf,
+    };
+  }
 
   return {
     ...definition,
+    execution: 'github',
     group,
     leaf,
   };

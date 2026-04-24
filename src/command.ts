@@ -2,6 +2,7 @@ import {
   getCliCommonOptions,
   getCommandDefinition,
   getGroupDefinitions,
+  getTopLevelCommandDefinition,
   listCommandDefinitions,
   listCommandGroups,
   type CommandDefinition,
@@ -108,6 +109,29 @@ function parseInvocation(args: string[], env: NodeJS.ProcessEnv): ParsedInvocati
     return {
       kind: 'version',
       output: getOrfeVersion(),
+    };
+  }
+
+  const topLevelCommandDefinition = args[0] ? getTopLevelCommandDefinition(args[0]) : undefined;
+  if (topLevelCommandDefinition) {
+    const rest = args.slice(1);
+
+    if (rest.includes('--help') || rest.includes('-h')) {
+      return {
+        kind: 'help',
+        output: renderLeafHelp(topLevelCommandDefinition),
+      };
+    }
+
+    const { input, callerName, configPath, authConfigPath } = parseLeafOptions(topLevelCommandDefinition, rest, env);
+
+    return {
+      kind: 'leaf',
+      commandDefinition: topLevelCommandDefinition,
+      callerName,
+      ...(configPath ? { configPath } : {}),
+      ...(authConfigPath ? { authConfigPath } : {}),
+      input,
     };
   }
 
@@ -362,9 +386,13 @@ function formatOptionLine(optionDefinition: CommandOptionDefinition): string {
 }
 
 function createLeafUsageError(commandDefinition: CommandDefinition, message: string): CliUsageError {
+  const see = commandDefinition.topLevel
+    ? `orfe ${commandDefinition.name} --help`
+    : `orfe ${commandDefinition.group} ${commandDefinition.leaf} --help`;
+
   return new CliUsageError(message, {
     usage: commandDefinition.usage,
     example: commandDefinition.examples[0] ?? commandDefinition.usage,
-    see: `orfe ${commandDefinition.group} ${commandDefinition.leaf} --help`,
+    see,
   });
 }
