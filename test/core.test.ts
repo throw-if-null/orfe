@@ -928,21 +928,7 @@ test('runOrfeCore returns root help without caller, config, auth, or GitHub acce
       },
     },
     caller_context_required: false,
-    top_level_commands: [
-      {
-        canonical_command_name: 'help',
-        purpose: 'Discover available commands and command-specific usage through structured output.',
-        usage: {
-          cli: 'orfe help [--command-name <command>]',
-          tool_input: {
-            command: 'help',
-            command_name: 'issue get',
-          },
-        },
-        caller_context_required: false,
-        top_level: true,
-      },
-    ],
+    top_level_commands: [],
     command_groups: COMMANDS.filter((definition) => !definition.topLevel)
       .reduce<Array<{ name: string; commands: Array<{ canonical_command_name: string; purpose: string; usage: { cli: string; tool_input: Record<string, unknown> }; caller_context_required: boolean; top_level: boolean }> }>>((groups, definition) => {
         const existing = groups.find((group) => group.name === definition.group);

@@ -1359,7 +1359,7 @@ Root help returns structured discovery data, including:
 - `scope: "root"`
 - `canonical_command_name: "help"`
 - `usage`
-- `top_level_commands`
+- `top_level_commands` (top-level commands other than `help` itself, so the root payload does not self-reference)
 - `command_groups`
 - `examples`
 
@@ -1380,6 +1380,7 @@ Rules:
 
 - help is a deliberate public runtime command, not a wrapper-only special case
 - root help must expose enough structured information for an agent to discover available commands and choose the correct one
+- root help must describe `help` in the top-level payload fields and omit `help` from `top_level_commands`
 - targeted help must resolve commands by canonical command name
 - help must use the normal structured success envelope
 - help must not require caller identity, repo config, auth config, or GitHub access

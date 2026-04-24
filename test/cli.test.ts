@@ -920,21 +920,7 @@ test('runCli prints structured root help for the runtime help command without ca
           },
         },
         caller_context_required: false,
-        top_level_commands: [
-          {
-            canonical_command_name: 'help',
-            purpose: 'Discover available commands and command-specific usage through structured output.',
-            usage: {
-              cli: 'orfe help [--command-name <command>]',
-              tool_input: {
-                command: 'help',
-                command_name: 'issue get',
-              },
-            },
-            caller_context_required: false,
-            top_level: true,
-          },
-        ],
+        top_level_commands: [],
         command_groups: [
           {
             name: 'auth',

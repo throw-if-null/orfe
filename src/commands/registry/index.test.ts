@@ -25,6 +25,16 @@ test('registry lists the top-level help command from explicit registrations', ()
   assert.equal(getTopLevelCommandDefinition('help')?.name, 'help');
 });
 
+test('registry marks runtime-only commands explicitly', () => {
+  const helpDefinition = getCommandDefinition('help');
+  const runtimeInfoDefinition = getCommandDefinition('runtime info');
+
+  assert.equal(helpDefinition.execution, 'runtime');
+  assert.equal(runtimeInfoDefinition.execution, 'runtime');
+  assert.equal(Object.prototype.hasOwnProperty.call(helpDefinition, 'handler'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(runtimeInfoDefinition, 'handler'), false);
+});
+
 test('registry resolves definitions from the explicit registration array', () => {
   for (const definition of COMMANDS) {
     assert.equal(getCommandDefinition(definition.name), definition);

@@ -20,7 +20,7 @@ export async function runOrfeCore(
   const validatedInput = validateCommandInput(commandDefinition, request.input);
   const entrypoint = request.entrypoint ?? 'cli';
 
-  if (commandDefinition.runtimeHandler) {
+  if (commandDefinition.execution === 'runtime') {
     if ((commandDefinition.requiresCaller ?? true) && request.callerName.trim().length === 0) {
       throw new OrfeError('caller_name_missing', 'Caller name is required.');
     }

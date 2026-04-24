@@ -4,6 +4,21 @@ export function createCommandDefinition<
   const TName extends string,
   TInput extends Record<string, unknown>,
   TData extends object,
+>(definition: Extract<CommandDefinitionInput<TName, TInput, TData>, { execution: 'runtime' }>): Extract<
+  CommandDefinition<TName, TInput, TData>,
+  { execution: 'runtime' }
+>;
+
+export function createCommandDefinition<
+  const TName extends string,
+  TInput extends Record<string, unknown>,
+  TData extends object,
+>(definition: CommandDefinitionInput<TName, TInput, TData>): CommandDefinition<TName, TInput, TData>;
+
+export function createCommandDefinition<
+  const TName extends string,
+  TInput extends Record<string, unknown>,
+  TData extends object,
 >(definition: CommandDefinitionInput<TName, TInput, TData>): CommandDefinition<TName, TInput, TData> {
   const segments = definition.name.split(' ').filter((segment) => segment.length > 0);
   if (segments.length === 0) {
@@ -21,9 +36,17 @@ export function createCommandDefinition<
   const group = segments[0] as CommandGroupFromName<TName>;
   const leaf = (segments[1] ?? segments[0]) as CommandLeafFromName<TName>;
 
+  if (definition.execution === 'runtime') {
+    return {
+      ...definition,
+      group,
+      leaf,
+    };
+  }
 
   return {
     ...definition,
+    execution: 'github',
     group,
     leaf,
   };

@@ -3,6 +3,7 @@ import { getRuntimeInfo } from '../../../version.js';
 
 export const runtimeInfoCommand = createCommandDefinition({
   name: 'runtime info',
+  execution: 'runtime',
   purpose: 'Inspect the active orfe runtime version and entrypoint.',
   usage: 'orfe runtime info',
   successSummary: 'Prints structured JSON with the active orfe runtime version and entrypoint.',
@@ -15,7 +16,4 @@ export const runtimeInfoCommand = createCommandDefinition({
   },
   requiresCaller: false,
   runtimeHandler: ({ entrypoint }) => getRuntimeInfo(entrypoint),
-  async handler() {
-    throw new Error('runtime info should execute through runtimeHandler.');
-  },
 });

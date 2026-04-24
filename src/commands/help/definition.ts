@@ -71,6 +71,7 @@ export type HelpData = HelpRootData | HelpCommandData;
 export function createHelpCommand(getCommandDefinitions: () => readonly CommandDefinition[]) {
   return createCommandDefinition<'help', HelpInput, HelpData>({
     name: 'help',
+    execution: 'runtime',
     topLevel: true,
     purpose: 'Discover available commands and command-specific usage through structured output.',
     usage: 'orfe help [--command-name <command>]',
@@ -140,9 +141,6 @@ export function createHelpCommand(getCommandDefinitions: () => readonly CommandD
     },
     requiresCaller: false,
     runtimeHandler: ({ input }) => buildHelpData(input, getCommandDefinitions()),
-    async handler() {
-      throw new Error('help should execute through runtimeHandler.');
-    },
   });
 }
 
@@ -162,7 +160,9 @@ function buildHelpData(input: HelpInput, commandDefinitions: readonly CommandDef
 }
 
 function buildRootHelpData(commandDefinitions: readonly CommandDefinition[]): HelpRootData {
-  const topLevelCommands = commandDefinitions.filter((definition) => definition.topLevel).map(toCommandSummary);
+  const topLevelCommands = commandDefinitions
+    .filter((definition) => definition.topLevel && definition.name !== 'help')
+    .map(toCommandSummary);
   const groupMap = new Map<string, HelpCommandSummaryData[]>();
 
   for (const definition of commandDefinitions) {
