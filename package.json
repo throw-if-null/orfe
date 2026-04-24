@@ -15,7 +15,9 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "llms.txt",
+    "docs/orfe/opencode-tool-usage.md"
   ],
   "publishConfig": {
     "registry": "https://registry.npmjs.org",

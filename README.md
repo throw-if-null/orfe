@@ -67,6 +67,8 @@ Package installation is separate from the other setup steps in this repo:
 
 Canonical product and architecture memory now lives under `docs/`.
 Start with `docs/README.md` for the documentation map and authoritative entrypoints.
+Agents using the packaged OpenCode `orfe` tool should start with `docs/orfe/opencode-tool-usage.md`.
+The package-root `llms.txt` is a lightweight discovery pointer to that canonical tool-usage doc.
 For operational workflow structure, also see `docs/project/handoffs.md`.
 
 ## Requirements
@@ -190,6 +192,8 @@ Runtime dependency logging is internal to `orfe`:
 - set `ORFE_LOG_LEVEL=warn|info|debug` to raise verbosity for local troubleshooting
 
 ## OpenCode plugin
+
+For packaged agent-facing tool guidance, use `docs/orfe/opencode-tool-usage.md`.
 
 Configure OpenCode to load the packaged plugin directly:
 

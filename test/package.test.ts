@@ -34,6 +34,8 @@ test('package metadata exposes installable orfe CLI wiring', async () => {
   assert.equal(scripts?.prepack, 'npm run build');
   assert.ok(files?.includes('dist'));
   assert.ok(files?.includes('README.md'));
+  assert.ok(files?.includes('llms.txt'));
+  assert.ok(files?.includes('docs/orfe/opencode-tool-usage.md'));
   assert.ok(!files?.includes('docs'));
   assert.equal(exportsField?.['./server'], './dist/plugin.js');
   assert.equal(publishConfig?.registry, 'https://registry.npmjs.org');

@@ -1,0 +1,7 @@
+# orfe
+
+Canonical agent-facing OpenCode tool usage guide: `docs/orfe/opencode-tool-usage.md`
+
+Detailed runtime/spec reference: `docs/orfe/spec.md`
+
+This file is discovery-only. Do not treat it as a second usage spec.

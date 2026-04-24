@@ -41,6 +41,9 @@ Use it to understand what the project is for, which constraints must hold, which
 
 ## Detailed reference material
 
+- `docs/orfe/opencode-tool-usage.md`
+  - canonical agent-facing guide for the packaged OpenCode `orfe` tool
+  - focused on JSON tool requests, structured responses, caller resolution from `context.agent`, and agent-relevant failure guidance
 - `docs/orfe/spec.md`
   - detailed v1 runtime, command, and behavior specification
   - includes the canonical body-contract model for issue and PR artifact validation/provenance
@@ -69,6 +72,7 @@ Use it to understand what the project is for, which constraints must hold, which
 - "Why is it designed this way?": read the ADRs
 - "What is intentionally imperfect right now?": read `docs/project/debt.md`
 - "How should agents hand work to each other?": read `docs/project/handoffs.md`
+- "How do I call the packaged OpenCode tool?": read `docs/orfe/opencode-tool-usage.md`
 - Detailed command/runtime behavior: read `docs/orfe/spec.md`
 - Repo-defined issue/PR body contract rules: read `docs/orfe/spec.md` and `docs/architecture/invariants.md`
 
