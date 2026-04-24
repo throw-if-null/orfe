@@ -5,6 +5,8 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { GitHubClientFactory } from '../src/github.js';
+import { COMMANDS } from '../src/commands/index.js';
+import { createHelpCommandSuccessData, createHelpRootSuccessData } from '../src/commands/help/definition.js';
 import type { OrfeCoreRequest, SuccessResponse } from '../src/types.js';
 import { executeOrfeTool, resolveCallerNameFromContext } from '../src/wrapper.js';
 
@@ -442,8 +444,7 @@ test('executeOrfeTool returns root help through the shared success envelope with
   if (result.ok) {
     assert.equal(result.command, 'help');
     assert.equal(result.repo, undefined);
-    assert.equal((result.data as { scope: string }).scope, 'root');
-    assert.equal((result.data as { canonical_command_name: string }).canonical_command_name, 'help');
+    assert.deepEqual(result.data, createHelpRootSuccessData(COMMANDS));
   }
 });
 
@@ -468,73 +469,32 @@ test('executeOrfeTool returns targeted command help through the shared success e
   if (result.ok) {
     assert.equal(result.command, 'help');
     assert.equal(result.repo, undefined);
-    assert.deepEqual(result.data, {
-      scope: 'command',
-      canonical_command_name: 'issue get',
-      purpose: 'Read one issue.',
-      usage: {
-        cli: 'orfe issue get --issue-number <number> [--repo <owner/name>] [--config <path>] [--auth-config <path>]',
-        tool_input: {
-          command: 'issue get',
-          issue_number: 13,
+    assert.deepEqual(result.data, createHelpCommandSuccessData(COMMANDS, 'issue get'));
+  }
+});
+
+test('executeOrfeTool returns representative targeted help across issue, pr, and project commands', async () => {
+  for (const commandName of ['issue get', 'pr get-or-create', 'project set-status'] as const) {
+    const result = await executeOrfeTool(
+      {
+        command: 'help',
+        command_name: commandName,
+      },
+      {},
+      {
+        loadRepoConfigImpl: async () => {
+          throw new Error('loadRepoConfigImpl should not run');
+        },
+        loadAuthConfigImpl: async () => {
+          throw new Error('loadAuthConfigImpl should not run');
         },
       },
-      required_options: [
-        {
-          input_key: 'issue_number',
-          cli_flag: '--issue-number',
-          description: 'Issue number.',
-          type: 'number',
-          required: true,
-        },
-      ],
-      optional_options: [
-        {
-          input_key: 'repo',
-          cli_flag: '--repo',
-          description: 'Override the target repository as owner/name.',
-          type: 'string',
-          required: false,
-        },
-        {
-          input_key: 'config',
-          cli_flag: '--config',
-          description: 'Override the repo-local config path.',
-          type: 'string',
-          required: false,
-        },
-        {
-          input_key: 'auth_config',
-          cli_flag: '--auth-config',
-          description: 'Override the machine-local auth config path.',
-          type: 'string',
-          required: false,
-        },
-      ],
-      examples: [
-        {
-          cli: 'ORFE_CALLER_NAME=Greg orfe issue get --issue-number 14',
-        },
-        {
-          tool_input: {
-            command: 'issue get',
-            issue_number: 13,
-          },
-        },
-      ],
-      success_output_summary: 'Prints a structured JSON issue payload.',
-      success_data_example: {
-        issue_number: 13,
-        title: 'Design the `orfe` custom tool and CLI contract',
-        body: '...',
-        state: 'open',
-        state_reason: null,
-        labels: ['needs-input'],
-        assignees: ['greg'],
-        html_url: 'https://github.com/throw-if-null/orfe/issues/13',
-      },
-      caller_context_required: true,
-    });
+    );
+
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.deepEqual(result.data, createHelpCommandSuccessData(COMMANDS, commandName));
+    }
   }
 });
 

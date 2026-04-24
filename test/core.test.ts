@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { COMMANDS } from '../src/commands/index.js';
+import { createHelpCommandSuccessData, createHelpRootSuccessData } from '../src/commands/help/definition.js';
 import { listCommandNames } from '../src/commands/registry/index.js';
 import { OrfeError } from '../src/errors.js';
 import { GitHubClientFactory } from '../src/github.js';
@@ -913,58 +914,7 @@ test('runOrfeCore returns root help without caller, config, auth, or GitHub acce
   assert.equal(result.ok, true);
   assert.equal(result.command, 'help');
   assert.equal(result.repo, undefined);
-  assert.deepEqual(result.data, {
-    scope: 'root',
-    canonical_command_name: 'help',
-    purpose: 'Discover available orfe commands and how to request targeted command help.',
-    usage: {
-      cli: 'orfe help [--command-name <command>]',
-      tool_input: {
-        command: 'help',
-      },
-      targeted_tool_input: {
-        command: 'help',
-        command_name: 'issue get',
-      },
-    },
-    caller_context_required: false,
-    top_level_commands: [],
-    command_groups: COMMANDS.filter((definition) => !definition.topLevel)
-      .reduce<Array<{ name: string; commands: Array<{ canonical_command_name: string; purpose: string; usage: { cli: string; tool_input: Record<string, unknown> }; caller_context_required: boolean; top_level: boolean }> }>>((groups, definition) => {
-        const existing = groups.find((group) => group.name === definition.group);
-        const command = {
-          canonical_command_name: definition.name,
-          purpose: definition.purpose,
-          usage: {
-            cli: definition.usage,
-            tool_input: {
-              command: definition.name,
-              ...definition.validInputExample,
-            },
-          },
-          caller_context_required: definition.requiresCaller ?? true,
-          top_level: false,
-        };
-
-        if (existing) {
-          existing.commands.push(command);
-        } else {
-          groups.push({ name: definition.group, commands: [command] });
-        }
-
-        return groups;
-      }, []),
-    examples: [
-      {
-        cli: 'orfe help',
-        tool_input: { command: 'help' },
-      },
-      {
-        cli: 'orfe help --command-name "issue get"',
-        tool_input: { command: 'help', command_name: 'issue get' },
-      },
-    ],
-  });
+  assert.deepEqual(result.data, createHelpRootSuccessData(COMMANDS));
 });
 
 test('runOrfeCore returns targeted command help without caller, config, auth, or GitHub access', async () => {
@@ -988,50 +938,97 @@ test('runOrfeCore returns targeted command help without caller, config, auth, or
   assert.equal(result.ok, true);
   assert.equal(result.command, 'help');
   assert.equal(result.repo, undefined);
-  assert.deepEqual(result.data, {
-    scope: 'command',
-    canonical_command_name: 'runtime info',
-    purpose: 'Inspect the active orfe runtime version and entrypoint.',
-    usage: {
-      cli: 'orfe runtime info',
-      tool_input: {
-        command: 'runtime info',
-      },
-    },
-    required_options: [],
-    optional_options: [
+  assert.deepEqual(result.data, createHelpCommandSuccessData(COMMANDS, 'runtime info'));
+});
+
+test('runOrfeCore returns targeted command help with explicit requirements for representative commands', async () => {
+  for (const commandName of ['issue get', 'pr get-or-create', 'project set-status'] as const) {
+    const result = await runOrfeCore(
       {
-        input_key: 'config',
-        cli_flag: '--config',
-        description: 'Override the repo-local config path.',
-        type: 'string',
-        required: false,
+        callerName: '',
+        command: 'help',
+        input: { command_name: commandName },
+        entrypoint: 'opencode-plugin',
       },
       {
-        input_key: 'auth_config',
-        cli_flag: '--auth-config',
-        description: 'Override the machine-local auth config path.',
-        type: 'string',
-        required: false,
-      },
-    ],
-    examples: [
-      {
-        cli: 'orfe runtime info',
-      },
-      {
-        tool_input: {
-          command: 'runtime info',
+        loadRepoConfigImpl: async () => {
+          throw new Error('loadRepoConfigImpl should not run');
+        },
+        loadAuthConfigImpl: async () => {
+          throw new Error('loadAuthConfigImpl should not run');
         },
       },
-    ],
-    success_output_summary: 'Prints structured JSON with the active orfe runtime version and entrypoint.',
-    success_data_example: {
-      orfe_version: '0.4.0',
+    );
+
+    assert.equal(result.ok, true);
+    assert.equal(result.command, 'help');
+    assert.deepEqual(result.data, createHelpCommandSuccessData(COMMANDS, commandName));
+  }
+});
+
+test('runOrfeCore can validate issue bodies without auth config or GitHub access', async () => {
+  const result = await runOrfeCore(
+    {
+      callerName: 'Greg',
+      command: 'issue validate',
+      input: {
+        body: [
+          '## Problem / context',
+          '',
+          'Need deterministic issue-body validation.',
+          '',
+          '## Desired outcome',
+          '',
+          'Issue bodies validate against a versioned contract.',
+          '',
+          '## Scope',
+          '',
+          '### In scope',
+          '- declarative contracts',
+          '',
+          '### Out of scope',
+          '- executable plugins',
+          '',
+          '## Acceptance criteria',
+          '',
+          '- [ ] contracts load from .orfe/contracts',
+          '',
+          '## Docs impact',
+          '',
+          '- Docs impact: update existing docs',
+          '- Details: update docs/orfe/spec.md',
+          '',
+          '## ADR needed?',
+          '',
+          '- ADR needed: no',
+          '- Details: covered by ADR 0009',
+          '',
+          '## Dependencies / sequencing notes',
+          '',
+          '- depends on #59',
+          '',
+          '## Risks / open questions / non-goals',
+          '',
+          '- keep repo-specific structure out of runtime logic',
+        ].join('\n'),
+        body_contract: 'formal-work-item@1.0.0',
+      },
       entrypoint: 'opencode-plugin',
     },
-    caller_context_required: false,
-  });
+    {
+      loadRepoConfigImpl: async () => createRepoConfig(),
+      loadAuthConfigImpl: async () => {
+        throw new Error('loadAuthConfigImpl should not run');
+      },
+    },
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(result.command, 'issue validate');
+  assert.equal(result.repo, 'throw-if-null/orfe');
+  if (result.ok) {
+    assert.equal((result.data as { valid: boolean }).valid, true);
+  }
 });
 
 test('runOrfeCore rejects bot override input for auth token', async () => {
