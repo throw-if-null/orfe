@@ -20,6 +20,7 @@ export function createErrorResponse(command: string, error: unknown): ErrorRespo
       code: normalizedError.code,
       message: normalizedError.message,
       retryable: normalizedError.retryable,
+      ...(normalizedError.details ? { details: normalizedError.details } : {}),
     },
   };
 }

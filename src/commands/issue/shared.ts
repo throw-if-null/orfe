@@ -8,6 +8,16 @@ export interface IssueCreateData {
   state: string;
   html_url: string;
   created: true;
+  project_assignment?: IssueCreateProjectAssignmentData;
+}
+
+export interface IssueCreateProjectAssignmentData {
+  project_owner: string;
+  project_number: number;
+  project_item_id: string;
+  status_field_name?: string;
+  status_option_id?: string | null;
+  status?: string | null;
 }
 
 export interface IssueGetData {
@@ -40,6 +50,7 @@ export type IssueValidateData = ArtifactBodyValidationResult;
 
 export interface IssueGetResponseData {
   number?: unknown;
+  node_id?: unknown;
   title?: unknown;
   body?: unknown;
   state?: unknown;
@@ -103,7 +114,10 @@ export function normalizeIssueGetResponse(issue: IssueGetResponseData): IssueGet
   };
 }
 
-export function normalizeIssueCreateResponse(issue: IssueGetResponseData): IssueCreateData {
+export function normalizeIssueCreateResponse(
+  issue: IssueGetResponseData,
+  projectAssignment?: IssueCreateProjectAssignmentData,
+): IssueCreateData {
   const coreFields = readIssueCoreFields(issue);
 
   return {
@@ -112,7 +126,16 @@ export function normalizeIssueCreateResponse(issue: IssueGetResponseData): Issue
     state: coreFields.state,
     html_url: coreFields.htmlUrl,
     created: true,
+    ...(projectAssignment ? { project_assignment: projectAssignment } : {}),
   };
+}
+
+export function readIssueNodeId(issue: IssueGetResponseData): string {
+  if (typeof issue.node_id !== 'string' || issue.node_id.length === 0) {
+    throw new OrfeError('internal_error', `GitHub issue #${readIssueCoreFields(issue).issueNumber} response is missing a valid node_id.`);
+  }
+
+  return issue.node_id;
 }
 
 export function normalizeIssueUpdateResponse(issue: IssueGetResponseData): IssueUpdateData {

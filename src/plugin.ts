@@ -19,6 +19,7 @@ const args = {
   assignees: tool.schema.array(tool.schema.string()).optional(),
   clear_labels: tool.schema.boolean().optional(),
   clear_assignees: tool.schema.boolean().optional(),
+  add_to_project: tool.schema.boolean().optional(),
   head: tool.schema.string().optional(),
   base: tool.schema.string().optional(),
   draft: tool.schema.boolean().optional(),

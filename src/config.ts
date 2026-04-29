@@ -20,9 +20,11 @@ export interface LoadAuthConfigOptions {
 }
 
 export interface ProjectCommandOptions {
+  add_to_project?: unknown;
   project_owner?: unknown;
   project_number?: unknown;
   status_field_name?: unknown;
+  status?: unknown;
 }
 
 export interface ResolvedProjectConfig {
