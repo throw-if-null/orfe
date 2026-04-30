@@ -83,8 +83,7 @@ interface ProjectFieldsLookupResponse {
 }
 
 interface ProjectOwnerLookupResponse {
-  organization?: unknown;
-  user?: unknown;
+  repositoryOwner?: unknown;
 }
 
 interface ProjectAddItemMutationResponse {
@@ -245,14 +244,16 @@ const PROJECT_STATUS_FIELDS_QUERY = `
 
 const PROJECT_BY_OWNER_AND_NUMBER_QUERY = `
   query ProjectByOwnerAndNumber($login: String!, $number: Int!) {
-    organization(login: $login) {
-      projectV2(number: $number) {
-        id
+    repositoryOwner(login: $login) {
+      ... on Organization {
+        projectV2(number: $number) {
+          id
+        }
       }
-    }
-    user(login: $login) {
-      projectV2(number: $number) {
-        id
+      ... on User {
+        projectV2(number: $number) {
+          id
+        }
       }
     }
   }
@@ -634,14 +635,13 @@ function selectResolvedProjectNode(
   projectOwner: string,
   projectNumber: number,
 ): ProjectNode {
-  const organizationProject = readProjectNode((response.organization as { projectV2?: unknown } | undefined)?.projectV2);
-  if (organizationProject !== null) {
-    return organizationProject;
+  if (!isObject(response.repositoryOwner)) {
+    throw new OrfeError('github_not_found', `GitHub Project ${projectOwner}/${projectNumber} was not found.`);
   }
 
-  const userProject = readProjectNode((response.user as { projectV2?: unknown } | undefined)?.projectV2);
-  if (userProject !== null) {
-    return userProject;
+  const project = readProjectNode((response.repositoryOwner as { projectV2?: unknown }).projectV2);
+  if (project !== null) {
+    return project;
   }
 
   throw new OrfeError('github_not_found', `GitHub Project ${projectOwner}/${projectNumber} was not found.`);

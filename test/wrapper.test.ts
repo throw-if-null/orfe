@@ -356,6 +356,19 @@ function matchesProjectByOwnerAndNumber(body: unknown, options: { projectOwner: 
   );
 }
 
+function createProjectLookupResponse(options: { projectId: string; ownerType?: 'organization' | 'user' }) {
+  return {
+    data: {
+      repositoryOwner: {
+        __typename: options.ownerType === 'user' ? 'User' : 'Organization',
+        projectV2: {
+          id: options.projectId,
+        },
+      },
+    },
+  };
+}
+
 function matchesProjectAddItem(body: unknown, options: { projectId: string; contentId: string }): boolean {
   return (
     typeof body === 'object' &&
@@ -675,16 +688,7 @@ test('executeOrfeTool returns project assignment details for issue create when e
     });
     const api = nock('https://api.github.com')
       .post('/graphql', (body: unknown) => matchesProjectByOwnerAndNumber(body, { projectOwner: 'throw-if-null', projectNumber: 1 }))
-      .reply(200, {
-        data: {
-          organization: {
-            projectV2: {
-              id: 'PVT_project_1',
-            },
-          },
-          user: null,
-        },
-      })
+      .reply(200, createProjectLookupResponse({ projectId: 'PVT_project_1', ownerType: 'organization' }))
       .post('/graphql', (body: unknown) => matchesProjectAddItem(body, { projectId: 'PVT_project_1', contentId: 'I_kwDOOrfeIssue21' }))
       .reply(200, {
         data: {
@@ -738,6 +742,71 @@ test('executeOrfeTool returns project assignment details for issue create when e
   }
 });
 
+test('executeOrfeTool returns project assignment details for issue create with a user-owned project', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const issueApi = mockIssueCreateRequest({
+      title: 'New issue title',
+    });
+    const api = nock('https://api.github.com')
+      .post('/graphql', (body: unknown) => matchesProjectByOwnerAndNumber(body, { projectOwner: 'octocat', projectNumber: 7 }))
+      .reply(200, createProjectLookupResponse({ projectId: 'PVT_project_user_7', ownerType: 'user' }))
+      .post('/graphql', (body: unknown) => matchesProjectAddItem(body, { projectId: 'PVT_project_user_7', contentId: 'I_kwDOOrfeIssue21' }))
+      .reply(200, {
+        data: {
+          addProjectV2ItemById: {
+            item: {
+              id: 'PVTI_lAHOABCDUSER',
+            },
+          },
+        },
+      });
+
+    const result = await executeOrfeTool(
+      {
+        command: 'issue create',
+        title: 'New issue title',
+        add_to_project: true,
+        project_owner: 'octocat',
+        project_number: 7,
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfigWithDefaultProject(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'issue create',
+      repo: 'throw-if-null/orfe',
+      data: {
+        issue_number: 21,
+        title: 'New issue title',
+        state: 'open',
+        html_url: 'https://github.com/throw-if-null/orfe/issues/21',
+        created: true,
+        project_assignment: {
+          project_owner: 'octocat',
+          project_number: 7,
+          project_item_id: 'PVTI_lAHOABCDUSER',
+        },
+      },
+    });
+    assert.equal(issueApi.isDone(), true);
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
 test('executeOrfeTool returns partial-failure details for issue create project assignment errors', async () => {
   nock.disableNetConnect();
 
@@ -747,16 +816,7 @@ test('executeOrfeTool returns partial-failure details for issue create project a
     });
     const api = nock('https://api.github.com')
       .post('/graphql', (body: unknown) => matchesProjectByOwnerAndNumber(body, { projectOwner: 'throw-if-null', projectNumber: 1 }))
-      .reply(200, {
-        data: {
-          organization: {
-            projectV2: {
-              id: 'PVT_project_1',
-            },
-          },
-          user: null,
-        },
-      })
+      .reply(200, createProjectLookupResponse({ projectId: 'PVT_project_1', ownerType: 'organization' }))
       .post('/graphql', (body: unknown) => matchesProjectAddItem(body, { projectId: 'PVT_project_1', contentId: 'I_kwDOOrfeIssue21' }))
       .reply(403, { message: 'Resource not accessible by integration' });
 
@@ -796,6 +856,68 @@ test('executeOrfeTool returns partial-failure details for issue create project a
           },
           project_owner: 'throw-if-null',
           project_number: 1,
+        },
+      },
+    });
+    assert.equal(issueApi.isDone(), true);
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('executeOrfeTool returns project_add partial-failure details when status was requested but project add failed', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const issueApi = mockIssueCreateRequest({
+      title: 'New issue title',
+    });
+    const api = nock('https://api.github.com')
+      .post('/graphql', (body: unknown) => matchesProjectByOwnerAndNumber(body, { projectOwner: 'throw-if-null', projectNumber: 1 }))
+      .reply(200, createProjectLookupResponse({ projectId: 'PVT_project_1', ownerType: 'organization' }))
+      .post('/graphql', (body: unknown) => matchesProjectAddItem(body, { projectId: 'PVT_project_1', contentId: 'I_kwDOOrfeIssue21' }))
+      .reply(403, { message: 'Resource not accessible by integration' });
+
+    const result = await executeOrfeTool(
+      {
+        command: 'issue create',
+        title: 'New issue title',
+        status: 'Todo',
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfigWithDefaultProject(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: false,
+      command: 'issue create',
+      error: {
+        code: 'auth_failed',
+        message:
+          'Issue #21 was created, but adding it to GitHub Project throw-if-null/1 failed: GitHub App authentication failed while adding issue #21 to a GitHub Project.',
+        retryable: false,
+        details: {
+          stage: 'project_add',
+          created_issue: {
+            issue_number: 21,
+            title: 'New issue title',
+            state: 'open',
+            html_url: 'https://github.com/throw-if-null/orfe/issues/21',
+            created: true,
+          },
+          project_owner: 'throw-if-null',
+          project_number: 1,
+          status_field_name: 'Status',
+          requested_status: 'Todo',
         },
       },
     });

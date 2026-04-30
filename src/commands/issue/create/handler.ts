@@ -78,7 +78,7 @@ async function applyProjectAssignment(
     addResult = await addProjectItemByContentId(graphql, projectId, readIssueNodeId(createdIssue));
   } catch (error) {
     const mappedError = mapProjectAddItemError(error, 'issue', issueNumber);
-    throw createIssueCreateProjectAssignmentError(createdIssueSummary, projectAssignmentRequest, mappedError);
+    throw createIssueCreateProjectAssignmentError(createdIssueSummary, projectAssignmentRequest, 'project_add', mappedError);
   }
 
   if (projectAssignmentRequest.initialStatus === null) {
@@ -149,7 +149,7 @@ async function applyProjectAssignment(
     };
   } catch (error) {
     const mappedError = mapProjectSetStatusError(error, 'issue', issueNumber);
-    throw createIssueCreateProjectAssignmentError(createdIssueSummary, projectAssignmentRequest, mappedError);
+    throw createIssueCreateProjectAssignmentError(createdIssueSummary, projectAssignmentRequest, 'project_status', mappedError);
   }
 }
 
@@ -206,21 +206,28 @@ function isProjectAssignmentRequested(input: CommandInput): boolean {
 function createIssueCreateProjectAssignmentError(
   createdIssue: IssueCreateData,
   projectAssignmentRequest: IssueCreateProjectAssignmentRequest,
+  stage: 'project_add' | 'project_status',
   cause: OrfeError,
 ): OrfeError {
   const projectReference = `${projectAssignmentRequest.projectOwner}/${projectAssignmentRequest.projectNumber}`;
 
-  if (projectAssignmentRequest.initialStatus === null) {
+  if (stage === 'project_add') {
     return new OrfeError(
       cause.code,
       `Issue #${createdIssue.issue_number} was created, but adding it to GitHub Project ${projectReference} failed: ${cause.message}`,
       {
         retryable: cause.retryable,
         details: {
-          stage: 'project_add',
+          stage,
           created_issue: createdIssue,
           project_owner: projectAssignmentRequest.projectOwner,
           project_number: projectAssignmentRequest.projectNumber,
+          ...(projectAssignmentRequest.initialStatus !== null
+            ? {
+                status_field_name: projectAssignmentRequest.statusFieldName,
+                requested_status: projectAssignmentRequest.initialStatus,
+              }
+            : {}),
           ...(cause.details ? { cause: cause.details } : {}),
         },
       },
@@ -233,7 +240,7 @@ function createIssueCreateProjectAssignmentError(
     {
       retryable: cause.retryable,
       details: {
-        stage: 'project_status',
+        stage,
         created_issue: createdIssue,
         project_owner: projectAssignmentRequest.projectOwner,
         project_number: projectAssignmentRequest.projectNumber,

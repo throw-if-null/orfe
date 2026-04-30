@@ -704,11 +704,14 @@ Project-assignment rules:
   - `add_to_project` is `true`, or
   - any of `project_owner`, `project_number`, `status_field_name`, or `status` is provided
 - when project assignment is requested, project coordinates resolve using the same defaults as project commands
+- explicit project assignment must support both organization-owned and user-owned GitHub Projects
 - issue creation remains a REST issue-create operation
 - project item add and project status mutation use GraphQL where required
 - when `status` is provided, `orfe` adds the created issue to the project first, then sets the initial status
 - when project assignment is not requested, `issue create` keeps backward-compatible create-only behavior
 - if issue creation succeeds but project add or status mutation fails, the command fails with a structured typed error that includes the created issue identity and the failed stage in `error.details`
+- if project add fails, `error.details.stage` must be `project_add` even when `status` was requested, and the message must not imply the issue was added successfully
+- if project add succeeds but initial status update fails, `error.details.stage` must be `project_status`
 
 Body-contract rules:
 

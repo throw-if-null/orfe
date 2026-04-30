@@ -190,6 +190,19 @@ function matchesProjectByOwnerAndNumber(body: unknown, options: { projectOwner: 
   );
 }
 
+function createProjectLookupResponse(options: { projectId: string; ownerType?: 'organization' | 'user' }) {
+  return {
+    data: {
+      repositoryOwner: {
+        __typename: options.ownerType === 'user' ? 'User' : 'Organization',
+        projectV2: {
+          id: options.projectId,
+        },
+      },
+    },
+  };
+}
+
 function matchesProjectAddItem(body: unknown, options: { projectId: string; contentId: string }): boolean {
   return (
     isObject(body) &&
@@ -754,16 +767,7 @@ function mockProjectLookupRequest(options: {
     )
     .reply(
       options.graphqlStatus ?? 200,
-      options.graphqlResponseBody ?? {
-        data: {
-          organization: {
-            projectV2: {
-              id: options.projectId ?? 'PVT_project_1',
-            },
-          },
-          user: null,
-        },
-      },
+      options.graphqlResponseBody ?? createProjectLookupResponse({ projectId: options.projectId ?? 'PVT_project_1' }),
     );
 }
 
@@ -4242,6 +4246,138 @@ test('runOrfeCore can create an issue and add it to the default project when exp
   }
 });
 
+test('runOrfeCore can create an issue and add it to an organization-owned project when explicitly requested', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const issueApi = mockIssueCreateRequest({
+      requestBody: {
+        title: 'New issue title',
+      },
+    });
+    const projectLookupApi = mockProjectLookupRequest({
+      projectOwner: 'throw-if-null',
+      projectNumber: 1,
+      projectId: 'PVT_project_org_1',
+      graphqlResponseBody: createProjectLookupResponse({ projectId: 'PVT_project_org_1', ownerType: 'organization' }),
+      includeAuth: false,
+    });
+    const projectAddApi = mockProjectAddItemRequest({
+      projectId: 'PVT_project_org_1',
+      contentId: 'I_kwDOOrfeIssue21',
+      projectItemId: 'PVTI_lAHOABCDORG',
+      includeAuth: false,
+    });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'issue create',
+        input: {
+          title: 'New issue title',
+          add_to_project: true,
+        },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'issue create',
+      repo: 'throw-if-null/orfe',
+      data: {
+        issue_number: 21,
+        title: 'New issue title',
+        state: 'open',
+        html_url: 'https://github.com/throw-if-null/orfe/issues/21',
+        created: true,
+        project_assignment: {
+          project_owner: 'throw-if-null',
+          project_number: 1,
+          project_item_id: 'PVTI_lAHOABCDORG',
+        },
+      },
+    });
+    assert.equal(issueApi.isDone(), true);
+    assert.equal(projectLookupApi.isDone(), true);
+    assert.equal(projectAddApi.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore can create an issue and add it to a user-owned project when explicitly requested', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const issueApi = mockIssueCreateRequest({
+      requestBody: {
+        title: 'New issue title',
+      },
+    });
+    const projectLookupApi = mockProjectLookupRequest({
+      projectOwner: 'octocat',
+      projectNumber: 7,
+      projectId: 'PVT_project_user_7',
+      graphqlResponseBody: createProjectLookupResponse({ projectId: 'PVT_project_user_7', ownerType: 'user' }),
+      includeAuth: false,
+    });
+    const projectAddApi = mockProjectAddItemRequest({
+      projectId: 'PVT_project_user_7',
+      contentId: 'I_kwDOOrfeIssue21',
+      projectItemId: 'PVTI_lAHOABCDUSER',
+      includeAuth: false,
+    });
+
+    const result = await runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'issue create',
+        input: {
+          title: 'New issue title',
+          add_to_project: true,
+          project_owner: 'octocat',
+          project_number: 7,
+        },
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'issue create',
+      repo: 'throw-if-null/orfe',
+      data: {
+        issue_number: 21,
+        title: 'New issue title',
+        state: 'open',
+        html_url: 'https://github.com/throw-if-null/orfe/issues/21',
+        created: true,
+        project_assignment: {
+          project_owner: 'octocat',
+          project_number: 7,
+          project_item_id: 'PVTI_lAHOABCDUSER',
+        },
+      },
+    });
+    assert.equal(issueApi.isDone(), true);
+    assert.equal(projectLookupApi.isDone(), true);
+    assert.equal(projectAddApi.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
 test('runOrfeCore can create an issue, add it to a project, and set initial status', async () => {
   nock.disableNetConnect();
 
@@ -4505,6 +4641,79 @@ test('runOrfeCore surfaces partial failure details when issue create succeeds bu
           },
           project_owner: 'throw-if-null',
           project_number: 1,
+        });
+        return true;
+      },
+    );
+
+    assert.equal(issueApi.isDone(), true);
+    assert.equal(projectLookupApi.isDone(), true);
+    assert.equal(projectAddApi.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runOrfeCore reports project_add when status was requested but project add fails', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const issueApi = mockIssueCreateRequest({
+      requestBody: {
+        title: 'New issue title',
+      },
+    });
+    const projectLookupApi = mockProjectLookupRequest({
+      projectOwner: 'throw-if-null',
+      projectNumber: 1,
+      projectId: 'PVT_project_1',
+      includeAuth: false,
+    });
+    const projectAddApi = mockProjectAddItemRequest({
+      projectId: 'PVT_project_1',
+      contentId: 'I_kwDOOrfeIssue21',
+      graphqlStatus: 403,
+      graphqlResponseBody: { message: 'Resource not accessible by integration' },
+      includeAuth: false,
+    });
+
+    await assert.rejects(
+      runOrfeCore(
+        {
+          callerName: 'Greg',
+          command: 'issue create',
+          input: {
+            title: 'New issue title',
+            status: 'Todo',
+          },
+        },
+        {
+          loadRepoConfigImpl: async () => createRepoConfig(),
+          loadAuthConfigImpl: async () => createAuthConfig(),
+          githubClientFactory: createGitHubClientFactory(),
+        },
+      ),
+      (error: unknown) => {
+        assert(error instanceof OrfeError);
+        assert.equal(error.code, 'auth_failed');
+        assert.equal(
+          error.message,
+          'Issue #21 was created, but adding it to GitHub Project throw-if-null/1 failed: GitHub App authentication failed while adding issue #21 to a GitHub Project.',
+        );
+        assert.deepEqual(error.details, {
+          stage: 'project_add',
+          created_issue: {
+            issue_number: 21,
+            title: 'New issue title',
+            state: 'open',
+            html_url: 'https://github.com/throw-if-null/orfe/issues/21',
+            created: true,
+          },
+          project_owner: 'throw-if-null',
+          project_number: 1,
+          status_field_name: 'Status',
+          requested_status: 'Todo',
         });
         return true;
       },
