@@ -678,7 +678,7 @@ orfe issue get --issue-number <number> [--repo <owner/name>] [--config <path>]
 **CLI**:
 
 ```text
-orfe issue create --title <text> [--body <text>] [--body-contract <name@version>] [--label <name> ...] [--assignee <login> ...] [--repo <owner/name>] [--config <path>]
+orfe issue create --title <text> [--body <text>] [--body-contract <name@version>] [--label <name> ...] [--assignee <login> ...] [--add-to-project] [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--status <value>] [--repo <owner/name>] [--config <path>]
 ```
 
 **Tool input**:
@@ -689,10 +689,26 @@ orfe issue create --title <text> [--body <text>] [--body-contract <name@version>
   "title": "New issue title",
   "body": "Body text",
   "body_contract": "formal-work-item@1.0.0",
+  "add_to_project": true,
+  "status": "Todo",
   "labels": ["needs-input"],
   "assignees": ["greg"]
 }
 ```
+
+Project-assignment rules:
+
+- project assignment is explicit opt-in
+- `orfe issue create` must **not** auto-add the issue to a project only because `.orfe/config.json` contains `projects.default`
+- project assignment is requested when either:
+  - `add_to_project` is `true`, or
+  - any of `project_owner`, `project_number`, `status_field_name`, or `status` is provided
+- when project assignment is requested, project coordinates resolve using the same defaults as project commands
+- issue creation remains a REST issue-create operation
+- project item add and project status mutation use GraphQL where required
+- when `status` is provided, `orfe` adds the created issue to the project first, then sets the initial status
+- when project assignment is not requested, `issue create` keeps backward-compatible create-only behavior
+- if issue creation succeeds but project add or status mutation fails, the command fails with a structured typed error that includes the created issue identity and the failed stage in `error.details`
 
 Body-contract rules:
 
@@ -715,7 +731,15 @@ Body-contract rules:
   "title": "New issue title",
   "state": "open",
   "html_url": "https://github.com/throw-if-null/orfe/issues/21",
-  "created": true
+  "created": true,
+  "project_assignment": {
+    "project_owner": "throw-if-null",
+    "project_number": 2,
+    "project_item_id": "PVTI_lAHOABCD1234",
+    "status_field_name": "Status",
+    "status_option_id": "f75ad845",
+    "status": "Todo"
+  }
 }
 ```
 

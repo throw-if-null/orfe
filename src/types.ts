@@ -83,6 +83,7 @@ export interface ErrorResponse {
     code: string;
     message: string;
     retryable: boolean;
+    details?: Record<string, unknown>;
   };
 }
 

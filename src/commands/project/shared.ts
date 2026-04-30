@@ -29,6 +29,11 @@ export interface ProjectSetStatusData {
   changed: boolean;
 }
 
+export interface ProjectAddItemData {
+  projectId: string;
+  projectItemId: string;
+}
+
 export interface ResolvedProjectStatusContext {
   projectItem: ProjectItemNode;
   projectItemId: string;
@@ -75,6 +80,15 @@ interface ProjectFieldsConnection {
 
 interface ProjectFieldsLookupResponse {
   node?: unknown;
+}
+
+interface ProjectOwnerLookupResponse {
+  organization?: unknown;
+  user?: unknown;
+}
+
+interface ProjectAddItemMutationResponse {
+  addProjectV2ItemById?: unknown;
 }
 
 interface ProjectPageInfoNode {
@@ -229,6 +243,36 @@ const PROJECT_STATUS_FIELDS_QUERY = `
   }
 `;
 
+const PROJECT_BY_OWNER_AND_NUMBER_QUERY = `
+  query ProjectByOwnerAndNumber($login: String!, $number: Int!) {
+    organization(login: $login) {
+      projectV2(number: $number) {
+        id
+      }
+    }
+    user(login: $login) {
+      projectV2(number: $number) {
+        id
+      }
+    }
+  }
+`;
+
+const PROJECT_ADD_ITEM_MUTATION = `
+  mutation AddProjectItem($projectId: ID!, $contentId: ID!) {
+    addProjectV2ItemById(
+      input: {
+        projectId: $projectId
+        contentId: $contentId
+      }
+    ) {
+      item {
+        id
+      }
+    }
+  }
+`;
+
 const PROJECT_STATUS_UPDATE_MUTATION = `
   mutation UpdateProjectStatus($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
     updateProjectV2ItemFieldValue(
@@ -282,6 +326,41 @@ export async function updateProjectStatus(
     fieldId,
     optionId,
   });
+}
+
+export async function resolveProjectIdByOwnerAndNumber(
+  graphql: <TResponse>(query: string, variables?: Record<string, unknown>) => Promise<TResponse>,
+  projectOwner: string,
+  projectNumber: number,
+): Promise<string> {
+  const response = await graphql<ProjectOwnerLookupResponse>(PROJECT_BY_OWNER_AND_NUMBER_QUERY, {
+    login: projectOwner,
+    number: projectNumber,
+  });
+
+  const projectNode = selectResolvedProjectNode(response, projectOwner, projectNumber);
+  return readProjectId(projectNode, projectOwner, projectNumber);
+}
+
+export async function addProjectItemByContentId(
+  graphql: <TResponse>(query: string, variables?: Record<string, unknown>) => Promise<TResponse>,
+  projectId: string,
+  contentId: string,
+): Promise<ProjectAddItemData> {
+  const response = await graphql<ProjectAddItemMutationResponse>(PROJECT_ADD_ITEM_MUTATION, {
+    projectId,
+    contentId,
+  });
+
+  const mutationResult = response.addProjectV2ItemById;
+  if (!isObject(mutationResult) || !isObject(mutationResult.item) || typeof mutationResult.item.id !== 'string' || mutationResult.item.id.length === 0) {
+    throw new OrfeError('internal_error', 'GitHub project add-item response is missing a valid project item id.');
+  }
+
+  return {
+    projectId,
+    projectItemId: mutationResult.item.id,
+  };
 }
 
 export function selectProjectStatusOption(
@@ -392,6 +471,36 @@ export function mapProjectSetStatusError(error: unknown, itemType: ProjectItemTy
   }
 
   return new OrfeError('internal_error', 'Unknown GitHub project status update failure.');
+}
+
+export function mapProjectAddItemError(error: unknown, itemType: ProjectItemType, itemNumber: number): OrfeError {
+  if (error instanceof OrfeError) {
+    return error;
+  }
+
+  const status = getGitHubRequestStatus(error);
+  if (status !== undefined) {
+    if (status === 401 || status === 403) {
+      return new OrfeError(
+        'auth_failed',
+        `GitHub App authentication failed while adding ${formatProjectTrackedItem(itemType)} #${itemNumber} to a GitHub Project.`,
+      );
+    }
+
+    return new OrfeError(
+      'internal_error',
+      `GitHub API request failed with status ${status}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      {
+        retryable: status >= 500 || status === 429,
+      },
+    );
+  }
+
+  if (error instanceof Error) {
+    return new OrfeError('internal_error', error.message);
+  }
+
+  return new OrfeError('internal_error', 'Unknown GitHub project add-item failure.');
 }
 
 export function formatProjectTrackedItem(itemType: ProjectItemType): string {
@@ -520,6 +629,24 @@ function readTrackedNode(response: ProjectStatusLookupResponse, itemType: Projec
   return trackedNode as ProjectTrackedNode;
 }
 
+function selectResolvedProjectNode(
+  response: ProjectOwnerLookupResponse,
+  projectOwner: string,
+  projectNumber: number,
+): ProjectNode {
+  const organizationProject = readProjectNode((response.organization as { projectV2?: unknown } | undefined)?.projectV2);
+  if (organizationProject !== null) {
+    return organizationProject;
+  }
+
+  const userProject = readProjectNode((response.user as { projectV2?: unknown } | undefined)?.projectV2);
+  if (userProject !== null) {
+    return userProject;
+  }
+
+  throw new OrfeError('github_not_found', `GitHub Project ${projectOwner}/${projectNumber} was not found.`);
+}
+
 function readTrackedProjectItems(trackedNode: ProjectTrackedNode): { nodes: unknown[]; pageInfo?: unknown } {
   const projectItems = trackedNode.projectItems;
   if (!isObject(projectItems) || !Array.isArray(projectItems.nodes)) {
@@ -527,6 +654,18 @@ function readTrackedProjectItems(trackedNode: ProjectTrackedNode): { nodes: unkn
   }
 
   return projectItems as { nodes: unknown[]; pageInfo?: unknown };
+}
+
+function readProjectNode(value: unknown): ProjectNode | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (!isObject(value)) {
+    throw new OrfeError('internal_error', 'GitHub project lookup response returned invalid project metadata.');
+  }
+
+  return value as ProjectNode;
 }
 
 function selectProjectItem(projectItemNodes: unknown[], projectOwner: string, projectNumber: number): ProjectItemNode | null {

@@ -181,6 +181,7 @@ function mockIssueCreateRequest(options: {
       status,
       options.responseBody ?? {
         number: 21,
+        node_id: 'I_kwDOOrfeIssue21',
         title: options.requestBody.title,
         body: options.requestBody.body ?? '',
         state: 'open',
@@ -190,6 +191,28 @@ function mockIssueCreateRequest(options: {
         html_url: `https://github.com/${owner}/${repo}/issues/21`,
       },
      );
+}
+
+function matchesProjectByOwnerAndNumber(body: unknown, options: { projectOwner: string; projectNumber: number }): boolean {
+  return (
+    isObject(body) &&
+    typeof body.query === 'string' &&
+    body.query.includes('query ProjectByOwnerAndNumber') &&
+    isObject(body.variables) &&
+    body.variables.login === options.projectOwner &&
+    body.variables.number === options.projectNumber
+  );
+}
+
+function matchesProjectAddItem(body: unknown, options: { projectId: string; contentId: string }): boolean {
+  return (
+    isObject(body) &&
+    typeof body.query === 'string' &&
+    body.query.includes('mutation AddProjectItem') &&
+    isObject(body.variables) &&
+    body.variables.projectId === options.projectId &&
+    body.variables.contentId === options.contentId
+  );
 }
 
 function renderIssueBodyContractMarker() {
@@ -783,6 +806,83 @@ function mockProjectStatusUpdateRequest(options: {
         data: {
           updateProjectV2ItemFieldValue: {
             clientMutationId: null,
+          },
+        },
+      },
+     );
+}
+
+function mockProjectLookupRequest(options: {
+  projectOwner: string;
+  projectNumber: number;
+  projectId?: string;
+  graphqlStatus?: number;
+  graphqlResponseBody?: Record<string, unknown>;
+  includeAuth?: boolean;
+}) {
+  let scope = nock('https://api.github.com');
+  if (options.includeAuth !== false) {
+    scope = scope
+      .get('/repos/throw-if-null/orfe/installation')
+      .reply(200, { id: 42 })
+      .post('/app/installations/42/access_tokens')
+      .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' });
+  }
+
+  return scope
+    .post('/graphql', (body: unknown) =>
+      matchesProjectByOwnerAndNumber(body, {
+        projectOwner: options.projectOwner,
+        projectNumber: options.projectNumber,
+      }),
+    )
+    .reply(
+      options.graphqlStatus ?? 200,
+      options.graphqlResponseBody ?? {
+        data: {
+          organization: {
+            projectV2: {
+              id: options.projectId ?? 'PVT_project_1',
+            },
+          },
+          user: null,
+        },
+      },
+    );
+}
+
+function mockProjectAddItemRequest(options: {
+  projectId?: string;
+  contentId: string;
+  projectItemId?: string;
+  graphqlStatus?: number;
+  graphqlResponseBody?: Record<string, unknown>;
+  includeAuth?: boolean;
+}) {
+  let scope = nock('https://api.github.com');
+  if (options.includeAuth !== false) {
+    scope = scope
+      .get('/repos/throw-if-null/orfe/installation')
+      .reply(200, { id: 42 })
+      .post('/app/installations/42/access_tokens')
+      .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' });
+  }
+
+  return scope
+    .post('/graphql', (body: unknown) =>
+      matchesProjectAddItem(body, {
+        projectId: options.projectId ?? 'PVT_project_1',
+        contentId: options.contentId,
+      }),
+    )
+    .reply(
+      options.graphqlStatus ?? 200,
+      options.graphqlResponseBody ?? {
+        data: {
+          addProjectV2ItemById: {
+            item: {
+              id: options.projectItemId ?? 'PVTI_lAHOABCD1234',
+            },
           },
         },
       },
@@ -1417,6 +1517,134 @@ test('runCli prints structured success JSON for issue create', async () => {
       },
     });
     assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured success JSON for issue create with explicit project assignment', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const issueApi = mockIssueCreateRequest({
+      requestBody: {
+        title: 'New issue title',
+      },
+    });
+    const projectLookupApi = mockProjectLookupRequest({
+      projectOwner: 'throw-if-null',
+      projectNumber: 1,
+      projectId: 'PVT_project_1',
+      includeAuth: false,
+    });
+    const projectAddApi = mockProjectAddItemRequest({
+      projectId: 'PVT_project_1',
+      contentId: 'I_kwDOOrfeIssue21',
+      projectItemId: 'PVTI_lAHOABCD1234',
+      includeAuth: false,
+    });
+
+    const exitCode = await runCli(['issue', 'create', '--title', 'New issue title', '--add-to-project'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'issue create',
+      repo: 'throw-if-null/orfe',
+      data: {
+        issue_number: 21,
+        title: 'New issue title',
+        state: 'open',
+        html_url: 'https://github.com/throw-if-null/orfe/issues/21',
+        created: true,
+        project_assignment: {
+          project_owner: 'throw-if-null',
+          project_number: 1,
+          project_item_id: 'PVTI_lAHOABCD1234',
+        },
+      },
+    });
+    assert.equal(issueApi.isDone(), true);
+    assert.equal(projectLookupApi.isDone(), true);
+    assert.equal(projectAddApi.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured partial-failure details when issue create project add fails', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const issueApi = mockIssueCreateRequest({
+      requestBody: {
+        title: 'New issue title',
+      },
+    });
+    const projectLookupApi = mockProjectLookupRequest({
+      projectOwner: 'throw-if-null',
+      projectNumber: 1,
+      projectId: 'PVT_project_1',
+      includeAuth: false,
+    });
+    const projectAddApi = mockProjectAddItemRequest({
+      projectId: 'PVT_project_1',
+      contentId: 'I_kwDOOrfeIssue21',
+      graphqlStatus: 403,
+      graphqlResponseBody: { message: 'Resource not accessible by integration' },
+      includeAuth: false,
+    });
+
+    const exitCode = await runCli(['issue', 'create', '--title', 'New issue title', '--add-to-project'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'issue create',
+      error: {
+        code: 'auth_failed',
+        message:
+          'Issue #21 was created, but adding it to GitHub Project throw-if-null/1 failed: GitHub App authentication failed while adding issue #21 to a GitHub Project.',
+        retryable: false,
+        details: {
+          stage: 'project_add',
+          created_issue: {
+            issue_number: 21,
+            title: 'New issue title',
+            state: 'open',
+            html_url: 'https://github.com/throw-if-null/orfe/issues/21',
+            created: true,
+          },
+          project_owner: 'throw-if-null',
+          project_number: 1,
+        },
+      },
+    });
+    assert.equal(issueApi.isDone(), true);
+    assert.equal(projectLookupApi.isDone(), true);
+    assert.equal(projectAddApi.isDone(), true);
   } finally {
     nock.cleanAll();
     nock.enableNetConnect();

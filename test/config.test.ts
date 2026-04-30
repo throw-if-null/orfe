@@ -507,3 +507,36 @@ test('resolveProjectCommandConfig falls back to literal Status when no default s
     statusFieldName: 'Status',
   });
 });
+
+test('resolveProjectCommandConfig can use default project coordinates when issue create explicitly opts in', async () => {
+  const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
+  await writeRepoConfig(
+    repoDirectory,
+    JSON.stringify({
+      version: 1,
+      repository: {
+        owner: 'throw-if-null',
+        name: 'orfe',
+        default_branch: 'main',
+      },
+      caller_to_bot: {
+        Greg: 'greg',
+      },
+      projects: {
+        default: {
+          owner: 'throw-if-null',
+          project_number: 1,
+          status_field_name: 'Status',
+        },
+      },
+    }),
+  );
+
+  const config = await loadRepoConfig({ cwd: repoDirectory });
+
+  assert.deepEqual(resolveProjectCommandConfig(config, { add_to_project: true }), {
+    projectOwner: 'throw-if-null',
+    projectNumber: 1,
+    statusFieldName: 'Status',
+  });
+});

@@ -123,6 +123,7 @@ function mockIssueCreateRequest(requestBody: Record<string, unknown>) {
     .post('/repos/throw-if-null/orfe/issues', requestBody)
     .reply(201, {
       number: 21,
+      node_id: 'I_kwDOOrfeIssue21',
       title: requestBody.title,
       body: requestBody.body ?? '',
       state: 'open',
@@ -339,6 +340,34 @@ function createProjectItemNode(options: {
     },
     fieldValueByName: options.statusValue ?? null,
   };
+}
+
+function matchesProjectByOwnerAndNumber(body: unknown, options: { projectOwner: string; projectNumber: number }): boolean {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    'query' in body &&
+    typeof (body as { query?: unknown }).query === 'string' &&
+    (body as { query: string }).query.includes('query ProjectByOwnerAndNumber') &&
+    'variables' in body &&
+    typeof (body as { variables?: unknown }).variables === 'object' &&
+    (body as { variables: { login?: unknown; number?: unknown } }).variables.login === options.projectOwner &&
+    (body as { variables: { login?: unknown; number?: unknown } }).variables.number === options.projectNumber
+  );
+}
+
+function matchesProjectAddItem(body: unknown, options: { projectId: string; contentId: string }): boolean {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    'query' in body &&
+    typeof (body as { query?: unknown }).query === 'string' &&
+    (body as { query: string }).query.includes('mutation AddProjectItem') &&
+    'variables' in body &&
+    typeof (body as { variables?: unknown }).variables === 'object' &&
+    (body as { variables: { projectId?: unknown; contentId?: unknown } }).variables.projectId === options.projectId &&
+    (body as { variables: { projectId?: unknown; contentId?: unknown } }).variables.contentId === options.contentId
+  );
 }
 
 test('resolveCallerNameFromContext accepts a string agent name', () => {
@@ -630,6 +659,147 @@ test('executeOrfeTool returns the shared success envelope for issue create', asy
         created: true,
       },
     });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('executeOrfeTool returns project assignment details for issue create when explicitly requested', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const issueApi = mockIssueCreateRequest({
+      title: 'New issue title',
+    });
+    const api = nock('https://api.github.com')
+      .post('/graphql', (body: unknown) => matchesProjectByOwnerAndNumber(body, { projectOwner: 'throw-if-null', projectNumber: 1 }))
+      .reply(200, {
+        data: {
+          organization: {
+            projectV2: {
+              id: 'PVT_project_1',
+            },
+          },
+          user: null,
+        },
+      })
+      .post('/graphql', (body: unknown) => matchesProjectAddItem(body, { projectId: 'PVT_project_1', contentId: 'I_kwDOOrfeIssue21' }))
+      .reply(200, {
+        data: {
+          addProjectV2ItemById: {
+            item: {
+              id: 'PVTI_lAHOABCD1234',
+            },
+          },
+        },
+      });
+
+    const result = await executeOrfeTool(
+      {
+        command: 'issue create',
+        title: 'New issue title',
+        add_to_project: true,
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfigWithDefaultProject(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      command: 'issue create',
+      repo: 'throw-if-null/orfe',
+      data: {
+        issue_number: 21,
+        title: 'New issue title',
+        state: 'open',
+        html_url: 'https://github.com/throw-if-null/orfe/issues/21',
+        created: true,
+        project_assignment: {
+          project_owner: 'throw-if-null',
+          project_number: 1,
+          project_item_id: 'PVTI_lAHOABCD1234',
+        },
+      },
+    });
+    assert.equal(issueApi.isDone(), true);
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('executeOrfeTool returns partial-failure details for issue create project assignment errors', async () => {
+  nock.disableNetConnect();
+
+  try {
+    const issueApi = mockIssueCreateRequest({
+      title: 'New issue title',
+    });
+    const api = nock('https://api.github.com')
+      .post('/graphql', (body: unknown) => matchesProjectByOwnerAndNumber(body, { projectOwner: 'throw-if-null', projectNumber: 1 }))
+      .reply(200, {
+        data: {
+          organization: {
+            projectV2: {
+              id: 'PVT_project_1',
+            },
+          },
+          user: null,
+        },
+      })
+      .post('/graphql', (body: unknown) => matchesProjectAddItem(body, { projectId: 'PVT_project_1', contentId: 'I_kwDOOrfeIssue21' }))
+      .reply(403, { message: 'Resource not accessible by integration' });
+
+    const result = await executeOrfeTool(
+      {
+        command: 'issue create',
+        title: 'New issue title',
+        add_to_project: true,
+      },
+      {
+        agent: 'Greg',
+        cwd: '/tmp/repo',
+      },
+      {
+        loadRepoConfigImpl: async () => createRepoConfigWithDefaultProject(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.deepEqual(result, {
+      ok: false,
+      command: 'issue create',
+      error: {
+        code: 'auth_failed',
+        message:
+          'Issue #21 was created, but adding it to GitHub Project throw-if-null/1 failed: GitHub App authentication failed while adding issue #21 to a GitHub Project.',
+        retryable: false,
+        details: {
+          stage: 'project_add',
+          created_issue: {
+            issue_number: 21,
+            title: 'New issue title',
+            state: 'open',
+            html_url: 'https://github.com/throw-if-null/orfe/issues/21',
+            created: true,
+          },
+          project_owner: 'throw-if-null',
+          project_number: 1,
+        },
+      },
+    });
+    assert.equal(issueApi.isDone(), true);
     assert.equal(api.isDone(), true);
   } finally {
     nock.cleanAll();
