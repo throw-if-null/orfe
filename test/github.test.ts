@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import nock from 'nock';
-import test from 'node:test';
+import { test } from 'vitest';
 
 import { GITHUB_API_VERSION, GitHubClientFactory } from '../src/github.js';
 

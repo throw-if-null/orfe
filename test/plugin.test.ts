@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { test } from 'vitest';
 
 import OrfePlugin, { OrfePlugin as NamedOrfePlugin } from '../src/plugin.js';
 import { executeOrfeTool } from '../src/wrapper.js';

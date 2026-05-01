@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { test } from 'vitest';
 
 import { runCli } from '../src/command.js';
 import { GitHubClientFactory, type GitHubOctokitOptions } from '../src/github.js';
