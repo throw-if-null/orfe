@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { test } from 'vitest';
 
 import { COMMANDS } from '../index.js';
 import { getCommandDefinition, getTopLevelCommandDefinition, listCommandGroups, listCommandNames } from './index.js';

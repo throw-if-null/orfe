@@ -1,0 +1,11 @@
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    include: ['test/**/*.test.ts', 'src/**/*.test.ts'],
+    reporters: process.env.GITHUB_ACTIONS ? ['github-actions'] : [['default', { summary: false }]],
+    fileParallelism: false,
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
+  },
+});

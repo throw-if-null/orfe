@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import nock from 'nock';
-import test from 'node:test';
+import { describe, test } from 'vitest';
 import { fileURLToPath } from 'node:url';
 
 import { createHelpCommandSuccessData, createHelpRootSuccessData } from '../src/commands/help/definition.js';
@@ -1109,54 +1109,50 @@ test('runCli does not support -v as a root-level alias for --version', async () 
   assert.match(stderr.output, /See: orfe --help/);
 });
 
-test('runCli renders help for each command group', async (t) => {
-  await Promise.all(
-    COMMAND_GROUPS.map((group) =>
-      t.test(`group ${group}`, async () => {
-        const stdout = new MemoryStream();
-        const stderr = new MemoryStream();
+describe('runCli renders help for each command group', () => {
+  for (const group of COMMAND_GROUPS) {
+    test(`group ${group}`, async () => {
+      const stdout = new MemoryStream();
+      const stderr = new MemoryStream();
 
-        const exitCode = await runCli([group, '--help'], { stdout, stderr });
+      const exitCode = await runCli([group, '--help'], { stdout, stderr });
 
-        assert.equal(exitCode, 0);
-        assert.equal(stderr.output, '');
-        assert.match(stdout.output, new RegExp(`orfe ${group}`));
-        assert.match(stdout.output, /Usage:/);
-        assert.match(stdout.output, /Commands:/);
+      assert.equal(exitCode, 0);
+      assert.equal(stderr.output, '');
+      assert.match(stdout.output, new RegExp(`orfe ${group}`));
+      assert.match(stdout.output, /Usage:/);
+      assert.match(stdout.output, /Commands:/);
 
-        for (const definition of getGroupDefinitions(group)) {
-          assert.match(stdout.output, new RegExp(`${definition.leaf} - ${escapeForRegExp(definition.purpose)}`));
-        }
-      }),
-    ),
-  );
+      for (const definition of getGroupDefinitions(group)) {
+        assert.match(stdout.output, new RegExp(`${definition.leaf} - ${escapeForRegExp(definition.purpose)}`));
+      }
+    });
+  }
 });
 
-test('runCli renders leaf help for every agreed V1 command', async (t) => {
-  await Promise.all(
-    ALL_COMMANDS.map((commandName) =>
-      t.test(commandName, async () => {
-        const stdout = new MemoryStream();
-        const stderr = new MemoryStream();
-        const definition = getCommandDefinition(commandName);
-        const args = definition.topLevel ? [commandName, '--help'] : [definition.group, definition.leaf, '--help'];
+describe('runCli renders leaf help for every agreed V1 command', () => {
+  for (const commandName of ALL_COMMANDS) {
+    test(commandName, async () => {
+      const stdout = new MemoryStream();
+      const stderr = new MemoryStream();
+      const definition = getCommandDefinition(commandName);
+      const args = definition.topLevel ? [commandName, '--help'] : [definition.group, definition.leaf, '--help'];
 
-        const exitCode = await runCli(args, { stdout, stderr });
+      const exitCode = await runCli(args, { stdout, stderr });
 
-        assert.equal(exitCode, 0);
-        assert.equal(stderr.output, '');
-        assert.match(stdout.output, new RegExp(`^${escapeForRegExp(commandName)}`, 'm'));
-        assert.match(stdout.output, new RegExp(`Purpose: ${escapeForRegExp(definition.purpose)}`));
-        assert.match(stdout.output, new RegExp(`Usage: ${escapeForRegExp(definition.usage)}`));
-        assert.match(stdout.output, /Required options:/);
-        assert.match(stdout.output, /Optional options:/);
-        assert.match(stdout.output, new RegExp(`Success: ${escapeForRegExp(definition.successSummary)}`));
-        assert.match(stdout.output, /Examples:/);
-        assert.match(stdout.output, /JSON success shape example:/);
-        assert.match(stdout.output, new RegExp(escapeForRegExp(JSON.stringify(definition.successDataExample))));
-      }),
-    ),
-  );
+      assert.equal(exitCode, 0);
+      assert.equal(stderr.output, '');
+      assert.match(stdout.output, new RegExp(`^${escapeForRegExp(commandName)}`, 'm'));
+      assert.match(stdout.output, new RegExp(`Purpose: ${escapeForRegExp(definition.purpose)}`));
+      assert.match(stdout.output, new RegExp(`Usage: ${escapeForRegExp(definition.usage)}`));
+      assert.match(stdout.output, /Required options:/);
+      assert.match(stdout.output, /Optional options:/);
+      assert.match(stdout.output, new RegExp(`Success: ${escapeForRegExp(definition.successSummary)}`));
+      assert.match(stdout.output, /Examples:/);
+      assert.match(stdout.output, /JSON success shape example:/);
+      assert.match(stdout.output, new RegExp(escapeForRegExp(JSON.stringify(definition.successDataExample))));
+    });
+  }
 });
 
 test('runCli reports invalid usage for unknown commands', async () => {

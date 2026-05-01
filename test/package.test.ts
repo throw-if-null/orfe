@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import test from 'node:test';
+import { test } from 'vitest';
 import { fileURLToPath } from 'node:url';
 
 import { executeOrfeTool } from '../src/wrapper.js';
@@ -32,6 +32,7 @@ test('package metadata exposes installable orfe CLI wiring', async () => {
   assert.equal(exportsField?.['./plugin'], './dist/plugin.js');
   assert.equal(bin?.orfe, './dist/cli.js');
   assert.equal(scripts?.prepack, 'npm run build');
+  assert.equal(scripts?.test, 'vitest run');
   assert.ok(files?.includes('dist'));
   assert.ok(files?.includes('README.md'));
   assert.ok(!files?.includes('docs'));

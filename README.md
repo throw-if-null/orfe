@@ -248,6 +248,9 @@ npm run typecheck
 npm run build
 ```
 
+`npm test` runs the Vitest suite.
+It uses the GitHub Actions reporter in CI and Vitest's default reporter with summary disabled locally for clearer named test and failure output.
+
 ## CI
 
 Fast CI runs on pull requests to `main` and on pushes to `main`.
@@ -255,5 +258,5 @@ It installs dependencies with `npm ci` using the npm cache and runs:
 
 - `npm test`
 - `npm run lint`
-- `npx tsc --noEmit`
+- `npm run typecheck`
 - `npm run build`
