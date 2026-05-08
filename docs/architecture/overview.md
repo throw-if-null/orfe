@@ -8,6 +8,10 @@
 
 The design goal is to provide deterministic, reusable GitHub operations without embedding repository-specific workflow policy into the runtime itself.
 
+The architecture is evolving toward a layered model of **core plus installable extensions**.
+Core remains the shared runtime substrate.
+Extensions are separately installed deterministic opinion layers that repositories may enable declaratively.
+
 The current command architecture uses explicit vertical command slices under `src/commands/`. Each command owns its own metadata, validation, handler wiring, and co-located tests. A generic registry composes those slices into a single command catalog used by both the CLI and the core.
 
 ## Major runtime parts
@@ -51,6 +55,7 @@ Responsibilities:
 - return structured success or typed errors
 
 The core is runtime-agnostic and must remain callable from both CLI and plugin entrypoints.
+It is also the future extension host, but it must preserve the same wrapper/core and plain-data boundaries while doing so.
 
 ### 4. Config layer
 Current examples include `src/config.ts` and `.orfe/config.json`.
@@ -59,7 +64,12 @@ Responsibilities:
 - hold repo-local non-secret configuration
 - map caller names to GitHub bots
 - define repository and project defaults
+- declare which installed extensions are enabled for this repository
+- hold per-extension declarative `config` when extensions are enabled
 - stay separate from repo-defined body-contract artifacts under `.orfe/contracts/`
+
+Repo config is declarative and non-secret.
+It may enable or configure extensions, but it must not ship executable extension code.
 
 ### 5. Body-contract layer
 Current examples include `src/body-contracts.ts`, `src/commands/body-contract-shared.ts`, and `.orfe/contracts/`.
@@ -86,6 +96,19 @@ Responsibilities:
 - use GraphQL where required for project status and duplicate semantics
 - preserve deterministic command behavior and structured outputs
 
+### 8. Extension layer
+This is an architecture direction established before implementation.
+
+Responsibilities:
+- provide installable namespaced command families above core
+- hold reusable deterministic opinionated mechanics that do not belong in the generic core
+- declare compatibility with the running core version
+- remain inactive for a repository unless explicitly enabled in `.orfe/config.json`
+
+Extensions are installed into the runtime environment, not provided as executable code by the repository.
+Installed does not mean enabled.
+Enabled does not mean validly configured.
+
 ## Module map
 
 ```mermaid
@@ -98,6 +121,7 @@ graph TD
   Core --> Auth[Caller bot + auth config]
   Core --> GitHub[GitHub client factory<br/>src/github.ts]
   Core --> Registry[Generic command registry<br/>src/commands/registry/index.ts]
+  Core --> Extensions[Installed extensions<br/>optional + namespaced]
 
   Registry --> Commands[Registered commands<br/>src/commands/index.ts]
 
@@ -196,6 +220,7 @@ Command-specific tests live beside the slice by default. Cross-cutting CLI, core
 - plugin entrypoint reads OpenCode context; core does not
 - core accepts plain data only
 - repo-local config contains no secrets
+- repo-local config may enable extensions declaratively but cannot ship executable extension code
 - repo-defined body contracts live beside config under `.orfe/contracts/`, not inside config
 - machine-local auth config contains bot credentials
 - command registry stays generic and deterministic
@@ -203,6 +228,8 @@ Command-specific tests live beside the slice by default. Cross-cutting CLI, core
 - command behavior uses Octokit, not `gh` shell-outs
 - body contracts stay declarative and do not encode repository workflow orchestration
 - repo workflow policy belongs above `orfe`, not inside it
+- installed extensions are not active unless the repository enables them explicitly
+- per-extension repo settings use `config` terminology unless a future ADR changes that contract
 
 These file references are descriptive of the current layout, not a promise that file organization will never change.
 When files move, update this overview if the conceptual boundaries also need clarification.
