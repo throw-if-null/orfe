@@ -35,7 +35,7 @@ class EmittingGitHubClientFactory extends GitHubClientFactory {
       state_reason: null,
       labels: [],
       assignees: [],
-      html_url: 'https://github.com/throw-if-null/orfe/issues/113',
+      html_url: `https://github.com/${repo.fullName}/issues/113`,
     };
 
     return {

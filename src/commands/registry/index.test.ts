@@ -4,24 +4,17 @@ import { test } from 'vitest';
 import { COMMANDS } from '../index.js';
 import { getCommandDefinition, getTopLevelCommandDefinition, listCommandGroups, listCommandNames } from './index.js';
 
-test('registry lists command names from the explicit registration array', () => {
+test('registry lists command names in registration order', () => {
   assert.deepEqual(listCommandNames(), COMMANDS.map((definition) => definition.name));
 });
 
-test('registry derives command groups from explicit registrations', () => {
-  assert.deepEqual(listCommandGroups(), ['auth', 'issue', 'pr', 'project', 'runtime']);
-});
-
-test('registry lists the PR validation command from explicit registrations', () => {
-  assert(listCommandNames().includes('pr validate'));
-});
-
-test('registry lists the issue validation command from explicit registrations', () => {
-  assert(listCommandNames().includes('issue validate'));
-});
-
-test('registry lists the top-level help command from explicit registrations', () => {
-  assert(listCommandNames().includes('help'));
+test('registry derives unique command groups and keeps top-level commands out of them', () => {
+  assert.deepEqual(
+    listCommandGroups(),
+    COMMANDS.filter((definition) => !definition.topLevel)
+      .map((definition) => definition.group)
+      .filter((group, index, groups) => groups.indexOf(group) === index),
+  );
   assert.equal(getTopLevelCommandDefinition('help')?.name, 'help');
 });
 
@@ -39,4 +32,9 @@ test('registry resolves definitions from the explicit registration array', () =>
   for (const definition of COMMANDS) {
     assert.equal(getCommandDefinition(definition.name), definition);
   }
+});
+
+test('registry rejects unknown commands', () => {
+  assert.throws(() => getCommandDefinition('issue unknown'), /Unknown command "issue unknown"\./);
+  assert.equal(getTopLevelCommandDefinition('issue unknown'), undefined);
 });

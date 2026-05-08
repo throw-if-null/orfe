@@ -28,13 +28,13 @@ export interface GitHubOctokitOptions {
   log?: OctokitLogAdapter;
 }
 
-export interface GitHubClientFactoryDependencies {
+interface GitHubClientFactoryDependencies {
   readFileImpl?: ReadFileText;
   octokitFactory?: (options?: GitHubOctokitOptions) => Octokit;
   jwtFactory?: (appId: number, privateKey: string) => string;
 }
 
-export interface GitHubInstallationAuth {
+interface GitHubInstallationAuth {
   installationId: number;
   token: string;
   expiresAt: string;
