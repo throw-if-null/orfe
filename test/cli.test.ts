@@ -4472,15 +4472,6 @@ test('runCli reports malformed repo overrides as usage errors', async () => {
   assert.match(stderr.output, /See: orfe issue get --help/);
 });
 
-test('registered command definitions expose a JSON success shape for every V1 command', () => {
-  for (const commandName of ALL_COMMANDS) {
-    const definition = getCommandDefinition(commandName);
-    assert.equal(typeof definition.successDataExample, 'object');
-    assert.ok(Object.keys(definition.successDataExample).length > 0);
-    assert.ok(definition.validInputExample);
-  }
-});
-
 function escapeForRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

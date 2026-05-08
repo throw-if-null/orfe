@@ -191,7 +191,15 @@ Runtime dependency logging is internal to `orfe`:
 
 ## OpenCode plugin
 
-Configure OpenCode to load the packaged plugin directly:
+Configure OpenCode to load the published plugin package directly:
+
+```json
+{
+  "plugin": ["@mirzamerdovic/orfe"]
+}
+```
+
+For repo-local development from a checkout, use the local package path instead:
 
 ```json
 {
@@ -203,6 +211,8 @@ Configure OpenCode to load the packaged plugin directly:
 - the plugin resolves a plain `callerName`
 - the plugin passes only plain data into the runtime core
 - the core does not read `context.agent`
+
+Tool input uses the same `snake_case` field names shown in structured help. Common path overrides use `config` and `auth_config`, matching the CLI `--config` and `--auth-config` flags.
 
 To inspect the active runtime version through the plugin/tool contract:
 
