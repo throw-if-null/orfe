@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-import OrfePlugin, { OrfePlugin as NamedOrfePlugin } from '../src/plugin.js';
+import OrfePlugin from '../src/plugin.js';
 import { executeOrfeTool } from '../src/wrapper.js';
 
-test('plugin entry points export a plugin function', () => {
-  assert.equal(typeof OrfePlugin, 'function');
-  assert.equal(typeof NamedOrfePlugin, 'function');
+test('plugin exposes common path override inputs on the orfe tool', async () => {
+  const plugin = await OrfePlugin({} as never);
+  const orfeTool = plugin.tool?.orfe;
+
+  assert.ok(orfeTool);
+  assert.equal('config' in orfeTool.args, true);
+  assert.equal('auth_config' in orfeTool.args, true);
 });
 
 test('plugin contract can retrieve runtime info for the active plugin runtime', async () => {
@@ -52,13 +56,21 @@ test('plugin contract can retrieve structured help without caller context', asyn
 
   assert.equal(result.ok, true);
   if (result.ok) {
+    const help = result.data as {
+      canonical_command_name: string;
+      requirements: Record<string, string>;
+      supported_input_fields: Array<{ input_key: string }>;
+    };
+
     assert.equal(result.command, 'help');
-    assert.equal((result.data as { canonical_command_name: string }).canonical_command_name, 'project set-status');
-    assert.deepEqual((result.data as { requirements: Record<string, string> }).requirements, {
+    assert.equal(help.canonical_command_name, 'project set-status');
+    assert.deepEqual(help.requirements, {
       caller_context: 'required',
       repo_local_config: 'required',
       machine_local_auth_config: 'required',
       github_access: 'required',
     });
+    assert.equal(help.supported_input_fields.some((field) => field.input_key === 'config'), true);
+    assert.equal(help.supported_input_fields.some((field) => field.input_key === 'auth_config'), true);
   }
 });

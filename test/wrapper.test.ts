@@ -391,7 +391,7 @@ test('resolveCallerNameFromContext accepts context.agent.name', () => {
   assert.equal(resolveCallerNameFromContext({ agent: { name: 'Jelena' } }), 'Jelena');
 });
 
-test('executeOrfeTool reads caller identity from context.agent and passes plain callerName to core', async () => {
+test('executeOrfeTool forwards caller identity and common path overrides as plain core input', async () => {
   let capturedRequest: OrfeCoreRequest | undefined;
   let receivedAgentInCore = false;
 
@@ -399,6 +399,8 @@ test('executeOrfeTool reads caller identity from context.agent and passes plain 
     {
       command: 'issue get',
       issue_number: 14,
+      config: '/tmp/.orfe/config.json',
+      auth_config: '/tmp/auth.json',
     },
     {
       agent: { name: 'Greg', role: 'implementation-owner' },
@@ -430,6 +432,8 @@ test('executeOrfeTool reads caller identity from context.agent and passes plain 
     command: 'issue get',
     input: { issue_number: 14 },
     entrypoint: 'opencode-plugin',
+    configPath: '/tmp/.orfe/config.json',
+    authConfigPath: '/tmp/auth.json',
     cwd: '/tmp/repo',
     logger: capturedRequest?.logger,
   });

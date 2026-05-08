@@ -558,6 +558,7 @@ Rules:
 - `command` is required.
 - `command` uses the canonical space-separated vocabulary, matching the CLI subcommands exactly.
 - command-specific fields use `snake_case`.
+- `config` and `auth_config` are supported wrapper-level path overrides, matching CLI `--config` and `--auth-config`.
 - body-contract selection uses `body_contract` in tool input when applicable.
 - `caller_name` is **not** accepted from tool input.
 - the wrapper injects `callerName` from `context.agent`.
