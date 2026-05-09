@@ -31,26 +31,6 @@ test('executeOrfeTool rejects missing caller context clearly', async () => {
   });
 });
 
-test('executeOrfeTool still rejects missing caller context for caller-mapped commands', async () => {
-  const result = await executeOrfeTool(
-    {
-      command: 'issue get',
-      issue_number: 14,
-    },
-    {},
-  );
-
-  assert.deepEqual(result, {
-    ok: false,
-    command: 'issue get',
-    error: {
-      code: 'caller_context_missing',
-      message: 'OpenCode caller context is missing.',
-      retryable: false,
-    },
-  });
-});
-
 test('executeOrfeTool rejects caller_name from tool input', async () => {
   const result = await executeOrfeTool(
     {

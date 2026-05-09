@@ -3,80 +3,18 @@ import { test } from 'vitest';
 
 import { OrfeError } from '../../src/errors.js';
 import { runOrfeCore } from '../../src/core.js';
-import { mockAuthTokenMintRequest } from '../support/auth-fixtures.js';
-import { withNock } from '../support/http-test.js';
-import { createAuthConfig, createRepoConfig } from '../support/runtime-fixtures.js';
+import { createRepoConfig } from '../support/runtime-fixtures.js';
 
-test('runOrfeCore mints an auth token for the resolved caller bot', async () => {
-  await withNock(async () => {
-    const api = mockAuthTokenMintRequest({ repo: { owner: 'throw-if-null', name: 'orfe' } });
-
-    const { createGitHubClientFactory } = await import('../support/runtime-fixtures.js');
-    const result = await runOrfeCore(
-      {
-        callerName: 'Greg',
-        command: 'auth token',
-        input: {
-          repo: 'throw-if-null/orfe',
-        },
-      },
-      {
-        loadRepoConfigImpl: async () => createRepoConfig(),
-        loadAuthConfigImpl: async () => createAuthConfig(),
-        githubClientFactory: createGitHubClientFactory(),
-      },
-    );
-
-    assert.deepEqual(result, {
-      ok: true,
-      command: 'auth token',
-      repo: 'throw-if-null/orfe',
-      data: {
-        bot: 'greg',
-        app_slug: 'GR3G-BOT',
-        repo: 'throw-if-null/orfe',
-        token: 'ghs_123',
-        expires_at: '2026-04-06T12:00:00Z',
-        auth_mode: 'github-app',
-      },
-    });
-    assert.equal(api.isDone(), true);
-  });
-});
-
-test('runOrfeCore rejects bot override input for auth token', async () => {
-  await assert.rejects(
-    runOrfeCore(
-      {
-        callerName: 'Greg',
-        command: 'auth token',
-        input: { bot: 'unknown', repo: 'throw-if-null/orfe' },
-      },
-      {
-        loadRepoConfigImpl: async () => createRepoConfig(),
-        loadAuthConfigImpl: async () => createAuthConfig(),
-      },
-    ),
-    (error: unknown) => {
-      assert(error instanceof OrfeError);
-      assert.equal(error.code, 'invalid_usage');
-      assert.equal(error.message, 'Command "auth token" does not accept input field "bot".');
-      return true;
-    },
-  );
-});
-
-test('runOrfeCore fails clearly for auth token when the caller is unmapped', async () => {
+test('runOrfeCore rejects unmapped callers clearly for GitHub-backed commands', async () => {
   await assert.rejects(
     runOrfeCore(
       {
         callerName: 'Unknown Agent',
-        command: 'auth token',
-        input: { repo: 'throw-if-null/orfe' },
+        command: 'issue get',
+        input: { issue_number: 14 },
       },
       {
         loadRepoConfigImpl: async () => createRepoConfig(),
-        loadAuthConfigImpl: async () => createAuthConfig(),
       },
     ),
     (error: unknown) => {
@@ -88,73 +26,13 @@ test('runOrfeCore fails clearly for auth token when the caller is unmapped', asy
   );
 });
 
-test('runOrfeCore fails clearly for auth token when the installation is missing', async () => {
-  await withNock(async () => {
-    const api = mockAuthTokenMintRequest({ installationStatus: 404 });
-    const { createGitHubClientFactory } = await import('../support/runtime-fixtures.js');
-
-    await assert.rejects(
-      runOrfeCore(
-        {
-          callerName: 'Greg',
-          command: 'auth token',
-          input: { repo: 'throw-if-null/orfe' },
-        },
-        {
-          loadRepoConfigImpl: async () => createRepoConfig(),
-          loadAuthConfigImpl: async () => createAuthConfig(),
-          githubClientFactory: createGitHubClientFactory(),
-        },
-      ),
-      (error: unknown) => {
-        assert(error instanceof OrfeError);
-        assert.equal(error.code, 'auth_failed');
-        assert.equal(error.message, 'No GitHub App installation for throw-if-null/orfe was found for app GR3G-BOT.');
-        return true;
-      },
-    );
-
-    assert.equal(api.isDone(), true);
-  });
-});
-
-test('runOrfeCore fails clearly for auth token when token minting is rejected', async () => {
-  await withNock(async () => {
-    const api = mockAuthTokenMintRequest({ tokenStatus: 403 });
-    const { createGitHubClientFactory } = await import('../support/runtime-fixtures.js');
-
-    await assert.rejects(
-      runOrfeCore(
-        {
-          callerName: 'Greg',
-          command: 'auth token',
-          input: { repo: 'throw-if-null/orfe' },
-        },
-        {
-          loadRepoConfigImpl: async () => createRepoConfig(),
-          loadAuthConfigImpl: async () => createAuthConfig(),
-          githubClientFactory: createGitHubClientFactory(),
-        },
-      ),
-      (error: unknown) => {
-        assert(error instanceof OrfeError);
-        assert.equal(error.code, 'auth_failed');
-        assert.equal(error.message, 'Failed to mint an installation token for bot "greg" on throw-if-null/orfe.');
-        return true;
-      },
-    );
-
-    assert.equal(api.isDone(), true);
-  });
-});
-
-test('runOrfeCore surfaces config failures for auth token clearly', async () => {
+test('runOrfeCore surfaces auth config loading failures clearly for GitHub-backed commands', async () => {
   await assert.rejects(
     runOrfeCore(
       {
         callerName: 'Greg',
-        command: 'auth token',
-        input: { repo: 'throw-if-null/orfe' },
+        command: 'issue get',
+        input: { issue_number: 14 },
       },
       {
         loadRepoConfigImpl: async () => createRepoConfig(),
@@ -172,26 +50,42 @@ test('runOrfeCore surfaces config failures for auth token clearly', async () => 
   );
 });
 
-test('runOrfeCore rejects unmapped callers clearly', async () => {
+test('runOrfeCore forwards explicit auth config paths into shared auth config loading', async () => {
+  let capturedOptions: Record<string, string> | undefined;
+
   await assert.rejects(
     runOrfeCore(
       {
-        callerName: 'Unknown Agent',
+        callerName: 'Greg',
         command: 'issue get',
         input: { issue_number: 14 },
+        cwd: '/tmp/repo',
+        authConfigPath: '/tmp/custom-auth.json',
       },
       {
         loadRepoConfigImpl: async () => createRepoConfig(),
-        loadAuthConfigImpl: async () => createAuthConfig(),
+        loadAuthConfigImpl: async (options = {}) => {
+          capturedOptions = {
+            ...(options.cwd ? { cwd: options.cwd } : {}),
+            ...(options.authConfigPath ? { authConfigPath: options.authConfigPath } : {}),
+          };
+
+          throw new OrfeError('config_not_found', 'machine-local auth config not found at /tmp/custom-auth.json.');
+        },
       },
     ),
     (error: unknown) => {
       assert(error instanceof OrfeError);
-      assert.equal(error.code, 'caller_name_unmapped');
-      assert.match(error.message, /Caller name "Unknown Agent" is not mapped/);
+      assert.equal(error.code, 'config_not_found');
+      assert.equal(error.message, 'machine-local auth config not found at /tmp/custom-auth.json.');
       return true;
     },
   );
+
+  assert.deepEqual(capturedOptions, {
+    cwd: '/tmp/repo',
+    authConfigPath: '/tmp/custom-auth.json',
+  });
 });
 
 test('runOrfeCore rejects empty caller names clearly', async () => {
@@ -204,7 +98,6 @@ test('runOrfeCore rejects empty caller names clearly', async () => {
       },
       {
         loadRepoConfigImpl: async () => createRepoConfig(),
-        loadAuthConfigImpl: async () => createAuthConfig(),
       },
     ),
     (error: unknown) => {
