@@ -15,12 +15,6 @@ export interface CommandOptionDefinition {
   enumValues?: readonly string[];
 }
 
-export interface CommandExecutionRequirements {
-  requiresRepoConfig?: boolean;
-  requiresAuthConfig?: boolean;
-  requiresGitHubAccess?: boolean;
-}
-
 export interface RuntimeCommandContext<TName extends string = string, TInput extends CommandInput = CommandInput> {
   command: TName;
   input: TInput;

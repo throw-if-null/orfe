@@ -4,7 +4,7 @@ import { OrfeError } from './errors.js';
 import { GitHubClientFactory } from './github.js';
 import { createLogger } from './logger.js';
 import { createSuccessResponse } from './response.js';
-import type { GitHubClients, MachineAuthConfig, OrfeCoreRequest, RepoLocalConfig, SuccessResponse } from './types.js';
+import type { GitHubClients, OrfeCoreRequest, RepoLocalConfig, SuccessResponse } from './types.js';
 
 export interface OrfeCoreDependencies {
   loadRepoConfigImpl?: typeof loadRepoConfig;
@@ -125,11 +125,11 @@ export async function runOrfeCore(
         return cachedGitHubClient.auth;
       }
 
-        cachedGitHubAuth ??= {
-          botName: callerBot,
-          appSlug: botAuth.appSlug,
-          ...(await githubClientFactory.createInstallationAuth(callerBot, botAuth, repo, logger)),
-        };
+      cachedGitHubAuth ??= {
+        botName: callerBot,
+        appSlug: botAuth.appSlug,
+        ...(await githubClientFactory.createInstallationAuth(callerBot, botAuth, repo, logger)),
+      };
 
       return cachedGitHubAuth;
     },
@@ -144,35 +144,4 @@ function resolveRequiredCallerBot(config: RepoLocalConfig, callerName: string): 
   }
 
   return resolveCallerBot(config, callerName);
-}
-
-export interface RuntimeSnapshot {
-  repoConfig: RepoLocalConfig;
-  authConfig: MachineAuthConfig;
-  callerBot: string;
-}
-
-export async function createRuntimeSnapshot(
-  request: Pick<OrfeCoreRequest, 'callerName' | 'cwd' | 'configPath' | 'authConfigPath'>,
-  dependencies: OrfeCoreDependencies = {},
-): Promise<RuntimeSnapshot> {
-  const loadRepoConfigImpl = dependencies.loadRepoConfigImpl ?? loadRepoConfig;
-  const loadAuthConfigImpl = dependencies.loadAuthConfigImpl ?? loadAuthConfig;
-  const cwd = request.cwd ?? process.cwd();
-  const repoConfig = await loadRepoConfigImpl({
-    cwd,
-    ...(request.configPath ? { configPath: request.configPath } : {}),
-  });
-  const authConfig = await loadAuthConfigImpl({
-    cwd,
-    ...(request.authConfigPath ? { authConfigPath: request.authConfigPath } : {}),
-  });
-  const callerBot = resolveRequiredCallerBot(repoConfig, request.callerName.trim());
-  getBotAuthConfig(authConfig, callerBot);
-
-  return {
-    repoConfig,
-    authConfig,
-    callerBot,
-  };
 }

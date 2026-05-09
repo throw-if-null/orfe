@@ -6,12 +6,10 @@ import { fileURLToPath } from 'node:url';
 
 import { COMMANDS } from '../src/commands/index.js';
 import { createHelpCommandSuccessData, createHelpRootSuccessData } from '../src/commands/help/definition.js';
-import { listCommandNames } from '../src/commands/registry/index.js';
 import { OrfeError } from '../src/errors.js';
 import { GitHubClientFactory } from '../src/github.js';
-import { createRuntimeSnapshot, runOrfeCore } from '../src/core.js';
+import { runOrfeCore } from '../src/core.js';
 
-const COMMAND_NAMES = COMMANDS.map((definition) => definition.name);
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoConfigPath = path.join(workspaceRoot, '.orfe', 'config.json');
 
@@ -922,10 +920,6 @@ function mockIssueSetStateDuplicateRequest(options: {
 
   return scope;
 }
-
-test('listCommandNames exposes the agreed V1 command surface', () => {
-  assert.deepEqual(listCommandNames(), COMMAND_NAMES);
-});
 
 test('runOrfeCore mints an auth token for the resolved caller bot', async () => {
   nock.disableNetConnect();
@@ -5878,43 +5872,4 @@ test('runOrfeCore rejects repo-local config failures before auth config loading 
       return true;
     },
   );
-});
-
-test('createRuntimeSnapshot validates machine-local auth mapping', async () => {
-  await assert.rejects(
-    createRuntimeSnapshot(
-      {
-        callerName: 'Greg',
-      },
-      {
-        loadRepoConfigImpl: async () => createRepoConfig(),
-        loadAuthConfigImpl: async () => ({
-          configPath: '/tmp/auth.json',
-          version: 1 as const,
-          bots: {},
-        }),
-      },
-    ),
-    (error: unknown) => {
-      assert(error instanceof OrfeError);
-      assert.equal(error.code, 'auth_failed');
-      return true;
-    },
-  );
-});
-
-test('createRuntimeSnapshot proves auth config is separate from repo-local config', async () => {
-  const snapshot = await createRuntimeSnapshot(
-    {
-      callerName: 'Greg',
-    },
-    {
-      loadRepoConfigImpl: async () => createRepoConfig(),
-      loadAuthConfigImpl: async () => createAuthConfig(),
-    },
-  );
-
-  assert.equal(snapshot.repoConfig.configPath, repoConfigPath);
-  assert.equal(snapshot.authConfig.configPath, '/tmp/auth.json');
-  assert.equal(snapshot.callerBot, 'greg');
 });

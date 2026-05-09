@@ -1,5 +1,3 @@
-import type { OrfeCommandName } from './commands/index.js';
-
 export const ERROR_CODES = [
   'invalid_usage',
   'invalid_input',
@@ -65,8 +63,4 @@ export function toOrfeError(error: unknown): OrfeError {
 
 export function formatCliUsageError(error: CliUsageError): string {
   return [`Error: ${error.message}`, `Usage: ${error.usage}`, `Example: ${error.example}`, `See: ${error.see}`].join('\n');
-}
-
-export function createNotImplementedError(command: OrfeCommandName): OrfeError {
-  return new OrfeError('not_implemented', `Command "${command}" is not implemented yet.`);
 }
