@@ -4,7 +4,7 @@ import { test } from 'vitest';
 import { OrfeError } from '../../../../src/errors.js';
 import { runCoreCommand, runToolCommand } from '../../../../test/support/command-runtime.js';
 import { withNock } from '../../../../test/support/http-test.js';
-import { mockPullRequestGetOrCreateRequest } from '../../../../test/support/pr-fixtures.js';
+import { mockPullRequestGetOrCreateRequest } from '../../../../test/pr/fixtures.js';
 import { renderPrBodyContractMarker } from '../../../../test/support/runtime-fixtures.js';
 
 test('runOrfeCore reuses an existing pull request for pr get-or-create', async () => {

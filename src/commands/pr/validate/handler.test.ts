@@ -167,7 +167,7 @@ test('runOrfeCore returns actionable PR validation failures', async () => {
 
 test('runOrfeCore fails clearly when contract validation fails', async () => {
   await withNock(async () => {
-    const api = await import('../../../../test/support/pr-fixtures.js').then(({ mockPullRequestGetOrCreateRequest }) =>
+    const api = await import('../../../../test/pr/fixtures.js').then(({ mockPullRequestGetOrCreateRequest }) =>
       mockPullRequestGetOrCreateRequest({
         head: 'issues/orfe-59',
         existingPullRequests: [],

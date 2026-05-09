@@ -3,7 +3,7 @@ import { test } from 'vitest';
 
 import { runCoreCommand, runToolCommand } from '../../../../test/support/command-runtime.js';
 import { withNock } from '../../../../test/support/http-test.js';
-import { mockPullRequestGetRequest } from '../../../../test/support/pr-fixtures.js';
+import { mockPullRequestGetRequest } from '../../../../test/pr/fixtures.js';
 
 test('runOrfeCore reads a pull request and returns structured success output', async () => {
   await withNock(async () => {

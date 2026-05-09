@@ -4,7 +4,7 @@ import { test } from 'vitest';
 import { OrfeError } from '../../../../src/errors.js';
 import { runCoreCommand, runToolCommand } from '../../../../test/support/command-runtime.js';
 import { withNock } from '../../../../test/support/http-test.js';
-import { mockIssueCreateRequest } from '../../../../test/support/issue-fixtures.js';
+import { mockIssueCreateRequest } from '../../../../test/issue/fixtures.js';
 import {
   createProjectFieldsConnection,
   createProjectItemNode,
@@ -17,7 +17,7 @@ import {
   mockProjectLookupRequest,
   mockProjectStatusFieldsRequest,
   mockProjectStatusUpdateRequest,
-} from '../../../../test/support/project-fixtures.js';
+} from '../../../../test/project/fixtures.js';
 import {
   createRepoConfigWithDefaultProject,
   renderIssueBodyContractMarker,
