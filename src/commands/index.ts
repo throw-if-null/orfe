@@ -12,6 +12,7 @@ import { prGetOrCreateCommand } from './pr/get-or-create/definition.js';
 import { prGetCommand } from './pr/get/definition.js';
 import { prReplyCommand } from './pr/reply/definition.js';
 import { prSubmitReviewCommand } from './pr/submit-review/definition.js';
+import { prUpdateCommand } from './pr/update/definition.js';
 import { prValidateCommand } from './pr/validate/definition.js';
 import { projectGetStatusCommand } from './project/get-status/definition.js';
 import { projectSetStatusCommand } from './project/set-status/definition.js';
@@ -28,6 +29,7 @@ const BASE_COMMANDS = [
   prGetCommand,
   prValidateCommand,
   prGetOrCreateCommand,
+  prUpdateCommand,
   prCommentCommand,
   prSubmitReviewCommand,
   prReplyCommand,

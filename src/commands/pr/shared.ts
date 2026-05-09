@@ -45,6 +45,16 @@ export interface PullRequestGetOrCreateData {
   created: boolean;
 }
 
+export interface PullRequestUpdateData {
+  pr_number: number;
+  title: string;
+  html_url: string;
+  head: string;
+  base: string;
+  draft: boolean;
+  changed: true;
+}
+
 export type PullRequestValidateData = ArtifactBodyValidationResult;
 
 export interface PullRequestSummaryData {
@@ -214,6 +224,20 @@ export function normalizePullRequestSummaryResponse(pullRequest: PullRequestGetR
     head: readPullRequestRef(pullRequest.head, prNumber, 'head'),
     base: readPullRequestRef(pullRequest.base, prNumber, 'base'),
     html_url: pullRequest.html_url,
+  };
+}
+
+export function normalizePullRequestUpdateResponse(pullRequest: PullRequestGetResponseData): PullRequestUpdateData {
+  const normalizedPullRequest = normalizePullRequestGetResponse(pullRequest);
+
+  return {
+    pr_number: normalizedPullRequest.pr_number,
+    title: normalizedPullRequest.title,
+    html_url: normalizedPullRequest.html_url,
+    head: normalizedPullRequest.head,
+    base: normalizedPullRequest.base,
+    draft: normalizedPullRequest.draft,
+    changed: true,
   };
 }
 

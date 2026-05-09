@@ -359,6 +359,53 @@ function mockPullRequestGetOrCreateRequest(options: {
   return scope;
 }
 
+function mockPullRequestUpdateRequest(options: {
+  prNumber: number;
+  requestBody: Record<string, unknown>;
+  verifyStatus?: number;
+  verifyResponseBody?: Record<string, unknown>;
+  status?: number;
+  responseBody?: Record<string, unknown>;
+}) {
+  const prNumber = options.prNumber;
+  const verifyStatus = options.verifyStatus ?? 200;
+  const status = options.status ?? 200;
+
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/pulls/${prNumber}`)
+    .reply(
+      verifyStatus,
+      options.verifyResponseBody ?? {
+        number: prNumber,
+        title: 'Design the `orfe` custom tool and CLI contract',
+        body: 'PR body',
+        state: 'open',
+        draft: false,
+        head: { ref: 'issues/orfe-13' },
+        base: { ref: 'main' },
+        html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}`,
+      },
+    )
+    .patch(`/repos/throw-if-null/orfe/pulls/${prNumber}`, options.requestBody)
+    .reply(
+      status,
+      options.responseBody ?? {
+        number: prNumber,
+        title: (options.requestBody.title as string | undefined) ?? 'Updated PR title',
+        body: (options.requestBody.body as string | undefined) ?? 'PR body',
+        state: 'open',
+        draft: false,
+        head: { ref: 'issues/orfe-13' },
+        base: { ref: 'main' },
+        html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}`,
+      },
+    );
+}
+
 function mockPullRequestCommentRequest(options: {
   prNumber: number;
   body: string;
@@ -1054,7 +1101,7 @@ test('runCli prints representative targeted structured help for issue, pr, and p
   nock.disableNetConnect();
 
   try {
-    for (const commandName of ['issue get', 'pr get-or-create', 'project set-status'] as const) {
+    for (const commandName of ['issue get', 'pr update', 'project set-status'] as const) {
       const stdout = new MemoryStream();
       const stderr = new MemoryStream();
 
@@ -2219,6 +2266,173 @@ test('runCli prints structured success JSON for pr get-or-create when creating a
     nock.cleanAll();
     nock.enableNetConnect();
   }
+});
+
+test('runCli prints structured success JSON for pr update', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestUpdateRequest({
+      prNumber: 9,
+      requestBody: {
+        title: 'Updated PR title',
+        body: 'Updated PR body',
+      },
+    });
+
+    const exitCode = await runCli(['pr', 'update', '--pr-number', '9', '--title', 'Updated PR title', '--body', 'Updated PR body'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(stderr.output, '');
+    assert.deepEqual(JSON.parse(stdout.output), {
+      ok: true,
+      command: 'pr update',
+      repo: 'throw-if-null/orfe',
+      data: {
+        pr_number: 9,
+        title: 'Updated PR title',
+        html_url: 'https://github.com/throw-if-null/orfe/pull/9',
+        head: 'issues/orfe-13',
+        base: 'main',
+        draft: false,
+        changed: true,
+      },
+    });
+    assert.equal(api.isDone(), true);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured contract-validation failures for invalid pr update bodies', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestUpdateRequest({
+      prNumber: 9,
+      requestBody: {},
+    });
+
+    const exitCode = await runCli(
+      ['pr', 'update', '--pr-number', '9', '--body', 'Ref: #142\n\nCloses: #142', '--body-contract', 'implementation-ready@1.0.0'],
+      {
+        stdout,
+        stderr,
+        env: { ORFE_CALLER_NAME: 'Greg' },
+        ...createRuntimeDependencies(),
+        githubClientFactory: createGitHubClientFactory(),
+      },
+    );
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'pr update',
+      error: {
+        code: 'contract_validation_failed',
+        message: 'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), false);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli prints structured not-found failures for pr update', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  nock.disableNetConnect();
+
+  try {
+    const api = mockPullRequestUpdateRequest({
+      prNumber: 404,
+      requestBody: { title: 'Updated PR title' },
+      verifyStatus: 404,
+      verifyResponseBody: { message: 'Not Found' },
+    });
+
+    const exitCode = await runCli(['pr', 'update', '--pr-number', '404', '--title', 'Updated PR title'], {
+      stdout,
+      stderr,
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout.output, '');
+    assert.deepEqual(JSON.parse(stderr.output), {
+      ok: false,
+      command: 'pr update',
+      error: {
+        code: 'github_not_found',
+        message: 'Pull request #404 was not found.',
+        retryable: false,
+      },
+    });
+    assert.equal(api.isDone(), false);
+  } finally {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  }
+});
+
+test('runCli reports invalid option combinations for pr update as usage errors', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['pr', 'update', '--pr-number', '9', '--body-contract', 'implementation-ready@1.0.0'], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('internal_error', 'loadRepoConfigImpl should not run');
+    },
+  });
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /pr update only allows body_contract together with --body\./);
+  assert.match(stderr.output, /Usage: orfe pr update --pr-number <number> \[--title <text>] \[--body <text>] \[--body-contract <name@version>] \[--repo <owner\/name>] \[--config <path>] \[--auth-config <path>]$/m);
+  assert.match(stderr.output, /See: orfe pr update --help/);
+});
+
+test('runCli reports missing mutation options for pr update as usage errors', async () => {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+
+  const exitCode = await runCli(['pr', 'update', '--pr-number', '9'], {
+    stdout,
+    stderr,
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('internal_error', 'loadRepoConfigImpl should not run');
+    },
+  });
+
+  assert.equal(exitCode, 2);
+  assert.equal(stdout.output, '');
+  assert.match(stderr.output, /pr update requires at least one mutation option\./);
+  assert.match(stderr.output, /Usage: orfe pr update --pr-number <number> \[--title <text>] \[--body <text>] \[--body-contract <name@version>] \[--repo <owner\/name>] \[--config <path>] \[--auth-config <path>]$/m);
+  assert.match(stderr.output, /See: orfe pr update --help/);
 });
 
 test('runCli prints structured success JSON for pr validate', async () => {

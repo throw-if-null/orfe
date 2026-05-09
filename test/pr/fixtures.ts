@@ -81,6 +81,53 @@ export function mockPullRequestGetOrCreateRequest(options: {
   return scope;
 }
 
+export function mockPullRequestUpdateRequest(options: {
+  prNumber: number;
+  requestBody: Record<string, unknown>;
+  verifyStatus?: number;
+  verifyResponseBody?: Record<string, unknown>;
+  status?: number;
+  responseBody?: Record<string, unknown>;
+}) {
+  const prNumber = options.prNumber;
+  const verifyStatus = options.verifyStatus ?? 200;
+  const status = options.status ?? 200;
+
+  return nock('https://api.github.com')
+    .get('/repos/throw-if-null/orfe/installation')
+    .reply(200, { id: 42 })
+    .post('/app/installations/42/access_tokens')
+    .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
+    .get(`/repos/throw-if-null/orfe/pulls/${prNumber}`)
+    .reply(
+      verifyStatus,
+      options.verifyResponseBody ?? {
+        number: prNumber,
+        title: 'Design the `orfe` custom tool and CLI contract',
+        body: 'PR body',
+        state: 'open',
+        draft: false,
+        head: { ref: 'issues/orfe-13' },
+        base: { ref: 'main' },
+        html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}`,
+      },
+    )
+    .patch(`/repos/throw-if-null/orfe/pulls/${prNumber}`, options.requestBody)
+    .reply(
+      status,
+      options.responseBody ?? {
+        number: prNumber,
+        title: (options.requestBody.title as string | undefined) ?? 'Updated PR title',
+        body: (options.requestBody.body as string | undefined) ?? 'PR body',
+        state: 'open',
+        draft: false,
+        head: { ref: 'issues/orfe-13' },
+        base: { ref: 'main' },
+        html_url: `https://github.com/throw-if-null/orfe/pull/${prNumber}`,
+      },
+    );
+}
+
 export function mockPullRequestCommentRequest(options: {
   prNumber: number;
   body: string;

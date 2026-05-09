@@ -617,6 +617,7 @@ orfe issue set-state
 orfe pr get
 orfe pr validate
 orfe pr get-or-create
+orfe pr update
 orfe pr comment
 orfe pr submit-review
 orfe pr reply
@@ -1201,7 +1202,68 @@ Representative invalid result:
 **Failure behavior**: malformed command input => `invalid_usage`; invalid contract files => `contract_invalid` / `contract_not_found`  
 **Idempotency**: yes
 
-## 11.11 `pr comment`
+## 11.11 `pr update`
+
+**Purpose**: Update mutable pull request fields after creation.
+
+**CLI**:
+
+```text
+orfe pr update --pr-number <number> [--title <text>] [--body <text>] [--body-contract <name@version>] [--repo <owner/name>] [--config <path>] [--auth-config <path>]
+```
+
+**Tool input**:
+
+```json
+{
+  "command": "pr update",
+  "pr_number": 9,
+  "title": "Corrected PR title",
+  "body": "Ref: #142\n\n## Summary\n- ...",
+  "body_contract": "implementation-ready@1.0.0"
+}
+```
+
+Rules:
+
+- at least one mutation option is required
+- supported mutable fields in this slice are `title` and `body`
+- `body_contract` does not count as a mutation by itself; it only constrains `body` validation
+- this slice intentionally does not add merge workflow semantics or broader workflow recovery logic
+- head/base retargeting is out of scope for this command slice
+- draft-state toggling is not included in this slice
+
+Body-contract rules match `pr get-or-create` and `pr validate`:
+
+- `body_contract` is optional
+- when provided, the PR body must validate against the selected PR contract
+- when a provenance marker is already present in `body`, validation may use that marker even if `body_contract` is omitted
+- when both explicit selection and provenance marker are present, they must match exactly
+- successful validation appends or normalizes an HTML comment provenance marker in this form:
+
+```html
+<!-- orfe-body-contract: pr/<contract-name>@<version> -->
+```
+
+**Success `data` shape**:
+
+```json
+{
+  "pr_number": 9,
+  "title": "Corrected PR title",
+  "html_url": "https://github.com/throw-if-null/orfe/pull/9",
+  "head": "issues/orfe-142",
+  "base": "main",
+  "draft": false,
+  "changed": true
+}
+```
+
+**Side effects**: updates pull request metadata  
+**Failure behavior**: invalid combination => `invalid_usage`; missing PR => `github_not_found`; body contract failures => `contract_validation_failed`  
+**Idempotency**: yes when the requested title/body already matches the current pull request state
+
+## 11.12 `pr comment`
 
 **Purpose**: Add a top-level issue-style comment on a PR conversation.
 
@@ -1226,7 +1288,7 @@ orfe pr comment --pr-number <number> --body <text> [--repo <owner/name>] [--conf
 **Failure behavior**: missing PR => `github_not_found`  
 **Idempotency**: no
 
-## 11.12 `pr submit-review`
+## 11.13 `pr submit-review`
 
 **Purpose**: Submit a completed PR review without line comments.
 
@@ -1256,7 +1318,7 @@ Rules:
 **Failure behavior**: invalid `event` => `invalid_input`; missing PR => `github_not_found`  
 **Idempotency**: no
 
-## 11.13 `pr reply`
+## 11.14 `pr reply`
 
 **Purpose**: Reply to an existing pull request review comment.
 
@@ -1281,7 +1343,7 @@ orfe pr reply --pr-number <number> --comment-id <number> --body <text> [--repo <
 **Failure behavior**: missing PR or parent comment => `github_not_found`; invalid or non-repliable targets => `github_conflict`  
 **Idempotency**: no
 
-## 11.14 `project get-status`
+## 11.15 `project get-status`
 
 **Purpose**: Read the current Status-field value for a project item.
 
@@ -1317,7 +1379,7 @@ Resolution order:
 **Failure behavior**: `project_item_not_found` if the item is not on the project; `project_status_field_not_found` if the configured Status field is missing on the project  
 **Idempotency**: yes
 
-## 11.15 `project set-status`
+## 11.16 `project set-status`
 
 **Purpose**: Set the Status-field value for a project item.
 
@@ -1355,7 +1417,7 @@ Rules:
 **Failure behavior**: `project_item_not_found` if the item is not on the project; `project_status_field_not_found` if the configured or overridden single-select status field does not exist on the project; invalid option => `project_status_option_not_found`  
 **Idempotency**: yes
 
-## 11.16 `runtime info`
+## 11.17 `runtime info`
 
 **Purpose**: Inspect the currently executing `orfe` runtime through the supported command contract.
 
@@ -1391,7 +1453,7 @@ Rules:
 **Failure behavior**: package metadata load failures remain structured  
 **Idempotency**: yes
 
-## 11.17 `help`
+## 11.18 `help`
 
 **Purpose**: Discover the public `orfe` command surface and retrieve structured help for a specific command.
 
