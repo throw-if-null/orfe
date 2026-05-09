@@ -26,6 +26,9 @@ V1 exists to provide a deterministic, reusable contract for:
 
 `orfe` is a generic GitHub operations layer. It does not own repo-local workflow semantics or higher-level coordination policy; those belong in callers layered on top of generic `orfe` commands.
 
+This v1 spec describes the current built-in core runtime surface.
+Accepted architecture direction now also includes installable extensions layered above core, but extension loading and extension commands are post-v1 work unless and until a later spec revision defines them normatively.
+
 ## 2. Resolved design decisions
 
 1. `orfe` is a stand-alone tool, not a repo-specific workflow engine.
@@ -42,6 +45,8 @@ V1 exists to provide a deterministic, reusable contract for:
 12. `gh` and GitHub MCP are **not** the command implementation layer for `orfe` behavior.
 13. Command-level HTTP mocking uses `nock`.
 14. Full end-to-end testing is a later milestone and does not block issue #13.
+
+The accepted extension direction refines decision 1 rather than replacing it: core remains non-workflow-engine infrastructure, while optional deterministic opinion layers may be installed separately as extensions and enabled per repository.
 
 For terminology in this spec:
 
@@ -87,6 +92,8 @@ For terminology in this spec:
 - agent permission policy changes
 - e2e/live GitHub validation as a blocker for #13, #14, or #15
 - install-time config bootstrapping
+- extension loading/runtime behavior
+- first-party workflow extensions
 
 ## 4. Architecture
 
@@ -258,6 +265,32 @@ CLI may override the path with `--config <path>`.
 - Matching is exact after trimming surrounding whitespace; no case folding is performed.
 - `projects.default` is optional overall, but if omitted then `project` commands must require explicit project options.
 - repo-local config must not contain private keys, GitHub App IDs, or other machine-local auth secrets.
+- repo-local config is declarative and non-secret, including any future extension enablement/config entries.
+
+### 6.2.1 Reserved extension config direction
+
+The architecture direction accepted after v1 planning reserves repo-local config as the place where repositories will enable installed extensions and provide per-extension declarative `config`.
+
+Normative direction for future extension work:
+
+- installed extensions are not active unless the repository enables them explicitly
+- repositories may declare extension settings, but do not ship executable extension code
+- per-extension repo settings use `config`, not `profile`, unless a future ADR intentionally changes that contract
+
+Representative future shape:
+
+```json
+{
+  "extensions": {
+    "workspace": {
+      "enabled": true,
+      "config": {
+        "worktree_root": ".worktrees"
+      }
+    }
+  }
+}
+```
 
 ### 6.3 Machine-local auth config model
 

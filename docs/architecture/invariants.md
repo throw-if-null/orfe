@@ -5,8 +5,10 @@ These are the architecture constraints that future work must preserve unless a n
 ## Product boundary invariants
 
 - `orfe` is a **generic GitHub operations runtime**, not a repo-specific workflow engine.
-- Repo-specific workflow semantics belong in layers above `orfe`, such as agent prompts, skills, commands, or repository policy.
+- `orfe` may host installable extensions, but extensions must remain deterministic opinion layers rather than make core itself a generic workflow engine.
+- Repo-specific workflow semantics still belong above the shared `orfe` core, such as repository policy, prompts, or skills; reusable deterministic opinion layers may live in installable extensions instead of the core.
 - `orfe` should expose reusable GitHub operations, not encode one repository's orchestration model.
+- Installed extensions are not active for a repository unless that repository enables them explicitly in repo-local config.
 
 ## Runtime boundary invariants
 
@@ -14,6 +16,7 @@ These are the architecture constraints that future work must preserve unless a n
 - The core runtime accepts **plain structured data only**.
 - The core must stay callable from both CLI and OpenCode wrapper entrypoints.
 - The core must not depend on OpenCode-specific APIs or ambient agent identity.
+- Extension loading must preserve the wrapper/core boundary and the plain-data core contract.
 
 ## Artifact contract invariants
 
@@ -25,10 +28,20 @@ These are the architecture constraints that future work must preserve unless a n
 ## Auth and security invariants
 
 - Repo-local config must not contain private keys or machine-local secrets.
+- Repo-local config is declarative and non-secret, including extension enablement and per-extension config.
 - Machine-local auth config contains per-bot GitHub App credentials and stays outside repo-local public contract artifacts.
 - `orfe` v1 uses internal GitHub App auth for runtime command execution.
 - The runtime must not silently fall back to session auth or other ambient auth modes.
 - Caller identity, GitHub bot resolution, and token minting must remain explicit steps.
+- Repositories must not ship executable extension code through repo-local config.
+
+## Extension model invariants
+
+- Core owns the shared GitHub/auth/runtime substrate and generic command infrastructure.
+- Extensions own optional namespaced command families and deterministic opinion layers above core.
+- Extension installation scope is the runtime environment, not the repository.
+- Per-extension repo settings use `config`, not `profile`, unless a future ADR intentionally changes that contract.
+- Installed extensions must satisfy a declared compatibility contract with the running core before activation.
 
 ## Command contract invariants
 
