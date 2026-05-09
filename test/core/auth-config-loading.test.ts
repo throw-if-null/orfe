@@ -3,7 +3,7 @@ import { test } from 'vitest';
 
 import { OrfeError } from '../../src/errors.js';
 import { runOrfeCore } from '../../src/core.js';
-import { createRepoConfig } from '../support/runtime-fixtures.js';
+import { createAuthConfig, createRepoConfig } from '../support/runtime-fixtures.js';
 
 test('runOrfeCore rejects unmapped callers clearly for GitHub-backed commands', async () => {
   await assert.rejects(
@@ -15,6 +15,7 @@ test('runOrfeCore rejects unmapped callers clearly for GitHub-backed commands', 
       },
       {
         loadRepoConfigImpl: async () => createRepoConfig(),
+        loadAuthConfigImpl: async () => createAuthConfig(),
       },
     ),
     (error: unknown) => {
