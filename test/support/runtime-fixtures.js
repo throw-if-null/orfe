@@ -1,0 +1,63 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { GitHubClientFactory } from '../../src/github.js';
+const supportDirectory = path.dirname(fileURLToPath(import.meta.url));
+export const workspaceRoot = path.resolve(supportDirectory, '../..');
+export const repoConfigPath = path.join(workspaceRoot, '.orfe', 'config.json');
+export function createRepoConfig(options = {}) {
+    const config = {
+        configPath: repoConfigPath,
+        version: 1,
+        repository: {
+            owner: 'throw-if-null',
+            name: 'orfe',
+            defaultBranch: 'main',
+        },
+        callerToBot: {
+            Greg: 'greg',
+        },
+    };
+    if (!options.includeDefaultProject) {
+        return config;
+    }
+    return {
+        ...config,
+        projects: {
+            default: {
+                owner: 'throw-if-null',
+                projectNumber: 1,
+                statusFieldName: 'Status',
+            },
+        },
+    };
+}
+export function createRepoConfigWithDefaultProject() {
+    return createRepoConfig({ includeDefaultProject: true });
+}
+export function createAuthConfig() {
+    return {
+        configPath: '/tmp/auth.json',
+        version: 1,
+        bots: {
+            greg: {
+                provider: 'github-app',
+                appId: 123458,
+                appSlug: 'GR3G-BOT',
+                privateKeyPath: '/tmp/greg.pem',
+            },
+        },
+    };
+}
+export function createGitHubClientFactory() {
+    return new GitHubClientFactory({
+        readFileImpl: async () => 'private-key',
+        jwtFactory: () => 'jwt-token',
+    });
+}
+export function renderIssueBodyContractMarker() {
+    return '<!-- orfe-body-contract: issue/formal-work-item@1.0.0 -->';
+}
+export function renderPrBodyContractMarker() {
+    return '<!-- orfe-body-contract: pr/implementation-ready@1.0.0 -->';
+}
+//# sourceMappingURL=runtime-fixtures.js.map
