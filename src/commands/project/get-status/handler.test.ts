@@ -11,7 +11,7 @@ import {
   createProjectStatusValueNode,
   mockProjectGetStatusRequest,
   mockProjectStatusFieldsRequest,
-} from '../../../../test/project/fixtures.js';
+} from '../mocks/github.js';
 import { createRepoConfigWithDefaultProject } from '../../../../test/support/runtime-fixtures.js';
 
 test('runOrfeCore reads project status for an issue and returns structured success output', async () => {

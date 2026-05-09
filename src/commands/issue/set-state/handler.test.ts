@@ -8,7 +8,7 @@ import {
   createIssueStateNode,
   mockIssueSetStateDuplicateRequest,
   mockIssueSetStateRequest,
-} from '../../../../test/issue/fixtures.js';
+} from '../mocks/github.js';
 
 test('runOrfeCore closes an issue with structured state metadata', async () => {
   await withNock(async () => {

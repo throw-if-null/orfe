@@ -3,7 +3,7 @@ import { test } from 'vitest';
 
 import { runCoreCommand, runToolCommand } from '../../../../test/support/command-runtime.js';
 import { withNock } from '../../../../test/support/http-test.js';
-import { mockIssueUpdateRequest } from '../../../../test/issue/fixtures.js';
+import { mockIssueUpdateRequest } from '../mocks/github.js';
 import { renderIssueBodyContractMarker } from '../../../../test/support/runtime-fixtures.js';
 
 test('runOrfeCore updates issue metadata and returns structured success output', async () => {

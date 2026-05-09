@@ -3,7 +3,7 @@ import { test } from 'vitest';
 
 import { runCoreCommand, runToolCommand } from '../../../../test/support/command-runtime.js';
 import { withNock } from '../../../../test/support/http-test.js';
-import { mockIssueCommentRequest } from '../../../../test/issue/fixtures.js';
+import { mockIssueCommentRequest } from '../mocks/github.js';
 
 test('runOrfeCore posts a generic issue comment and returns structured success output', async () => {
   await withNock(async () => {

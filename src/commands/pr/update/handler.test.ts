@@ -4,7 +4,7 @@ import { test } from 'vitest';
 import { OrfeError } from '../../../../src/errors.js';
 import { runCoreCommand, runToolCommand } from '../../../../test/support/command-runtime.js';
 import { withNock } from '../../../../test/support/http-test.js';
-import { mockPullRequestUpdateRequest } from '../../../../test/pr/fixtures.js';
+import { mockPullRequestUpdateRequest } from '../mocks/github.js';
 import { renderPrBodyContractMarker } from '../../../../test/support/runtime-fixtures.js';
 
 test('runOrfeCore updates pull request metadata and returns structured success output', async () => {

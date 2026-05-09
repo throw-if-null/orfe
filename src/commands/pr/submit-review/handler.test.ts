@@ -4,7 +4,7 @@ import { test } from 'vitest';
 import { OrfeError } from '../../../../src/errors.js';
 import { runCoreCommand, runToolCommand } from '../../../../test/support/command-runtime.js';
 import { withNock } from '../../../../test/support/http-test.js';
-import { mockPullRequestSubmitReviewRequest } from '../../../../test/pr/fixtures.js';
+import { mockPullRequestSubmitReviewRequest } from '../mocks/github.js';
 
 test('runOrfeCore submits a pull request review and returns structured success output', async () => {
   await withNock(async () => {

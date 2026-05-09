@@ -3,7 +3,7 @@ import { test } from 'vitest';
 
 import { OrfeError } from '../../../../src/errors.js';
 import { runCoreCommand, runToolCommand } from '../../../../test/support/command-runtime.js';
-import { mockAuthTokenMintRequest } from '../../../../test/auth/fixtures.js';
+import { mockAuthTokenMintRequest } from './mocks/github.js';
 import { withNock } from '../../../../test/support/http-test.js';
 
 test('runOrfeCore mints an auth token for the resolved caller bot', async () => {
