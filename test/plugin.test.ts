@@ -11,6 +11,9 @@ test('plugin exposes common path override inputs on the orfe tool', async () => 
   assert.ok(orfeTool);
   assert.equal('config' in orfeTool.args, true);
   assert.equal('auth_config' in orfeTool.args, true);
+  assert.equal('title' in orfeTool.args, true);
+  assert.equal('body' in orfeTool.args, true);
+  assert.equal('body_contract' in orfeTool.args, true);
 });
 
 test('plugin contract can retrieve runtime info for the active plugin runtime', async () => {

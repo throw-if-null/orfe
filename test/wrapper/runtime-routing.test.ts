@@ -83,7 +83,7 @@ test('executeOrfeTool returns targeted command help through the shared success e
 });
 
 test('executeOrfeTool returns representative targeted help across issue, pr, and project commands', async () => {
-  for (const commandName of ['issue get', 'pr get-or-create', 'project set-status'] as const) {
+  for (const commandName of ['issue get', 'pr update', 'project set-status'] as const) {
     const result = await executeOrfeTool(
       {
         command: 'help',
