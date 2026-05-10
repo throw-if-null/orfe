@@ -1,5 +1,7 @@
 import nock from 'nock';
 
+type JsonBodyMatcher = nock.DataMatcherMap;
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -103,7 +105,7 @@ export function mockIssueGetRequest(options: {
 }
 
 export function mockIssueCreateRequest(options: {
-  requestBody: Record<string, unknown>;
+  requestBody: JsonBodyMatcher;
   status?: number;
   responseBody?: Record<string, unknown>;
   repo?: { owner: string; name: string };
@@ -136,7 +138,7 @@ export function mockIssueCreateRequest(options: {
 
 export function mockIssueUpdateRequest(options: {
   issueNumber: number;
-  requestBody: Record<string, unknown>;
+  requestBody: JsonBodyMatcher;
   status?: number;
   responseBody?: Record<string, unknown>;
   issueGetStatus?: number;
@@ -225,7 +227,7 @@ export function mockIssueCommentRequest(options: {
 export function mockIssueSetStateRequest(options: {
   issueNumber: number;
   currentIssueState: Record<string, unknown>;
-  restUpdateBody?: Record<string, unknown>;
+  restUpdateBody?: JsonBodyMatcher;
   observedIssueState?: Record<string, unknown>;
   issueGetStatus?: number;
   issueGetResponseBody?: Record<string, unknown>;
@@ -272,7 +274,7 @@ export function mockIssueSetStateDuplicateRequest(options: {
   duplicateTargetGetResponseBody?: Record<string, unknown>;
   unmark?: { duplicateId: string; canonicalId: string };
   mark?: { duplicateId: string; canonicalId: string };
-  restUpdateBody?: Record<string, unknown>;
+  restUpdateBody?: JsonBodyMatcher;
   observedIssueState?: Record<string, unknown>;
   issueGetStatus?: number;
   issueGetResponseBody?: Record<string, unknown>;

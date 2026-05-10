@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
+import { runCli, type RunCliDependencies } from '../../src/command.js';
 import {
   createAuthConfig,
   createGitHubClientFactory,
@@ -30,6 +31,25 @@ export function createRuntimeDependencies() {
   return {
     loadRepoConfigImpl: async () => createRepoConfigWithDefaultProject(),
     loadAuthConfigImpl: async () => createAuthConfig(),
+  };
+}
+
+export async function invokeCli(
+  args: string[],
+  dependencies: Omit<RunCliDependencies, 'stdout' | 'stderr'> = {},
+): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  const stdout = new MemoryStream();
+  const stderr = new MemoryStream();
+  const exitCode = await runCli(args, {
+    stdout,
+    stderr,
+    ...dependencies,
+  });
+
+  return {
+    exitCode,
+    stdout: stdout.output,
+    stderr: stderr.output,
   };
 }
 

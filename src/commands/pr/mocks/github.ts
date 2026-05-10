@@ -1,5 +1,7 @@
 import nock from 'nock';
 
+type JsonBodyMatcher = nock.DataMatcherMap;
+
 export function mockPullRequestGetRequest(options: {
   prNumber: number;
   status?: number;
@@ -35,7 +37,7 @@ export function mockPullRequestGetOrCreateRequest(options: {
   existingPullRequests?: Record<string, unknown>[];
   listStatus?: number;
   listResponseBody?: unknown;
-  createRequestBody?: Record<string, unknown>;
+  createRequestBody?: JsonBodyMatcher;
   createStatus?: number;
   createResponseBody?: Record<string, unknown>;
 }) {
@@ -79,7 +81,7 @@ export function mockPullRequestGetOrCreateRequest(options: {
 
 export function mockPullRequestUpdateRequest(options: {
   prNumber: number;
-  requestBody: Record<string, unknown>;
+  requestBody: JsonBodyMatcher;
   verifyStatus?: number;
   verifyResponseBody?: Record<string, unknown>;
   status?: number;
