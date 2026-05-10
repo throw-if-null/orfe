@@ -1,5 +1,7 @@
 import nock from 'nock';
 
+type JsonBodyMatcher = nock.DataMatcherMap;
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -103,7 +105,7 @@ export function mockIssueGetRequest(options: {
 }
 
 export function mockIssueCreateRequest(options: {
-  requestBody: Record<string, unknown>;
+  requestBody: JsonBodyMatcher;
   status?: number;
   responseBody?: Record<string, unknown>;
   repo?: { owner: string; name: string };
@@ -117,7 +119,7 @@ export function mockIssueCreateRequest(options: {
     .reply(200, { id: 42 })
     .post('/app/installations/42/access_tokens')
     .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
-    .post(`/repos/${owner}/${repo}/issues`, (body: unknown) => JSON.stringify(body) === JSON.stringify(options.requestBody))
+    .post(`/repos/${owner}/${repo}/issues`, options.requestBody)
     .reply(
       status,
       options.responseBody ?? {
@@ -136,7 +138,7 @@ export function mockIssueCreateRequest(options: {
 
 export function mockIssueUpdateRequest(options: {
   issueNumber: number;
-  requestBody: Record<string, unknown>;
+  requestBody: JsonBodyMatcher;
   status?: number;
   responseBody?: Record<string, unknown>;
   issueGetStatus?: number;
@@ -165,7 +167,7 @@ export function mockIssueUpdateRequest(options: {
         html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
       },
     )
-    .patch(`/repos/throw-if-null/orfe/issues/${issueNumber}`, (body: unknown) => JSON.stringify(body) === JSON.stringify(options.requestBody))
+    .patch(`/repos/throw-if-null/orfe/issues/${issueNumber}`, options.requestBody)
     .reply(
       status,
       options.responseBody ?? {
@@ -212,7 +214,7 @@ export function mockIssueCommentRequest(options: {
         html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
       },
     )
-    .post(`/repos/throw-if-null/orfe/issues/${issueNumber}/comments`, (body: unknown) => JSON.stringify(body) === JSON.stringify({ body: options.body }))
+    .post(`/repos/throw-if-null/orfe/issues/${issueNumber}/comments`, { body: options.body })
     .reply(
       status,
       options.responseBody ?? {
@@ -225,7 +227,7 @@ export function mockIssueCommentRequest(options: {
 export function mockIssueSetStateRequest(options: {
   issueNumber: number;
   currentIssueState: Record<string, unknown>;
-  restUpdateBody?: Record<string, unknown>;
+  restUpdateBody?: JsonBodyMatcher;
   observedIssueState?: Record<string, unknown>;
   issueGetStatus?: number;
   issueGetResponseBody?: Record<string, unknown>;
@@ -254,7 +256,7 @@ export function mockIssueSetStateRequest(options: {
 
   if (options.restUpdateBody) {
     scope
-      .patch(`/repos/throw-if-null/orfe/issues/${options.issueNumber}`, (body: unknown) => JSON.stringify(body) === JSON.stringify(options.restUpdateBody))
+      .patch(`/repos/throw-if-null/orfe/issues/${options.issueNumber}`, options.restUpdateBody)
       .reply(200, createIssueRestResponse(options.issueNumber, options.restUpdateBody))
       .post('/graphql', (body: unknown) => matchesIssueStateLookup(body, options.issueNumber))
       .reply(200, { data: { repository: { issue: options.observedIssueState ?? options.currentIssueState } } });
@@ -272,7 +274,7 @@ export function mockIssueSetStateDuplicateRequest(options: {
   duplicateTargetGetResponseBody?: Record<string, unknown>;
   unmark?: { duplicateId: string; canonicalId: string };
   mark?: { duplicateId: string; canonicalId: string };
-  restUpdateBody?: Record<string, unknown>;
+  restUpdateBody?: JsonBodyMatcher;
   observedIssueState?: Record<string, unknown>;
   issueGetStatus?: number;
   issueGetResponseBody?: Record<string, unknown>;
@@ -315,7 +317,7 @@ export function mockIssueSetStateDuplicateRequest(options: {
   if (options.observedIssueState) {
     if (options.restUpdateBody) {
       scope
-        .patch(`/repos/throw-if-null/orfe/issues/${options.issueNumber}`, (body: unknown) => JSON.stringify(body) === JSON.stringify(options.restUpdateBody))
+        .patch(`/repos/throw-if-null/orfe/issues/${options.issueNumber}`, options.restUpdateBody)
         .reply(200, createIssueRestResponse(options.issueNumber, options.restUpdateBody));
     }
 

@@ -1,5 +1,7 @@
 import nock from 'nock';
 
+type JsonBodyMatcher = nock.DataMatcherMap;
+
 export function mockPullRequestGetRequest(options: {
   prNumber: number;
   status?: number;
@@ -35,12 +37,18 @@ export function mockPullRequestGetOrCreateRequest(options: {
   existingPullRequests?: Record<string, unknown>[];
   listStatus?: number;
   listResponseBody?: unknown;
-  createRequestBody?: Record<string, unknown>;
+  createRequestBody?: JsonBodyMatcher;
   createStatus?: number;
   createResponseBody?: Record<string, unknown>;
 }) {
   const head = options.head;
   const base = options.base ?? 'main';
+  const createRequestBody = options.createRequestBody ?? {
+    head,
+    base,
+    title: 'Design the `orfe` custom tool and CLI contract',
+    draft: false,
+  };
   const scope = nock('https://api.github.com')
     .get('/repos/throw-if-null/orfe/installation')
     .reply(200, { id: 42 })
@@ -52,17 +60,7 @@ export function mockPullRequestGetOrCreateRequest(options: {
 
   if (options.createStatus !== undefined || options.createResponseBody !== undefined || options.createRequestBody !== undefined) {
     scope
-      .post('/repos/throw-if-null/orfe/pulls', (body: unknown) =>
-        JSON.stringify(body) ===
-        JSON.stringify(
-          options.createRequestBody ?? {
-            head,
-            base,
-            title: 'Design the `orfe` custom tool and CLI contract',
-            draft: false,
-          },
-        ),
-      )
+      .post('/repos/throw-if-null/orfe/pulls', createRequestBody)
       .reply(
         options.createStatus ?? 201,
         options.createResponseBody ?? {
@@ -83,7 +81,7 @@ export function mockPullRequestGetOrCreateRequest(options: {
 
 export function mockPullRequestUpdateRequest(options: {
   prNumber: number;
-  requestBody: Record<string, unknown>;
+  requestBody: JsonBodyMatcher;
   verifyStatus?: number;
   verifyResponseBody?: Record<string, unknown>;
   status?: number;

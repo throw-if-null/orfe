@@ -4,6 +4,7 @@ import { test } from 'vitest';
 import { OrfeError } from '../../../../src/errors.js';
 import { runCoreCommand, runToolCommand } from '../../../../test/support/command-runtime.js';
 import { withNock } from '../../../../test/support/http-test.js';
+import { createGitHubClientFactory, createRuntimeDependencies, invokeCli } from '../../../../test/support/cli-test.js';
 
 test('runOrfeCore returns structured PR validation results without GitHub access', async () => {
   await withNock(async () => {
@@ -167,7 +168,7 @@ test('runOrfeCore returns actionable PR validation failures', async () => {
 
 test('runOrfeCore fails clearly when contract validation fails', async () => {
   await withNock(async () => {
-    const api = await import('../../../../test/pr/fixtures.js').then(({ mockPullRequestGetOrCreateRequest }) =>
+    const api = await import('../mocks/github.js').then(({ mockPullRequestGetOrCreateRequest }) =>
       mockPullRequestGetOrCreateRequest({
         head: 'issues/orfe-59',
         existingPullRequests: [],
@@ -197,4 +198,58 @@ test('runOrfeCore fails clearly when contract validation fails', async () => {
 
     assert.equal(api.isDone(), true);
   });
+});
+
+test('runCli prints structured success JSON for pr validate', async () => {
+  const result = await invokeCli(
+    [
+      'pr',
+      'validate',
+      '--body',
+      'Ref: #58\n\n## Summary\n- add PR body validation\n\n## Verification\n- `npm test` ✅\n- `npm run lint` ✅\n- `npm run typecheck` ✅\n- `npm run build` ✅\n\n## Docs / ADR / debt\n- docs updated: yes\n- ADR updated: no\n- debt updated: no\n- details: updated docs/orfe/spec.md\n\n## Risks / follow-ups\n- none',
+      '--body-contract',
+      'implementation-ready@1.0.0',
+    ],
+    {
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      ...createRuntimeDependencies(),
+      githubClientFactory: createGitHubClientFactory(),
+    },
+  );
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(JSON.parse(result.stdout), {
+    ok: true,
+    command: 'pr validate',
+    repo: 'throw-if-null/orfe',
+    data: {
+      valid: true,
+      contract: {
+        artifact_type: 'pr',
+        contract_name: 'implementation-ready',
+        contract_version: '1.0.0',
+      },
+      contract_source: 'explicit',
+      normalized_body:
+        'Ref: #58\n\n## Summary\n- add PR body validation\n\n## Verification\n- `npm test` ✅\n- `npm run lint` ✅\n- `npm run typecheck` ✅\n- `npm run build` ✅\n\n## Docs / ADR / debt\n- docs updated: yes\n- ADR updated: no\n- debt updated: no\n- details: updated docs/orfe/spec.md\n\n## Risks / follow-ups\n- none\n\n<!-- orfe-body-contract: pr/implementation-ready@1.0.0 -->',
+      errors: [],
+    },
+  });
+});
+
+test('runCli prints structured PR validation failures for pr validate', async () => {
+  const result = await invokeCli(['pr', 'validate', '--body', 'Ref: #58\n\nCloses: #58', '--body-contract', 'implementation-ready@1.0.0'], {
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    ...createRuntimeDependencies(),
+    githubClientFactory: createGitHubClientFactory(),
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.stderr, '');
+  assert.equal(JSON.parse(result.stdout).data.valid, false);
+  assert.deepEqual(
+    JSON.parse(result.stdout).data.errors.map((issue: { kind: string }) => issue.kind),
+    ['matched_forbidden_pattern', 'missing_required_section', 'missing_required_section', 'missing_required_section', 'missing_required_section'],
+  );
 });
