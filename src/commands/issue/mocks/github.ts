@@ -117,7 +117,7 @@ export function mockIssueCreateRequest(options: {
     .reply(200, { id: 42 })
     .post('/app/installations/42/access_tokens')
     .reply(201, { token: 'ghs_123', expires_at: '2026-04-06T12:00:00Z' })
-    .post(`/repos/${owner}/${repo}/issues`, (body: unknown) => JSON.stringify(body) === JSON.stringify(options.requestBody))
+    .post(`/repos/${owner}/${repo}/issues`, options.requestBody)
     .reply(
       status,
       options.responseBody ?? {
@@ -165,7 +165,7 @@ export function mockIssueUpdateRequest(options: {
         html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
       },
     )
-    .patch(`/repos/throw-if-null/orfe/issues/${issueNumber}`, (body: unknown) => JSON.stringify(body) === JSON.stringify(options.requestBody))
+    .patch(`/repos/throw-if-null/orfe/issues/${issueNumber}`, options.requestBody)
     .reply(
       status,
       options.responseBody ?? {
@@ -212,7 +212,7 @@ export function mockIssueCommentRequest(options: {
         html_url: `https://github.com/throw-if-null/orfe/issues/${issueNumber}`,
       },
     )
-    .post(`/repos/throw-if-null/orfe/issues/${issueNumber}/comments`, (body: unknown) => JSON.stringify(body) === JSON.stringify({ body: options.body }))
+    .post(`/repos/throw-if-null/orfe/issues/${issueNumber}/comments`, { body: options.body })
     .reply(
       status,
       options.responseBody ?? {
@@ -254,7 +254,7 @@ export function mockIssueSetStateRequest(options: {
 
   if (options.restUpdateBody) {
     scope
-      .patch(`/repos/throw-if-null/orfe/issues/${options.issueNumber}`, (body: unknown) => JSON.stringify(body) === JSON.stringify(options.restUpdateBody))
+      .patch(`/repos/throw-if-null/orfe/issues/${options.issueNumber}`, options.restUpdateBody)
       .reply(200, createIssueRestResponse(options.issueNumber, options.restUpdateBody))
       .post('/graphql', (body: unknown) => matchesIssueStateLookup(body, options.issueNumber))
       .reply(200, { data: { repository: { issue: options.observedIssueState ?? options.currentIssueState } } });
@@ -315,7 +315,7 @@ export function mockIssueSetStateDuplicateRequest(options: {
   if (options.observedIssueState) {
     if (options.restUpdateBody) {
       scope
-        .patch(`/repos/throw-if-null/orfe/issues/${options.issueNumber}`, (body: unknown) => JSON.stringify(body) === JSON.stringify(options.restUpdateBody))
+        .patch(`/repos/throw-if-null/orfe/issues/${options.issueNumber}`, options.restUpdateBody)
         .reply(200, createIssueRestResponse(options.issueNumber, options.restUpdateBody));
     }
 
