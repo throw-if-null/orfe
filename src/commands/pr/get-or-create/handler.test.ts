@@ -6,7 +6,7 @@ import { runCoreCommand, runToolCommand } from '../../../../test/support/command
 import { withNock } from '../../../../test/support/http-test.js';
 import { createGitHubClientFactory, createRuntimeDependencies, invokeCli } from '../../../../test/support/cli-test.js';
 import { mockPullRequestGetOrCreateRequest } from '../mocks/github.js';
-import { renderPrBodyContractMarker } from '../../../../test/support/runtime-fixtures.js';
+import { renderPrTemplateMarker } from '../../../../test/support/runtime-fixtures.js';
 
 test('runOrfeCore reuses an existing pull request for pr get-or-create', async () => {
   await withNock(async () => {
@@ -87,7 +87,7 @@ test('executeOrfeTool returns the shared success envelope for pr get-or-create',
   });
 });
 
-test('runOrfeCore reuses an existing pull request before validating unused body contract input', async () => {
+test('runOrfeCore reuses an existing pull request before validating unused template input', async () => {
   await withNock(async () => {
     const api = mockPullRequestGetOrCreateRequest({
       head: 'issues/orfe-13',
@@ -111,7 +111,7 @@ test('runOrfeCore reuses an existing pull request before validating unused body 
         head: 'issues/orfe-13',
         title: 'Design the `orfe` custom tool and CLI contract',
         body: 'Ref: #13\n\nCloses: #13',
-        body_contract: 'implementation-ready@1.0.0',
+        template: 'implementation-ready@1.0.0',
       },
     });
 
@@ -171,14 +171,14 @@ test('runOrfeCore creates a pull request for pr get-or-create when none exists',
   });
 });
 
-test('executeOrfeTool validates PR bodies through body contracts before create', async () => {
+test('executeOrfeTool validates PR bodies through templates before create', async () => {
   await withNock(async () => {
     const prBody = [
       'Ref: #59',
       '',
       '## Summary',
       '',
-      '- add body-contract support',
+      '- add template support',
       '',
       '## Verification',
       '',
@@ -205,14 +205,14 @@ test('executeOrfeTool validates PR bodies through body contracts before create',
       createRequestBody: {
         head: 'issues/orfe-59',
         base: 'main',
-        title: 'Introduce versioned body-contract support',
-        body: `${prBody}\n\n${renderPrBodyContractMarker()}`,
+        title: 'Introduce versioned template support',
+        body: `${prBody}\n\n${renderPrTemplateMarker()}`,
         draft: false,
       },
       createResponseBody: {
         number: 59,
-        title: 'Introduce versioned body-contract support',
-        body: `${prBody}\n\n${renderPrBodyContractMarker()}`,
+        title: 'Introduce versioned template support',
+        body: `${prBody}\n\n${renderPrTemplateMarker()}`,
         state: 'open',
         draft: false,
         head: { ref: 'issues/orfe-59' },
@@ -225,9 +225,9 @@ test('executeOrfeTool validates PR bodies through body contracts before create',
       input: {
         command: 'pr get-or-create',
         head: 'issues/orfe-59',
-        title: 'Introduce versioned body-contract support',
+        title: 'Introduce versioned template support',
         body: prBody,
-        body_contract: 'implementation-ready@1.0.0',
+        template: 'implementation-ready@1.0.0',
       },
     });
 
@@ -236,14 +236,14 @@ test('executeOrfeTool validates PR bodies through body contracts before create',
   });
 });
 
-test('runOrfeCore validates PR bodies against explicit contracts and appends provenance on create', async () => {
+test('runOrfeCore validates PR bodies against explicit templates and appends provenance on create', async () => {
   await withNock(async () => {
     const prBody = [
       'Ref: #59',
       '',
       '## Summary',
       '',
-      '- add versioned body-contract support',
+      '- add versioned template support',
       '',
       '## Verification',
       '',
@@ -270,14 +270,14 @@ test('runOrfeCore validates PR bodies against explicit contracts and appends pro
       createRequestBody: {
         head: 'issues/orfe-59',
         base: 'main',
-        title: 'Introduce versioned body-contract support',
-        body: `${prBody}\n\n${renderPrBodyContractMarker()}`,
+        title: 'Introduce versioned template support',
+        body: `${prBody}\n\n${renderPrTemplateMarker()}`,
         draft: false,
       },
       createResponseBody: {
         number: 59,
-        title: 'Introduce versioned body-contract support',
-        body: `${prBody}\n\n${renderPrBodyContractMarker()}`,
+        title: 'Introduce versioned template support',
+        body: `${prBody}\n\n${renderPrTemplateMarker()}`,
         state: 'open',
         draft: false,
         head: { ref: 'issues/orfe-59' },
@@ -290,9 +290,9 @@ test('runOrfeCore validates PR bodies against explicit contracts and appends pro
       command: 'pr get-or-create',
       input: {
         head: 'issues/orfe-59',
-        title: 'Introduce versioned body-contract support',
+        title: 'Introduce versioned template support',
         body: prBody,
-        body_contract: 'implementation-ready@1.0.0',
+        template: 'implementation-ready@1.0.0',
       },
     });
 
@@ -396,7 +396,7 @@ test('runCli prints structured success JSON for pr get-or-create when creating a
   });
 });
 
-test('runCli prints structured contract-validation failures for invalid PR bodies', async () => {
+test('runCli prints structured template-validation failures for invalid PR bodies', async () => {
   await withNock(async () => {
     const api = mockPullRequestGetOrCreateRequest({
       head: 'issues/orfe-59',
@@ -410,10 +410,10 @@ test('runCli prints structured contract-validation failures for invalid PR bodie
         '--head',
         'issues/orfe-59',
         '--title',
-        'Introduce versioned body-contract support',
+        'Introduce versioned template support',
         '--body',
         'Ref: #59\n\nCloses: #59',
-        '--body-contract',
+        '--template',
         'implementation-ready@1.0.0',
       ],
       {
@@ -429,8 +429,8 @@ test('runCli prints structured contract-validation failures for invalid PR bodie
       ok: false,
       command: 'pr get-or-create',
       error: {
-        code: 'contract_validation_failed',
-        message: 'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
+        code: 'template_validation_failed',
+        message: 'Template validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
         retryable: false,
       },
     });

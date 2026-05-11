@@ -18,9 +18,9 @@ test('executeOrfeTool returns structured config failures when forwarded config p
         '',
         '## Desired outcome',
         '',
-        'Issue bodies validate against a versioned contract.',
+        'Issue bodies validate against a versioned template.',
       ].join('\n'),
-      body_contract: 'formal-work-item@1.0.0',
+      template: 'formal-work-item@1.0.0',
       config: missingConfigPath,
     },
     {

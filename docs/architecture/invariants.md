@@ -20,8 +20,8 @@ These are the architecture constraints that future work must preserve unless a n
 
 ## Artifact contract invariants
 
-- Repo-defined issue and PR body contracts are versioned declarative artifacts under `.orfe/contracts/`, not fields inside `.orfe/config.json`.
-- Body contracts may validate and minimally normalize rendered artifact bodies, but they must not execute code, prompt interactively, or cause workflow side effects.
+- Repo-defined issue and PR templates are versioned declarative artifacts under `.orfe/templates/`, not fields inside `.orfe/config.json`.
+- Templates may validate and minimally normalize rendered artifact bodies, but they must not execute code, prompt interactively, or cause workflow side effects.
 - HTML comment provenance markers are allowed as deterministic machine-readable metadata on rendered issue and PR bodies.
 - Contract expressiveness must stay narrow enough that `orfe` remains a generic runtime rather than absorbing repository orchestration semantics.
 

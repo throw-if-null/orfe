@@ -7,7 +7,7 @@ import {
   type IssueGetResponseData,
   type IssueUpdateData,
 } from '../shared.js';
-import { prepareIssueBodyFromInput } from '../../body-contract-shared.js';
+import { prepareIssueBodyFromInput } from '../../shared/body-input.js';
 
 interface IssueUpdateMutation {
   title?: string;

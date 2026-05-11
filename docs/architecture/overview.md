@@ -66,16 +66,16 @@ Responsibilities:
 - define repository and project defaults
 - declare which installed extensions are enabled for this repository
 - hold per-extension declarative `config` when extensions are enabled
-- stay separate from repo-defined body-contract artifacts under `.orfe/contracts/`
+- stay separate from repo-defined template artifacts under `.orfe/templates/`
 
 Repo config is declarative and non-secret.
 It may enable or configure extensions, but it must not ship executable extension code.
 
-### 5. Body-contract layer
-Current examples include `src/body-contracts.ts`, `src/commands/body-contract-shared.ts`, and `.orfe/contracts/`.
+### 5. Template layer
+Current examples include `src/templates.ts`, `src/commands/shared/body-input.ts`, and `.orfe/templates/`.
 
 Responsibilities:
-- load versioned declarative issue and PR body contracts from the repository
+- load versioned declarative issue and PR templates from the repository
 - validate or minimally normalize issue and PR bodies deterministically
 - append and read HTML comment provenance markers
 - stay below repository workflow policy rather than interpreting ownership or orchestration semantics
@@ -117,7 +117,7 @@ graph TD
   CLI[CLI entrypoint<br/>src/cli.ts + src/command.ts] --> Core
 
   Core --> Config[Repo config<br/>src/config.ts]
-  Core --> BodyContracts[Body contracts<br/>src/body-contracts.ts]
+  Core --> Templates[Templates<br/>src/templates.ts]
   Core --> Auth[Caller bot + auth config]
   Core --> GitHub[GitHub client factory<br/>src/github.ts]
   Core --> Registry[Generic command registry<br/>src/commands/registry/index.ts]
@@ -221,12 +221,12 @@ Command-specific tests live beside the slice by default. Cross-cutting CLI, core
 - core accepts plain data only
 - repo-local config contains no secrets
 - repo-local config may enable extensions declaratively but cannot ship executable extension code
-- repo-defined body contracts live beside config under `.orfe/contracts/`, not inside config
+- repo-defined templates live beside config under `.orfe/templates/`, not inside config
 - machine-local auth config contains bot credentials
 - command registry stays generic and deterministic
 - command semantics live in slice definitions and handlers, not in duplicate metadata files
 - command behavior uses Octokit, not `gh` shell-outs
-- body contracts stay declarative and do not encode repository workflow orchestration
+- templates stay declarative and do not encode repository workflow orchestration
 - repo workflow policy belongs above `orfe`, not inside it
 - installed extensions are not active unless the repository enables them explicitly
 - per-extension repo settings use `config` terminology unless a future ADR changes that contract

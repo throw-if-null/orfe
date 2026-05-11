@@ -18,7 +18,7 @@ import {
   type IssueCreateProjectAssignmentData,
   type IssueGetResponseData,
 } from '../shared.js';
-import { prepareIssueBodyFromInput } from '../../body-contract-shared.js';
+import { prepareIssueBodyFromInput } from '../../shared/body-input.js';
 
 interface IssueCreateMutation {
   title: string;

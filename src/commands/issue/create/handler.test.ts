@@ -21,7 +21,7 @@ import {
 } from '../../project/mocks/github.js';
 import {
   createRepoConfigWithDefaultProject,
-  renderIssueBodyContractMarker,
+  renderIssueTemplateMarker,
 } from '../../../../test/support/runtime-fixtures.js';
 
 test('runOrfeCore creates a generic issue and returns structured success output', async () => {
@@ -98,7 +98,7 @@ test('executeOrfeTool returns the shared success envelope for issue create', asy
   });
 });
 
-test('runOrfeCore validates issue-create bodies against explicit contracts and appends provenance', async () => {
+test('runOrfeCore validates issue-create bodies against explicit templates and appends provenance', async () => {
   await withNock(async () => {
     const issueBody = [
       '## Problem / context',
@@ -107,19 +107,19 @@ test('runOrfeCore validates issue-create bodies against explicit contracts and a
       '',
       '## Desired outcome',
       '',
-      'Agent-authored issues validate against a versioned contract.',
+      'Agent-authored issues validate against a versioned template.',
       '',
       '## Scope',
       '',
       '### In scope',
-      '- declarative contracts',
+      '- declarative templates',
       '',
       '### Out of scope',
       '- executable plugins',
       '',
       '## Acceptance criteria',
       '',
-      '- [ ] contracts load from .orfe/contracts',
+      '- [ ] templates load from .orfe/templates',
       '',
       '## Docs impact',
       '',
@@ -133,7 +133,7 @@ test('runOrfeCore validates issue-create bodies against explicit contracts and a
     const api = mockIssueCreateRequest({
       requestBody: {
         title: 'New issue title',
-        body: `${issueBody}\n\n${renderIssueBodyContractMarker()}`,
+        body: `${issueBody}\n\n${renderIssueTemplateMarker()}`,
       },
     });
 
@@ -142,7 +142,7 @@ test('runOrfeCore validates issue-create bodies against explicit contracts and a
       input: {
         title: 'New issue title',
         body: issueBody,
-        body_contract: 'formal-work-item@1.0.0',
+        template: 'formal-work-item@1.0.0',
       },
     });
 
@@ -151,7 +151,7 @@ test('runOrfeCore validates issue-create bodies against explicit contracts and a
   });
 });
 
-test('executeOrfeTool validates issue bodies through body contracts before create', async () => {
+test('executeOrfeTool validates issue bodies through templates before create', async () => {
   await withNock(async () => {
     const issueBody = [
       '## Problem / context',
@@ -160,19 +160,19 @@ test('executeOrfeTool validates issue bodies through body contracts before creat
       '',
       '## Desired outcome',
       '',
-      'Issue bodies validate against declarative contracts.',
+      'Issue bodies validate against declarative templates.',
       '',
       '## Scope',
       '',
       '### In scope',
-      '- declarative contracts',
+      '- declarative templates',
       '',
       '### Out of scope',
       '- executable plugins',
       '',
       '## Acceptance criteria',
       '',
-      '- [ ] contracts load from .orfe/contracts',
+      '- [ ] templates load from .orfe/templates',
       '',
       '## Docs impact',
       '',
@@ -186,7 +186,7 @@ test('executeOrfeTool validates issue bodies through body contracts before creat
     const api = mockIssueCreateRequest({
       requestBody: {
         title: 'New issue title',
-        body: `${issueBody}\n\n${renderIssueBodyContractMarker()}`,
+        body: `${issueBody}\n\n${renderIssueTemplateMarker()}`,
       },
     });
 
@@ -195,7 +195,7 @@ test('executeOrfeTool validates issue bodies through body contracts before creat
         command: 'issue create',
         title: 'New issue title',
         body: issueBody,
-        body_contract: 'formal-work-item@1.0.0',
+        template: 'formal-work-item@1.0.0',
       },
     });
 
@@ -565,7 +565,7 @@ test('runCli reports project_add failure details when status was requested but p
   });
 });
 
-test('runCli validates issue bodies against explicit contracts and appends provenance', async () => {
+test('runCli validates issue bodies against explicit templates and appends provenance', async () => {
   await withNock(async () => {
     const issueBody = [
       '## Problem / context',
@@ -574,19 +574,19 @@ test('runCli validates issue bodies against explicit contracts and appends prove
       '',
       '## Desired outcome',
       '',
-      'Issue bodies validate against declarative contracts.',
+      'Issue bodies validate against declarative templates.',
       '',
       '## Scope',
       '',
       '### In scope',
-      '- declarative contracts',
+      '- declarative templates',
       '',
       '### Out of scope',
       '- executable plugins',
       '',
       '## Acceptance criteria',
       '',
-      '- [ ] contracts load from .orfe/contracts',
+      '- [ ] templates load from .orfe/templates',
       '',
       '## Docs impact',
       '',
@@ -600,11 +600,11 @@ test('runCli validates issue bodies against explicit contracts and appends prove
     const api = mockIssueCreateRequest({
       requestBody: {
         title: 'New issue title',
-        body: `${issueBody}\n\n${renderIssueBodyContractMarker()}`,
+        body: `${issueBody}\n\n${renderIssueTemplateMarker()}`,
       },
     });
 
-    const result = await invokeCli(['issue', 'create', '--title', 'New issue title', '--body', issueBody, '--body-contract', 'formal-work-item@1.0.0'], {
+    const result = await invokeCli(['issue', 'create', '--title', 'New issue title', '--body', issueBody, '--template', 'formal-work-item@1.0.0'], {
       env: { ORFE_CALLER_NAME: 'Greg' },
       ...createRuntimeDependencies(),
       githubClientFactory: createGitHubClientFactory(),

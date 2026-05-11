@@ -7,7 +7,7 @@ import {
   type PullRequestGetResponseData,
   type PullRequestUpdateData,
 } from '../shared.js';
-import { preparePullRequestBodyFromInput } from '../../body-contract-shared.js';
+import { preparePullRequestBodyFromInput } from '../../shared/body-input.js';
 
 interface PullRequestUpdateMutation {
   title?: string;

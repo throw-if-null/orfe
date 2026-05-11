@@ -6,7 +6,7 @@ import { runCoreCommand, runToolCommand } from '../../../../test/support/command
 import { withNock } from '../../../../test/support/http-test.js';
 import { createGitHubClientFactory, createRuntimeDependencies, invokeCli } from '../../../../test/support/cli-test.js';
 import { mockPullRequestUpdateRequest } from '../mocks/github.js';
-import { renderPrBodyContractMarker } from '../../../../test/support/runtime-fixtures.js';
+import { renderPrTemplateMarker } from '../../../../test/support/runtime-fixtures.js';
 
 test('runOrfeCore updates pull request metadata and returns structured success output', async () => {
   await withNock(async () => {
@@ -80,7 +80,7 @@ test('executeOrfeTool returns the shared success envelope for pr update', async 
   });
 });
 
-test('runOrfeCore validates PR bodies against explicit contracts and appends provenance on update', async () => {
+test('runOrfeCore validates PR bodies against explicit templates and appends provenance on update', async () => {
   await withNock(async () => {
     const prBody = [
       'Ref: #142',
@@ -111,12 +111,12 @@ test('runOrfeCore validates PR bodies against explicit contracts and appends pro
     const api = mockPullRequestUpdateRequest({
       prNumber: 9,
       requestBody: {
-        body: `${prBody}\n\n${renderPrBodyContractMarker()}`,
+        body: `${prBody}\n\n${renderPrTemplateMarker()}`,
       },
       responseBody: {
         number: 9,
         title: 'Design the `orfe` custom tool and CLI contract',
-        body: `${prBody}\n\n${renderPrBodyContractMarker()}`,
+        body: `${prBody}\n\n${renderPrTemplateMarker()}`,
         state: 'open',
         draft: false,
         head: { ref: 'issues/orfe-13' },
@@ -130,7 +130,7 @@ test('runOrfeCore validates PR bodies against explicit contracts and appends pro
       input: {
         pr_number: 9,
         body: prBody,
-        body_contract: 'implementation-ready@1.0.0',
+        template: 'implementation-ready@1.0.0',
       },
     });
 
@@ -139,7 +139,7 @@ test('runOrfeCore validates PR bodies against explicit contracts and appends pro
   });
 });
 
-test('runOrfeCore allows provenance-only pr-update validation when no explicit contract is provided', async () => {
+test('runOrfeCore allows provenance-only pr-update validation when no explicit template is provided', async () => {
   await withNock(async () => {
     const prBody = [
       'Ref: #142',
@@ -166,7 +166,7 @@ test('runOrfeCore allows provenance-only pr-update validation when no explicit c
       '',
       '- none',
       '',
-      renderPrBodyContractMarker(),
+      renderPrTemplateMarker(),
     ].join('\n');
 
     const api = mockPullRequestUpdateRequest({
@@ -189,19 +189,19 @@ test('runOrfeCore allows provenance-only pr-update validation when no explicit c
   });
 });
 
-test('runOrfeCore rejects invalid pr update body-contract combinations clearly', async () => {
+test('runOrfeCore rejects invalid pr update template combinations clearly', async () => {
   await assert.rejects(
     runCoreCommand({
       command: 'pr update',
       input: {
         pr_number: 9,
-        body_contract: 'implementation-ready@1.0.0',
+        template: 'implementation-ready@1.0.0',
       },
     }),
     (error: unknown) => {
       assert(error instanceof OrfeError);
       assert.equal(error.code, 'invalid_usage');
-      assert.equal(error.message, 'pr update only allows body_contract together with --body.');
+      assert.equal(error.message, 'pr update only allows template together with --body.');
       return true;
     },
   );
@@ -237,15 +237,15 @@ test('runOrfeCore fails clearly when pr update body validation fails', async () 
         input: {
           pr_number: 9,
           body: 'Ref: #142\n\nCloses: #142',
-          body_contract: 'implementation-ready@1.0.0',
+          template: 'implementation-ready@1.0.0',
         },
       }),
       (error: unknown) => {
         assert(error instanceof OrfeError);
-        assert.equal(error.code, 'contract_validation_failed');
+        assert.equal(error.code, 'template_validation_failed');
         assert.equal(
           error.message,
-          'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
+          'Template validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
         );
         return true;
       },
@@ -312,7 +312,7 @@ test('runCli prints structured success JSON for pr update', async () => {
   });
 });
 
-test('runCli prints structured contract-validation failures for invalid pr update bodies', async () => {
+test('runCli prints structured template-validation failures for invalid pr update bodies', async () => {
   await withNock(async () => {
     const api = mockPullRequestUpdateRequest({
       prNumber: 9,
@@ -320,7 +320,7 @@ test('runCli prints structured contract-validation failures for invalid pr updat
     });
 
     const result = await invokeCli(
-      ['pr', 'update', '--pr-number', '9', '--body', 'Ref: #142\n\nCloses: #142', '--body-contract', 'implementation-ready@1.0.0'],
+      ['pr', 'update', '--pr-number', '9', '--body', 'Ref: #142\n\nCloses: #142', '--template', 'implementation-ready@1.0.0'],
       {
         env: { ORFE_CALLER_NAME: 'Greg' },
         ...createRuntimeDependencies(),
@@ -334,8 +334,8 @@ test('runCli prints structured contract-validation failures for invalid pr updat
       ok: false,
       command: 'pr update',
       error: {
-        code: 'contract_validation_failed',
-        message: 'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
+        code: 'template_validation_failed',
+        message: 'Template validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
         retryable: false,
       },
     });
@@ -374,7 +374,7 @@ test('runCli prints structured not-found failures for pr update', async () => {
 });
 
 test('runCli reports invalid option combinations for pr update as usage errors', async () => {
-  const result = await invokeCli(['pr', 'update', '--pr-number', '9', '--body-contract', 'implementation-ready@1.0.0'], {
+  const result = await invokeCli(['pr', 'update', '--pr-number', '9', '--template', 'implementation-ready@1.0.0'], {
     env: { ORFE_CALLER_NAME: 'Greg' },
     loadRepoConfigImpl: async () => {
       throw new OrfeError('internal_error', 'loadRepoConfigImpl should not run');
@@ -383,8 +383,8 @@ test('runCli reports invalid option combinations for pr update as usage errors',
 
   assert.equal(result.exitCode, 2);
   assert.equal(result.stdout, '');
-  assert.match(result.stderr, /pr update only allows body_contract together with --body\./);
-  assert.match(result.stderr, /Usage: orfe pr update --pr-number <number> \[--title <text>] \[--body <text>] \[--body-contract <name@version>] \[--repo <owner\/name>] \[--config <path>] \[--auth-config <path>]$/m);
+  assert.match(result.stderr, /pr update only allows template together with --body\./);
+  assert.match(result.stderr, /Usage: orfe pr update --pr-number <number> \[--title <text>] \[--body <text>] \[--template <name@version>] \[--repo <owner\/name>] \[--config <path>] \[--auth-config <path>]$/m);
   assert.match(result.stderr, /See: orfe pr update --help/);
 });
 
@@ -399,7 +399,7 @@ test('runCli reports missing mutation options for pr update as usage errors', as
   assert.equal(result.exitCode, 2);
   assert.equal(result.stdout, '');
   assert.match(result.stderr, /pr update requires at least one mutation option\./);
-  assert.match(result.stderr, /Usage: orfe pr update --pr-number <number> \[--title <text>] \[--body <text>] \[--body-contract <name@version>] \[--repo <owner\/name>] \[--config <path>] \[--auth-config <path>]$/m);
+  assert.match(result.stderr, /Usage: orfe pr update --pr-number <number> \[--title <text>] \[--body <text>] \[--template <name@version>] \[--repo <owner\/name>] \[--config <path>] \[--auth-config <path>]$/m);
   assert.match(result.stderr, /See: orfe pr update --help/);
 });
 

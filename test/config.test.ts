@@ -50,7 +50,7 @@ test('loadRepoConfig reads .orfe/config.json from the repo context', async () =>
   assert.equal(config.projects?.default?.projectNumber, 1);
 });
 
-test('loadRepoConfig ignores contract files because they live outside .orfe/config.json', async () => {
+test('loadRepoConfig ignores template files because they live outside .orfe/config.json', async () => {
   const repoDirectory = await mkdtemp(path.join(os.tmpdir(), 'orfe-repo-config-'));
   await writeRepoConfig(
     repoDirectory,
@@ -67,14 +67,14 @@ test('loadRepoConfig ignores contract files because they live outside .orfe/conf
     }),
   );
 
-  await mkdir(path.join(repoDirectory, '.orfe', 'contracts', 'issues', 'formal-work-item'), { recursive: true });
+  await mkdir(path.join(repoDirectory, '.orfe', 'templates', 'issues', 'formal-work-item'), { recursive: true });
   await writeFile(
-    path.join(repoDirectory, '.orfe', 'contracts', 'issues', 'formal-work-item', '1.0.0.json'),
+    path.join(repoDirectory, '.orfe', 'templates', 'issues', 'formal-work-item', '1.0.0.json'),
     JSON.stringify({
       schema_version: 1,
       artifact_type: 'issue',
-      contract_name: 'formal-work-item',
-      contract_version: '1.0.0',
+      template_name: 'formal-work-item',
+      template_version: '1.0.0',
       sections: [],
     }),
   );

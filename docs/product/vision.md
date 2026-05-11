@@ -57,7 +57,7 @@ V1 is focused on a narrow, reusable surface area:
 - pull request operations
 - GitHub Project Status field operations
 - internal GitHub App auth for repository bot identities
-- versioned declarative body contracts for agent-authored issue and PR artifacts
+- versioned declarative templates for agent-authored issue and PR artifacts
 - shared runtime behavior across CLI and OpenCode wrapper entrypoints
 
 In this model, v1 core continues to own:

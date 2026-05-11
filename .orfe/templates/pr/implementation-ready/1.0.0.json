@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "artifact_type": "pr",
-  "contract_name": "implementation-ready",
-  "contract_version": "1.0.0",
-  "description": "Declarative PR-body contract for implementation-ready review handoffs.",
+  "template_name": "implementation-ready",
+  "template_version": "1.0.0",
+  "description": "Declarative PR-body template for implementation-ready review handoffs.",
   "allow_additional_sections": false,
   "preamble_required_patterns": [
     "(?<![\\s\\S])Ref: #\\d+\\s*$"

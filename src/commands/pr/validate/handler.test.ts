@@ -36,7 +36,7 @@ test('runOrfeCore returns structured PR validation results without GitHub access
           '',
           '- none',
         ].join('\n'),
-        body_contract: 'implementation-ready@1.0.0',
+        template: 'implementation-ready@1.0.0',
       },
     });
 
@@ -46,12 +46,12 @@ test('runOrfeCore returns structured PR validation results without GitHub access
       repo: 'throw-if-null/orfe',
       data: {
         valid: true,
-        contract: {
+        template: {
           artifact_type: 'pr',
-          contract_name: 'implementation-ready',
-          contract_version: '1.0.0',
+          template_name: 'implementation-ready',
+          template_version: '1.0.0',
         },
-        contract_source: 'explicit',
+        template_source: 'explicit',
         normalized_body: [
           'Ref: #58',
           '',
@@ -77,7 +77,7 @@ test('runOrfeCore returns structured PR validation results without GitHub access
           '',
           '- none',
           '',
-          '<!-- orfe-body-contract: pr/implementation-ready@1.0.0 -->',
+          '<!-- orfe-template: pr/implementation-ready@1.0.0 -->',
         ].join('\n'),
         errors: [],
       },
@@ -91,7 +91,7 @@ test('executeOrfeTool returns structured PR validation output', async () => {
       input: {
         command: 'pr validate',
         body: 'Ref: #58\n\nCloses: #58',
-        body_contract: 'implementation-ready@1.0.0',
+        template: 'implementation-ready@1.0.0',
       },
     });
 
@@ -101,43 +101,43 @@ test('executeOrfeTool returns structured PR validation output', async () => {
       repo: 'throw-if-null/orfe',
       data: {
         valid: false,
-        contract: {
+        template: {
           artifact_type: 'pr',
-          contract_name: 'implementation-ready',
-          contract_version: '1.0.0',
+          template_name: 'implementation-ready',
+          template_version: '1.0.0',
         },
-        contract_source: 'explicit',
+        template_source: 'explicit',
         errors: [
           {
             kind: 'matched_forbidden_pattern',
             scope: 'body',
             pattern: '(?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+',
             message:
-              'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
+              'Template validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
           },
           {
             kind: 'missing_required_section',
             scope: 'section',
             section_heading: 'Summary',
-            message: 'Body contract validation failed: missing required section "Summary".',
+            message: 'Template validation failed: missing required section "Summary".',
           },
           {
             kind: 'missing_required_section',
             scope: 'section',
             section_heading: 'Verification',
-            message: 'Body contract validation failed: missing required section "Verification".',
+            message: 'Template validation failed: missing required section "Verification".',
           },
           {
             kind: 'missing_required_section',
             scope: 'section',
             section_heading: 'Docs / ADR / debt',
-            message: 'Body contract validation failed: missing required section "Docs / ADR / debt".',
+            message: 'Template validation failed: missing required section "Docs / ADR / debt".',
           },
           {
             kind: 'missing_required_section',
             scope: 'section',
             section_heading: 'Risks / follow-ups',
-            message: 'Body contract validation failed: missing required section "Risks / follow-ups".',
+            message: 'Template validation failed: missing required section "Risks / follow-ups".',
           },
         ],
       },
@@ -151,7 +151,7 @@ test('runOrfeCore returns actionable PR validation failures', async () => {
       command: 'pr validate',
       input: {
         body: 'Ref: #58\n\nCloses: #58',
-        body_contract: 'implementation-ready@1.0.0',
+        template: 'implementation-ready@1.0.0',
       },
     });
 
@@ -166,7 +166,7 @@ test('runOrfeCore returns actionable PR validation failures', async () => {
   });
 });
 
-test('runOrfeCore fails clearly when contract validation fails', async () => {
+test('runOrfeCore fails clearly when template validation fails', async () => {
   await withNock(async () => {
     const api = await import('../mocks/github.js').then(({ mockPullRequestGetOrCreateRequest }) =>
       mockPullRequestGetOrCreateRequest({
@@ -180,17 +180,17 @@ test('runOrfeCore fails clearly when contract validation fails', async () => {
         command: 'pr get-or-create',
         input: {
           head: 'issues/orfe-59',
-          title: 'Introduce versioned body-contract support',
+          title: 'Introduce versioned template support',
           body: 'Ref: #59\n\nCloses: #59',
-          body_contract: 'implementation-ready@1.0.0',
+          template: 'implementation-ready@1.0.0',
         },
       }),
       (error: unknown) => {
         assert(error instanceof OrfeError);
-        assert.equal(error.code, 'contract_validation_failed');
+        assert.equal(error.code, 'template_validation_failed');
         assert.equal(
           error.message,
-          'Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
+          'Template validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+.',
         );
         return true;
       },
@@ -207,7 +207,7 @@ test('runCli prints structured success JSON for pr validate', async () => {
       'validate',
       '--body',
       'Ref: #58\n\n## Summary\n- add PR body validation\n\n## Verification\n- `npm test` ✅\n- `npm run lint` ✅\n- `npm run typecheck` ✅\n- `npm run build` ✅\n\n## Docs / ADR / debt\n- docs updated: yes\n- ADR updated: no\n- debt updated: no\n- details: updated docs/orfe/spec.md\n\n## Risks / follow-ups\n- none',
-      '--body-contract',
+      '--template',
       'implementation-ready@1.0.0',
     ],
     {
@@ -225,21 +225,21 @@ test('runCli prints structured success JSON for pr validate', async () => {
     repo: 'throw-if-null/orfe',
     data: {
       valid: true,
-      contract: {
+      template: {
         artifact_type: 'pr',
-        contract_name: 'implementation-ready',
-        contract_version: '1.0.0',
+        template_name: 'implementation-ready',
+        template_version: '1.0.0',
       },
-      contract_source: 'explicit',
+      template_source: 'explicit',
       normalized_body:
-        'Ref: #58\n\n## Summary\n- add PR body validation\n\n## Verification\n- `npm test` ✅\n- `npm run lint` ✅\n- `npm run typecheck` ✅\n- `npm run build` ✅\n\n## Docs / ADR / debt\n- docs updated: yes\n- ADR updated: no\n- debt updated: no\n- details: updated docs/orfe/spec.md\n\n## Risks / follow-ups\n- none\n\n<!-- orfe-body-contract: pr/implementation-ready@1.0.0 -->',
+        'Ref: #58\n\n## Summary\n- add PR body validation\n\n## Verification\n- `npm test` ✅\n- `npm run lint` ✅\n- `npm run typecheck` ✅\n- `npm run build` ✅\n\n## Docs / ADR / debt\n- docs updated: yes\n- ADR updated: no\n- debt updated: no\n- details: updated docs/orfe/spec.md\n\n## Risks / follow-ups\n- none\n\n<!-- orfe-template: pr/implementation-ready@1.0.0 -->',
       errors: [],
     },
   });
 });
 
 test('runCli prints structured PR validation failures for pr validate', async () => {
-  const result = await invokeCli(['pr', 'validate', '--body', 'Ref: #58\n\nCloses: #58', '--body-contract', 'implementation-ready@1.0.0'], {
+  const result = await invokeCli(['pr', 'validate', '--body', 'Ref: #58\n\nCloses: #58', '--template', 'implementation-ready@1.0.0'], {
     env: { ORFE_CALLER_NAME: 'Greg' },
     ...createRuntimeDependencies(),
     githubClientFactory: createGitHubClientFactory(),
