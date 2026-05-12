@@ -55,7 +55,7 @@ Responsibilities:
 - return structured success or typed errors
 
 The core is runtime-agnostic and must remain callable from both CLI and plugin entrypoints.
-It is also the future extension host, but it must preserve the same wrapper/core and plain-data boundaries while doing so.
+It is also the future extension host, but it must preserve the same OpenCode tool/core and plain-data boundaries while doing so.
 
 ### 4. Config layer
 Current examples include `src/config/repo-config.ts`, `src/config/auth-config.ts`, `src/config/project-defaults.ts`, `src/config/repository-ref.ts`, `src/config/shared.ts`, and `.orfe/config.json`.
