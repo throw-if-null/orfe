@@ -72,7 +72,7 @@ Repo config is declarative and non-secret.
 It may enable or configure extensions, but it must not ship executable extension code.
 
 ### 5. Template layer
-Current examples include `src/templates.ts`, `src/commands/shared/body-input.ts`, and `.orfe/templates/`.
+Current examples include `src/templates/index.ts`, `src/templates/prepare.ts`, `src/templates/loader.ts`, `src/commands/shared/body-input.ts`, and `.orfe/templates/`.
 
 Responsibilities:
 - load versioned declarative issue and PR templates from the repository
@@ -117,7 +117,7 @@ graph TD
   CLI[CLI entrypoint<br/>src/cli.ts + src/command.ts] --> Core
 
   Core --> Config[Repo config<br/>src/config.ts]
-  Core --> Templates[Templates<br/>src/templates.ts]
+  Core --> Templates[Templates modules<br/>src/templates/*.ts]
   Core --> Auth[Caller bot + auth config]
   Core --> GitHub[GitHub client factory<br/>src/github.ts]
   Core --> Registry[Generic command registry<br/>src/commands/registry/index.ts]
