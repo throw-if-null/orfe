@@ -1,10 +1,11 @@
 import { OrfeError } from '../errors.js';
 import type { RepoLocalConfig } from '../types.js';
 import { validateBodyAgainstTemplateDetailed } from './body-validator.js';
+import { throwFirstValidationIssue } from './errors.js';
 import { loadTemplate } from './loader.js';
 import { renderBodyWithTemplateProvenance, stripTemplateProvenance } from './provenance.js';
 import { resolveTemplateSelection } from './selector.js';
-import type { ArtifactTemplateValidationResult, BodyValidationIssue, PreparedArtifactBody, TemplateArtifactType, TemplateRef } from './types.js';
+import type { ArtifactTemplateValidationResult, PreparedArtifactBody, TemplateArtifactType, TemplateRef } from './types.js';
 
 export async function prepareArtifactBody(options: {
   artifactType: TemplateArtifactType;
@@ -81,10 +82,6 @@ export async function validateArtifactBody(options: {
     ...(validationResult.valid ? { normalized_body: renderBodyWithTemplateProvenance(bodyWithoutMarker, template) } : {}),
     errors: validationResult.errors,
   };
-}
-
-function throwFirstValidationIssue(issues: BodyValidationIssue[]): never {
-  throw new OrfeError('template_validation_failed', issues[0]?.message ?? 'Template validation failed.');
 }
 
 function toTemplateRef(template: TemplateRef): TemplateRef {

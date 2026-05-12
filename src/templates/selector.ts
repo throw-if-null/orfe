@@ -1,4 +1,5 @@
 import { OrfeError } from '../errors.js';
+import { formatTemplateRef } from './formatters.js';
 import { inspectTemplateProvenance } from './provenance.js';
 import type { BodyValidationIssue, TemplateArtifactType, TemplateRef, TemplateSource } from './types.js';
 
@@ -101,8 +102,4 @@ export function resolveTemplateSelection(options: {
   }
 
   return { issues };
-}
-
-function formatTemplateRef(ref: TemplateRef): string {
-  return `${ref.artifact_type}/${ref.template_name}@${ref.template_version}`;
 }

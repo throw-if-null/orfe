@@ -12,6 +12,8 @@ export type {
   TemplateSource,
 } from './types.js';
 export { loadTemplate } from './loader.js';
+export { throwFirstValidationIssue } from './errors.js';
+export { formatTemplateRef } from './formatters.js';
 export { extractTemplateProvenance, renderBodyWithTemplateProvenance, renderTemplateProvenance, stripTemplateProvenance } from './provenance.js';
 export { prepareArtifactBody, validateArtifactBody } from './prepare.js';
 export { validateBodyAgainstTemplate, validateBodyAgainstTemplateDetailed } from './body-validator.js';

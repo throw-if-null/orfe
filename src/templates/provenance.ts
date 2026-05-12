@@ -1,4 +1,5 @@
-import { OrfeError } from '../errors.js';
+import { throwFirstValidationIssue } from './errors.js';
+import { formatTemplateRef } from './formatters.js';
 import type { BodyValidationIssue, TemplateRef } from './types.js';
 
 const PROVENANCE_PATTERN_SOURCE = '<!--\\s*orfe-template:\\s*(issue|pr)\\/([a-z0-9][a-z0-9-]*)@([A-Za-z0-9._-]+)\\s*-->';
@@ -64,12 +65,4 @@ export function renderBodyWithTemplateProvenance(body: string, ref: TemplateRef)
   }
 
   return `${strippedBody.trimEnd()}\n\n${marker}`;
-}
-
-function throwFirstValidationIssue(issues: BodyValidationIssue[]): never {
-  throw new OrfeError('template_validation_failed', issues[0]?.message ?? 'Template validation failed.');
-}
-
-function formatTemplateRef(ref: TemplateRef): string {
-  return `${ref.artifact_type}/${ref.template_name}@${ref.template_version}`;
 }

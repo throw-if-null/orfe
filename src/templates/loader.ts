@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { OrfeError } from '../errors.js';
 import type { RepoLocalConfig } from '../types.js';
+import { formatTemplateRef } from './formatters.js';
 import { resolveTemplatesRoot } from './root.js';
 import { validateTemplateDefinition } from './schema.js';
 import type { TemplateDefinition, TemplateRef } from './types.js';
@@ -36,10 +37,6 @@ export async function loadTemplate(config: RepoLocalConfig, ref: TemplateRef): P
   }
 
   return validateTemplateDefinition(parsed, templatePath, ref.artifact_type);
-}
-
-function formatTemplateRef(ref: TemplateRef): string {
-  return `${ref.artifact_type}/${ref.template_name}@${ref.template_version}`;
 }
 
 function isNodeError(error: unknown): error is NodeJS.ErrnoException {

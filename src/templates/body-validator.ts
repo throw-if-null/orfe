@@ -1,6 +1,8 @@
 import { OrfeError } from '../errors.js';
 import { parseBodyStructure, type ParsedBodySection } from './body-parser.js';
-import type { ArtifactTemplateValidationResult, BodyValidationIssue, TemplateDefinition, TemplateFieldDefinition, TemplateRef } from './types.js';
+import { throwFirstValidationIssue } from './errors.js';
+import { formatTemplateRef } from './formatters.js';
+import type { ArtifactTemplateValidationResult, BodyValidationIssue, TemplateDefinition, TemplateFieldDefinition } from './types.js';
 
 export function validateBodyAgainstTemplate(body: string, template: TemplateDefinition): void {
   const validationResult = validateBodyAgainstTemplateDetailed(body, template);
@@ -210,21 +212,12 @@ function formatValidationScope(context: Pick<BodyValidationIssue, 'scope' | 'sec
 
   return context.scope;
 }
-
-function throwFirstValidationIssue(issues: BodyValidationIssue[]): never {
-  throw new OrfeError('template_validation_failed', issues[0]?.message ?? 'Template validation failed.');
-}
-
 function createTemplatePattern(pattern: string, label: string): RegExp {
   try {
     return new RegExp(pattern, 'm');
   } catch {
     throw new OrfeError('template_invalid', `Template ${label} contains invalid regex pattern "${pattern}".`);
   }
-}
-
-function formatTemplateRef(ref: TemplateRef): string {
-  return `${ref.artifact_type}/${ref.template_name}@${ref.template_version}`;
 }
 
 function escapeRegExp(value: string): string {
