@@ -13,7 +13,7 @@ import {
   validateArtifactBody,
   validateBodyAgainstTemplate,
 } from './templates.js';
-import { OrfeError } from './errors.js';
+import { OrfeError } from './runtime/errors.js';
 
 const sourceDirectory = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(sourceDirectory, '..');

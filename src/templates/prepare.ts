@@ -1,5 +1,5 @@
-import { OrfeError } from '../errors.js';
-import type { RepoLocalConfig } from '../types.js';
+import { OrfeError } from '../runtime/errors.js';
+import type { RepoLocalConfig } from '../config/shared.js';
 import { validateBodyAgainstTemplateDetailed } from './body-validator.js';
 import { throwFirstValidationIssue } from './errors.js';
 import { loadTemplate } from './loader.js';

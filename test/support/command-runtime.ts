@@ -1,6 +1,6 @@
-import { runOrfeCore, type OrfeCoreDependencies } from '../../src/core.js';
-import { executeOrfeTool, type OpenCodeToolContext, type OrfeToolDependencies } from '../../src/wrapper.js';
-import type { CommandInput, OrfeCoreRequest } from '../../src/types.js';
+import { runOrfeCore } from '../../src/core/run.js';
+import type { OrfeCoreDependencies, OrfeCoreRequest, CommandInput } from '../../src/core/types.js';
+import { executeOrfeTool, type OpenCodeToolContext, type OrfeToolDependencies } from '../../src/opencode/tool.js';
 
 import {
   createAuthConfig,

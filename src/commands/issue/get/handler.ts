@@ -1,5 +1,5 @@
-import { OrfeError } from '../../../errors.js';
-import type { CommandContext } from '../../../types.js';
+import { OrfeError } from '../../../runtime/errors.js';
+import type { CommandContext } from '../../../core/context.js';
 import { getGitHubRequestStatus, normalizeIssueGetResponse, type IssueGetData, type IssueGetResponseData } from '../shared.js';
 
 export async function handleIssueGet(context: CommandContext<'issue get'>): Promise<IssueGetData> {

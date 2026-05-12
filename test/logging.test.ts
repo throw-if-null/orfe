@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-import { runCli } from '../src/command.js';
-import { GitHubClientFactory, type GitHubOctokitOptions } from '../src/github.js';
-import { createLogger } from '../src/logger.js';
-import type { GitHubAppBotAuthConfig, RepoRef } from '../src/types.js';
-import { executeOrfeTool } from '../src/wrapper.js';
+import { runCli } from '../src/cli/run.js';
+import { GitHubClientFactory, type GitHubOctokitOptions } from '../src/github/client-factory.js';
+import { createLogger } from '../src/logging/logger.js';
+import type { GitHubAppBotAuthConfig } from '../src/config/shared.js';
+import type { RepoRef } from '../src/config/repository-ref.js';
+import { executeOrfeTool } from '../src/opencode/tool.js';
 
 class MemoryStream {
   output = '';
@@ -216,7 +217,7 @@ test('CLI emits Octokit warnings to stderr when ORFE_LOG_LEVEL=warn', async () =
   assert.equal(JSON.parse(stdout.output).ok, true);
 });
 
-test('OpenCode wrapper suppresses Octokit warnings by default for issue mutation commands', async () => {
+test('OpenCode tool suppresses Octokit warnings by default for issue mutation commands', async () => {
   const stderr = new MemoryStream();
 
   const result = await executeOrfeTool(
@@ -249,7 +250,7 @@ test('OpenCode wrapper suppresses Octokit warnings by default for issue mutation
   });
 });
 
-test('OpenCode wrapper emits Octokit warnings when ORFE_LOG_LEVEL=warn', async () => {
+test('OpenCode tool emits Octokit warnings when ORFE_LOG_LEVEL=warn', async () => {
   const stderr = new MemoryStream();
 
   const result = await executeOrfeTool(
@@ -272,7 +273,7 @@ test('OpenCode wrapper emits Octokit warnings when ORFE_LOG_LEVEL=warn', async (
   assert.match(stderr.output, /"source":"octokit"/);
 });
 
-test('OpenCode wrapper surfaces error logs at the default level', async () => {
+test('OpenCode tool surfaces error logs at the default level', async () => {
   const stderr = new MemoryStream();
 
   const result = await executeOrfeTool(

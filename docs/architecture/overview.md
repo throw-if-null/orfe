@@ -17,7 +17,7 @@ The current command architecture uses explicit vertical command slices under `sr
 ## Major runtime parts
 
 ### 1. OpenCode plugin entrypoint
-Represented by `src/plugin.ts`, exported from the package at `./plugin`, and consumed by repositories through the `opencode.json` `plugin` array.
+Represented by `src/opencode/plugin.ts`, with OpenCode-specific caller resolution in `src/opencode/context.ts` and tool execution in `src/opencode/tool.ts`, exported from the package at `./plugin`, and consumed by repositories through the `opencode.json` `plugin` array.
 
 Responsibilities:
 - expose the `orfe` tool through `OrfePlugin`
@@ -30,7 +30,7 @@ It must not:
 - pass raw OpenCode runtime objects into the core
 
 ### 2. CLI entrypoint
-Represented by `src/cli.ts` and `src/command.ts`.
+Represented by `src/cli/entrypoint.ts`, `src/cli/run.ts`, `src/cli/parse.ts`, `src/cli/help.ts`, and `src/cli/types.ts`.
 
 Responsibilities:
 - support commandless invocation as a help/noop path
@@ -42,7 +42,7 @@ Responsibilities:
 The CLI is intentionally a thin adapter. It renders root, group, and leaf help from the registered command catalog rather than maintaining a separate hardcoded command map.
 
 ### 3. Core runtime
-Represented by `src/core.ts` plus the command catalog under `src/commands/`.
+Represented by `src/core/run.ts`, `src/core/context.ts`, `src/core/types.ts`, plus the command catalog under `src/commands/`.
 
 Responsibilities:
 - load repo-local config
@@ -58,7 +58,7 @@ The core is runtime-agnostic and must remain callable from both CLI and plugin e
 It is also the future extension host, but it must preserve the same wrapper/core and plain-data boundaries while doing so.
 
 ### 4. Config layer
-Current examples include `src/config.ts` and `.orfe/config.json`.
+Current examples include `src/config/repo-config.ts`, `src/config/auth-config.ts`, `src/config/project-defaults.ts`, `src/config/repository-ref.ts`, `src/config/shared.ts`, and `.orfe/config.json`.
 
 Responsibilities:
 - hold repo-local non-secret configuration
@@ -81,7 +81,7 @@ Responsibilities:
 - stay below repository workflow policy rather than interpreting ownership or orchestration semantics
 
 ### 6. Auth layer
-Current examples include `src/github.ts` and machine-local auth config.
+Current examples include `src/github/installation-auth.ts`, `src/github/jwt.ts`, and machine-local auth config.
 
 Responsibilities:
 - load machine-local per-bot GitHub App credentials
@@ -89,7 +89,7 @@ Responsibilities:
 - keep secret-bearing auth details outside repo-local config
 
 ### 7. GitHub adapter layer
-Current examples include the slice handlers under `src/commands/**/handler.ts` and the shared GitHub client factory in `src/github.ts`.
+Current examples include the slice handlers under `src/commands/**/handler.ts` and the shared GitHub client factory in `src/github/client-factory.ts`.
 
 Responsibilities:
 - use Octokit REST where appropriate for issue and PR behavior
@@ -113,13 +113,13 @@ Enabled does not mean validly configured.
 
 ```mermaid
 graph TD
-  Plugin[OpenCode plugin<br/>src/plugin.ts] --> Core[Core runtime<br/>src/core.ts]
-  CLI[CLI entrypoint<br/>src/cli.ts + src/command.ts] --> Core
+  Plugin[OpenCode plugin<br/>src/opencode/plugin.ts + tool.ts + context.ts] --> Core[Core runtime<br/>src/core/run.ts]
+  CLI[CLI entrypoint<br/>src/cli/entrypoint.ts + run.ts + parse.ts + help.ts] --> Core
 
-  Core --> Config[Repo config<br/>src/config.ts]
+  Core --> Config[Repo config<br/>src/config/*.ts]
   Core --> Templates[Templates modules<br/>src/templates/*.ts]
-  Core --> Auth[Caller bot + auth config]
-  Core --> GitHub[GitHub client factory<br/>src/github.ts]
+  Core --> Auth[Caller bot + auth config<br/>src/config/auth-config.ts + src/github/installation-auth.ts]
+  Core --> GitHub[GitHub client factory<br/>src/github/client-factory.ts]
   Core --> Registry[Generic command registry<br/>src/commands/registry/index.ts]
   Core --> Extensions[Installed extensions<br/>optional + namespaced]
 
@@ -213,7 +213,7 @@ To add a new command:
 - register the slice in `src/commands/index.ts`
 - use or extend `<group>/shared.ts` only for helper logic genuinely shared by multiple commands in that group
 
-Command-specific tests live beside the slice by default. Cross-cutting CLI, core, wrapper, plugin, and package-level tests remain in `test/`.
+Command-specific tests live beside the slice by default. Cross-cutting CLI, core, OpenCode tool/plugin, and package-level tests remain in `test/`.
 
 ## Architectural rules to keep in mind
 

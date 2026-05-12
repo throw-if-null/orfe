@@ -1,5 +1,6 @@
 import { prepareArtifactBody } from '../../templates.js';
-import type { CommandContext, CommandInput } from '../../types.js';
+import type { CommandContext } from '../../core/context.js';
+import type { CommandInput } from '../../core/types.js';
 
 export async function prepareIssueBodyFromInput(
   context: Pick<CommandContext, 'input' | 'repoConfig'>,

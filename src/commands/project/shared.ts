@@ -1,4 +1,4 @@
-import { OrfeError } from '../../errors.js';
+import { OrfeError } from '../../runtime/errors.js';
 
 export type ProjectItemType = 'issue' | 'pr';
 

@@ -1,4 +1,4 @@
-import { OrfeError } from '../errors.js';
+import { OrfeError } from '../runtime/errors.js';
 import type { TemplateArtifactType, TemplateDefinition, TemplateFieldDefinition, TemplateSectionDefinition } from './types.js';
 
 export function validateTemplateDefinition(

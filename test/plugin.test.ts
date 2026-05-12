@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-import OrfePlugin from '../src/plugin.js';
-import { executeOrfeTool } from '../src/wrapper.js';
+import OrfePlugin from '../src/opencode/plugin.js';
+import { executeOrfeTool } from '../src/opencode/tool.js';
 
 test('plugin exposes common path override inputs on the orfe tool', async () => {
   const plugin = await OrfePlugin({} as never);

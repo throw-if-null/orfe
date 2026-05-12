@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-import { OrfeError } from '../../../../src/errors.js';
+import { OrfeError } from '../../../../src/runtime/errors.js';
 import { runCoreCommand, runToolCommand } from '../../../../test/support/command-runtime.js';
 import { mockAuthTokenMintRequest } from './mocks/github.js';
 import { withNock } from '../../../../test/support/http-test.js';

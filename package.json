@@ -4,14 +4,14 @@
   "description": "Generic GitHub operations runtime for humans and agents",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/wrapper.js",
+  "main": "./dist/opencode/tool.js",
   "exports": {
-    ".": "./dist/wrapper.js",
-    "./plugin": "./dist/plugin.js",
-    "./server": "./dist/plugin.js"
+    ".": "./dist/opencode/tool.js",
+    "./plugin": "./dist/opencode/plugin.js",
+    "./server": "./dist/opencode/plugin.js"
   },
   "bin": {
-    "orfe": "./dist/cli.js"
+    "orfe": "./dist/cli/entrypoint.js"
   },
   "files": [
     "dist",

@@ -1,22 +1,11 @@
-import { OrfeError } from './errors.js';
-import { getCommandDefinition } from './commands/registry/index.js';
-import { runOrfeCore, type OrfeCoreDependencies } from './core.js';
-import { createPluginLogger } from './logger.js';
-import { createErrorResponse } from './response.js';
-import type { ErrorResponse, SuccessResponse } from './types.js';
+import { getCommandDefinition } from '../commands/registry/index.js';
+import { runOrfeCore } from '../core/run.js';
+import { createPluginLogger } from '../logging/logger.js';
+import { OrfeError } from '../runtime/errors.js';
+import { createErrorResponse } from '../runtime/response.js';
 
-export interface OpenCodeToolContext {
-  agent?: unknown;
-  cwd?: string;
-  stderr?: Pick<NodeJS.WriteStream, 'write'>;
-  env?: NodeJS.ProcessEnv;
-}
-
-export interface OrfeToolDependencies extends OrfeCoreDependencies {
-  runOrfeCoreImpl?: typeof runOrfeCore;
-}
-
-export type OrfeToolResult = SuccessResponse<unknown> | ErrorResponse;
+import { resolveCallerNameFromContext } from './context.js';
+import type { OpenCodeToolContext, OrfeToolDependencies, OrfeToolResult } from './types.js';
 
 export async function executeOrfeTool(
   input: Record<string, unknown>,
@@ -39,8 +28,8 @@ export async function executeOrfeTool(
     const callerName = (commandDefinition.requiresCaller ?? true) ? resolveCallerNameFromContext(context) : '';
     const rest = { ...input };
     delete rest.command;
-    const configPath = readWrapperPathInput(rest, 'config');
-    const authConfigPath = readWrapperPathInput(rest, 'auth_config');
+    const configPath = readToolPathInput(rest, 'config');
+    const authConfigPath = readToolPathInput(rest, 'auth_config');
     delete rest.config;
     delete rest.auth_config;
 
@@ -65,27 +54,7 @@ export async function executeOrfeTool(
   }
 }
 
-export function resolveCallerNameFromContext(context: OpenCodeToolContext): string {
-  const { agent } = context;
-
-  if (typeof agent === 'string' && agent.trim().length > 0) {
-    return agent.trim();
-  }
-
-  if (
-    typeof agent === 'object' &&
-    agent !== null &&
-    'name' in agent &&
-    typeof agent.name === 'string' &&
-    agent.name.trim().length > 0
-  ) {
-    return agent.name.trim();
-  }
-
-  throw new OrfeError('caller_context_missing', 'OpenCode caller context is missing.');
-}
-
-function readWrapperPathInput(input: Record<string, unknown>, key: 'config' | 'auth_config'): string | undefined {
+function readToolPathInput(input: Record<string, unknown>, key: 'config' | 'auth_config'): string | undefined {
   const value = input[key];
   if (value === undefined) {
     return undefined;
@@ -97,3 +66,6 @@ function readWrapperPathInput(input: Record<string, unknown>, key: 'config' | 'a
 
   return value;
 }
+
+export type { OpenCodeToolContext, OrfeToolDependencies, OrfeToolResult } from './types.js';
+export { resolveCallerNameFromContext } from './context.js';

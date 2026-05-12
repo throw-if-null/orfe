@@ -1,4 +1,4 @@
-import { OrfeError } from '../errors.js';
+import { OrfeError } from '../runtime/errors.js';
 import type { BodyValidationIssue } from './types.js';
 
 export function throwFirstValidationIssue(issues: BodyValidationIssue[]): never {

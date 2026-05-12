@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import nock from 'nock';
 import { test } from 'vitest';
 
-import { GITHUB_API_VERSION, GitHubClientFactory } from '../src/github.js';
+import { GITHUB_API_VERSION, GitHubClientFactory } from '../src/github/client-factory.js';
 
-// GITHUB_API_VERSION is defined in src/github.ts and matches the GitHub REST API version date.
+// GITHUB_API_VERSION is defined in src/github/client-factory.ts and matches the GitHub REST API version date.
 // See: https://docs.github.com/en/rest/about-the-rest-api/api-versions
 
 interface ReplyContext {

@@ -60,7 +60,7 @@ For terminology in this spec:
 
 - npm package name: `@mirzamerdovic/orfe`
 - installed executable name: `orfe`
-- package CLI entrypoint: package `bin.orfe -> dist/cli.js`
+- package CLI entrypoint: package `bin.orfe -> dist/cli/entrypoint.js`
 - primary public distribution is npmjs.org (`https://registry.npmjs.org`)
 - supported invocation path is `npx @mirzamerdovic/orfe`
 - package-artifact installs produced by `npm pack` remain valid for local development

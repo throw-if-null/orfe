@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { OrfeError } from '../errors.js';
-import type { RepoLocalConfig } from '../types.js';
+import { OrfeError } from '../runtime/errors.js';
+import type { RepoLocalConfig } from '../config/shared.js';
 import { formatTemplateRef } from './formatters.js';
 import { resolveTemplatesRoot } from './root.js';
 import { validateTemplateDefinition } from './schema.js';

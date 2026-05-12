@@ -2,7 +2,7 @@
 
 import { fileURLToPath } from 'node:url';
 
-import { runCli } from './command.js';
+import { runCli } from './run.js';
 
 export async function runCliEntrypoint(options: {
   argv?: string[];

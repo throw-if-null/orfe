@@ -1,5 +1,5 @@
-import { OrfeError } from '../../../errors.js';
-import type { CommandContext } from '../../../types.js';
+import { OrfeError } from '../../../runtime/errors.js';
+import type { CommandContext } from '../../../core/context.js';
 
 export interface AuthTokenData {
   bot: string;

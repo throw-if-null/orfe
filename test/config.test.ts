@@ -4,15 +4,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { test } from 'vitest';
 
-import { OrfeError } from '../src/errors.js';
-import {
-  getBotAuthConfig,
-  loadAuthConfig,
-  loadRepoConfig,
-  resolveCallerBot,
-  resolveProjectCommandConfig,
-  resolveRepository,
-} from '../src/config.js';
+import { OrfeError } from '../src/runtime/errors.js';
+import { getBotAuthConfig, loadAuthConfig } from '../src/config/auth-config.js';
+import { resolveProjectCommandConfig } from '../src/config/project-defaults.js';
+import { resolveRepository } from '../src/config/repository-ref.js';
+import { loadRepoConfig, resolveCallerBot } from '../src/config/repo-config.js';
 
 async function writeRepoConfig(repoDirectory: string, content: string): Promise<void> {
   await mkdir(path.join(repoDirectory, '.orfe'), { recursive: true });

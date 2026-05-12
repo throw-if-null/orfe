@@ -1,5 +1,5 @@
-import { OrfeError } from '../../../errors.js';
-import type { CommandContext } from '../../../types.js';
+import { OrfeError } from '../../../runtime/errors.js';
+import type { CommandContext } from '../../../core/context.js';
 import { getGitHubRequestStatus, normalizePullRequestGetResponse, type PullRequestGetData, type PullRequestGetResponseData } from '../shared.js';
 
 export async function handlePrGet(context: CommandContext<'pr get'>): Promise<PullRequestGetData> {

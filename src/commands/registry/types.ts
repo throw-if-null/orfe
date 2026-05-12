@@ -1,4 +1,5 @@
-import type { CommandContext, CommandInput } from '../../types.js';
+import type { CommandContext } from '../../core/context.js';
+import type { CommandInput } from '../../core/types.js';
 import type { RuntimeEntrypoint } from '../../version.js';
 
 export type CommandOptionType = 'string' | 'number' | 'boolean' | 'enum' | 'string-array';

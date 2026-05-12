@@ -1,21 +1,16 @@
-import { getCommandDefinition, validateCommandInput } from './commands/registry/index.js';
-import { getBotAuthConfig, loadAuthConfig, loadRepoConfig, resolveCallerBot, resolveRepository } from './config.js';
-import { OrfeError } from './errors.js';
-import { GitHubClientFactory } from './github.js';
-import { createLogger } from './logger.js';
-import { createSuccessResponse } from './response.js';
-import type { GitHubClients, OrfeCoreRequest, RepoLocalConfig, SuccessResponse } from './types.js';
+import { getCommandDefinition, validateCommandInput } from '../commands/registry/index.js';
+import { getBotAuthConfig, loadAuthConfig } from '../config/auth-config.js';
+import { loadRepoConfig, resolveCallerBot } from '../config/repo-config.js';
+import { resolveRepository } from '../config/repository-ref.js';
+import { GitHubClientFactory } from '../github/client-factory.js';
+import type { GitHubClients } from '../github/types.js';
+import { createLogger } from '../logging/logger.js';
+import { OrfeError } from '../runtime/errors.js';
+import { createSuccessResponse } from '../runtime/response.js';
 
-export interface OrfeCoreDependencies {
-  loadRepoConfigImpl?: typeof loadRepoConfig;
-  loadAuthConfigImpl?: typeof loadAuthConfig;
-  githubClientFactory?: GitHubClientFactory;
-}
+import type { OrfeCoreDependencies, OrfeCoreRequest } from './types.js';
 
-export async function runOrfeCore(
-  request: OrfeCoreRequest,
-  dependencies: OrfeCoreDependencies = {},
-): Promise<SuccessResponse<unknown>> {
+export async function runOrfeCore(request: OrfeCoreRequest, dependencies: OrfeCoreDependencies = {}) {
   const commandDefinition = getCommandDefinition(request.command);
   const validatedInput = validateCommandInput(commandDefinition, request.input);
   const entrypoint = request.entrypoint ?? 'cli';
@@ -138,7 +133,7 @@ export async function runOrfeCore(
   return createSuccessResponse(commandDefinition.name, repo.fullName, data);
 }
 
-function resolveRequiredCallerBot(config: RepoLocalConfig, callerName: string): string {
+function resolveRequiredCallerBot(config: Parameters<typeof resolveCallerBot>[0], callerName: string): string {
   if (callerName.length === 0) {
     throw new OrfeError('caller_name_missing', 'Caller name is required.');
   }

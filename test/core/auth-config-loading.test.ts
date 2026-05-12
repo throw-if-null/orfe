@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-import { OrfeError } from '../../src/errors.js';
-import { runOrfeCore } from '../../src/core.js';
+import { OrfeError } from '../../src/runtime/errors.js';
+import { runOrfeCore } from '../../src/core/run.js';
 import { createAuthConfig, createRepoConfig } from '../support/runtime-fixtures.js';
 
 test('runOrfeCore rejects unmapped callers clearly for GitHub-backed commands', async () => {

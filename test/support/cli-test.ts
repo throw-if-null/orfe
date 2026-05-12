@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { runCli, type RunCliDependencies } from '../../src/command.js';
+import { runCli } from '../../src/cli/run.js';
+import type { RunCliDependencies } from '../../src/cli/types.js';
 import {
   createAuthConfig,
   createGitHubClientFactory,

@@ -1,7 +1,7 @@
 import { COMMON_CLI_OPTIONS } from '../registry/common-options.js';
 import { createCommandDefinition } from '../registry/definition.js';
 import type { CommandDefinition, CommandOptionDefinition } from '../registry/types.js';
-import { OrfeError } from '../../errors.js';
+import { OrfeError } from '../../runtime/errors.js';
 
 export interface HelpOptionData {
   input_key: string;

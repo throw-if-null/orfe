@@ -1,7 +1,7 @@
 import type { Plugin } from '@opencode-ai/plugin';
 import { tool } from '@opencode-ai/plugin';
 
-import { executeOrfeTool } from './wrapper.js';
+import { executeOrfeTool } from './tool.js';
 
 const args = {
   command: tool.schema.string().min(1),

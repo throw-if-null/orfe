@@ -3,7 +3,7 @@ import { test } from 'vitest';
 
 import { COMMANDS } from '../../src/commands/index.js';
 import { createHelpCommandSuccessData, createHelpRootSuccessData } from '../../src/commands/help/definition.js';
-import { runOrfeCore } from '../../src/core.js';
+import { runOrfeCore } from '../../src/core/run.js';
 
 test('runOrfeCore returns runtime info without caller, config, auth, or GitHub access', async () => {
   const result = await runOrfeCore(

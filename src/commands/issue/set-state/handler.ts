@@ -1,5 +1,6 @@
-import { OrfeError } from '../../../errors.js';
-import type { CommandContext, GitHubClients } from '../../../types.js';
+import { OrfeError } from '../../../runtime/errors.js';
+import type { CommandContext } from '../../../core/context.js';
+import type { GitHubClients } from '../../../github/types.js';
 import {
   assertIssueTargetIsIssue,
   getGitHubRequestStatus,

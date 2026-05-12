@@ -1,5 +1,5 @@
 import { validateArtifactBody } from '../../../templates.js';
-import type { CommandContext } from '../../../types.js';
+import type { CommandContext } from '../../../core/context.js';
 import type { PullRequestValidateData } from '../shared.js';
 
 export async function handlePrValidate(context: CommandContext<'pr validate'>): Promise<PullRequestValidateData> {

@@ -1,5 +1,22 @@
 import { toOrfeError } from './errors.js';
-import type { ErrorResponse, SuccessResponse } from './types.js';
+
+export interface SuccessResponse<TData> {
+  ok: true;
+  command: string;
+  repo?: string;
+  data: TData;
+}
+
+export interface ErrorResponse {
+  ok: false;
+  command: string;
+  error: {
+    code: string;
+    message: string;
+    retryable: boolean;
+    details?: Record<string, unknown>;
+  };
+}
 
 export function createSuccessResponse<TData>(command: string, repo: string | undefined, data: TData): SuccessResponse<TData> {
   return {

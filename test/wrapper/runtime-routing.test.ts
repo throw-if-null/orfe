@@ -3,7 +3,7 @@ import { test } from 'vitest';
 
 import { COMMANDS } from '../../src/commands/index.js';
 import { createHelpCommandSuccessData, createHelpRootSuccessData } from '../../src/commands/help/definition.js';
-import { executeOrfeTool } from '../../src/wrapper.js';
+import { executeOrfeTool } from '../../src/opencode/tool.js';
 
 test('executeOrfeTool returns runtime info through the shared success envelope without caller context', async () => {
   const result = await executeOrfeTool(

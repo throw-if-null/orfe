@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-import type { OrfeCoreRequest, SuccessResponse } from '../../src/types.js';
-import { executeOrfeTool } from '../../src/wrapper.js';
+import type { OrfeCoreRequest } from '../../src/core/types.js';
+import type { SuccessResponse } from '../../src/runtime/response.js';
+import { executeOrfeTool } from '../../src/opencode/tool.js';
 
 test('executeOrfeTool forwards caller identity and common path overrides as plain core input', async () => {
   let capturedRequest: OrfeCoreRequest | undefined;
