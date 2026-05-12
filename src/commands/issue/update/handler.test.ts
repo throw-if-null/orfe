@@ -6,7 +6,7 @@ import { runCoreCommand, runToolCommand } from '../../../../test/support/command
 import { withNock } from '../../../../test/support/http-test.js';
 import { createGitHubClientFactory, createRuntimeDependencies, invokeCli } from '../../../../test/support/cli-test.js';
 import { mockIssueUpdateRequest } from '../mocks/github.js';
-import { renderIssueBodyContractMarker } from '../../../../test/support/runtime-fixtures.js';
+import { renderIssueTemplateMarker } from '../../../../test/support/runtime-fixtures.js';
 
 test('runOrfeCore updates issue metadata and returns structured success output', async () => {
   await withNock(async () => {
@@ -136,19 +136,19 @@ test('runOrfeCore allows provenance-only issue-update validation when no explici
       '',
       '## Desired outcome',
       '',
-      'Agent-authored issues validate against a versioned contract.',
+      'Agent-authored issues validate against a versioned template.',
       '',
       '## Scope',
       '',
       '### In scope',
-      '- declarative contracts',
+      '- declarative templates',
       '',
       '### Out of scope',
       '- executable plugins',
       '',
       '## Acceptance criteria',
       '',
-      '- [ ] contracts load from .orfe/contracts',
+      '- [ ] templates load from .orfe/templates',
       '',
       '## Docs impact',
       '',
@@ -158,7 +158,7 @@ test('runOrfeCore allows provenance-only issue-update validation when no explici
       '',
       '- ADR needed: yes',
       '',
-      renderIssueBodyContractMarker(),
+      renderIssueTemplateMarker(),
     ].join('\n');
 
     const api = mockIssueUpdateRequest({

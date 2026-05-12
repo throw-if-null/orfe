@@ -356,24 +356,24 @@ The config file does not define:
 - permission policy
 - git workflow rules
 
-### 6.6 Repo-local body contracts
+### 6.6 Repo-local templates
 
-Versioned issue and PR body contracts are separate repo-local artifacts, not fields inside `.orfe/config.json`.
+Versioned issue and PR templates are separate repo-local artifacts, not fields inside `.orfe/config.json`.
 
 Canonical location:
 
 ```text
-.orfe/contracts/issues/<contract-name>/<version>.json
-.orfe/contracts/pr/<contract-name>/<version>.json
+.orfe/templates/issues/<template-name>/<version>.json
+.orfe/templates/pr/<template-name>/<version>.json
 ```
 
 Rules:
 
-- contracts are repository-defined JSON artifacts
-- contracts are declarative only; they must not contain executable code
-- contracts are part of the repo-local public contract surface, but remain distinct from both repo config and machine-local auth config
-- contract loading is deterministic by artifact type, contract name, and version
-- GitHub-native issue and PR templates may remain transitional human-facing aids, but `orfe` contract behavior must not depend on them
+- templates are repository-defined JSON artifacts
+- templates are declarative only; they must not contain executable code
+- templates are part of the repo-local public contract surface, but remain distinct from both repo config and machine-local auth config
+- template loading is deterministic by artifact type, template name, and version
+- GitHub-native issue and PR templates may remain transitional human-facing aids, but `orfe` template behavior must not depend on them
 
 ## 7. Naming conventions
 
@@ -554,9 +554,9 @@ At minimum, v1 must use these stable codes where applicable:
 - `auth_failed`
 - `github_not_found`
 - `github_conflict`
-- `contract_not_found`
-- `contract_invalid`
-- `contract_validation_failed`
+- `template_not_found`
+- `template_invalid`
+- `template_validation_failed`
 - `project_item_not_found`
 - `project_status_field_not_found`
 - `project_status_option_not_found`
@@ -592,7 +592,7 @@ Rules:
 - `command` uses the canonical space-separated vocabulary, matching the CLI subcommands exactly.
 - command-specific fields use `snake_case`.
 - `config` and `auth_config` are supported wrapper-level path overrides, matching CLI `--config` and `--auth-config`.
-- body-contract selection uses `body_contract` in tool input when applicable.
+- template selection uses `template` in tool input when applicable.
 - `caller_name` is **not** accepted from tool input.
 - the wrapper injects `callerName` from `context.agent`.
 
@@ -713,7 +713,7 @@ orfe issue get --issue-number <number> [--repo <owner/name>] [--config <path>]
 **CLI**:
 
 ```text
-orfe issue create --title <text> [--body <text>] [--body-contract <name@version>] [--label <name> ...] [--assignee <login> ...] [--add-to-project] [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--status <value>] [--repo <owner/name>] [--config <path>]
+orfe issue create --title <text> [--body <text>] [--template <name@version>] [--label <name> ...] [--assignee <login> ...] [--add-to-project] [--project-owner <login>] [--project-number <number>] [--status-field-name <name>] [--status <value>] [--repo <owner/name>] [--config <path>]
 ```
 
 **Tool input**:
@@ -723,7 +723,7 @@ orfe issue create --title <text> [--body <text>] [--body-contract <name@version>
   "command": "issue create",
   "title": "New issue title",
   "body": "Body text",
-  "body_contract": "formal-work-item@1.0.0",
+  "template": "formal-work-item@1.0.0",
   "add_to_project": true,
   "status": "Todo",
   "labels": ["needs-input"],
@@ -748,17 +748,17 @@ Project-assignment rules:
 - if project add fails, `error.details.stage` must be `project_add` even when `status` was requested, and the message must not imply the issue was added successfully
 - if project add succeeds but initial status update fails, `error.details.stage` must be `project_status`
 
-Body-contract rules:
+Template rules:
 
-- `body_contract` is optional
-- when provided, the body must validate against the selected issue contract
-- when a provenance marker is already present in `body`, validation may use that marker even if `body_contract` is omitted
+- `template` is optional
+- when provided, the body must validate against the selected issue template
+- when a provenance marker is already present in `body`, validation may use that marker even if `template` is omitted
 - when both explicit selection and provenance marker are present, they must match exactly
-- issue-body validation remains fully contract-driven; repo-specific structure such as required headings, list fields, and allowed values lives in `.orfe/contracts/issues/...`, not in hardcoded runtime workflow logic
+- issue-body validation remains fully template-driven; repo-specific structure such as required headings, list fields, and allowed values lives in `.orfe/templates/issues/...`, not in hardcoded runtime workflow logic
 - successful validation appends or normalizes an HTML comment provenance marker in this form:
 
 ```html
-<!-- orfe-body-contract: issue/<contract-name>@<version> -->
+<!-- orfe-template: issue/<template-name>@<version> -->
 ```
 
 **Success `data` shape**:
@@ -792,7 +792,7 @@ Body-contract rules:
 **CLI**:
 
 ```text
-orfe issue update --issue-number <number> [--title <text>] [--body <text>] [--body-contract <name@version>] [--label <name> ...] [--assignee <login> ...] [--clear-labels] [--clear-assignees] [--repo <owner/name>] [--config <path>]
+orfe issue update --issue-number <number> [--title <text>] [--body <text>] [--template <name@version>] [--label <name> ...] [--assignee <login> ...] [--clear-labels] [--clear-assignees] [--repo <owner/name>] [--config <path>]
 ```
 
 Rules:
@@ -802,11 +802,11 @@ Rules:
 - provided assignees replace the full assignee set
 - `--clear-labels` sets labels to `[]`
 - `--clear-assignees` sets assignees to `[]`
-- `--body-contract` does not count as a mutation by itself; it only constrains `--body` validation
+- `--template` does not count as a mutation by itself; it only constrains `--body` validation
 
-Body-contract rules match `issue create`.
+Template rules match `issue create`.
 
-The current repository formal work-item contract is represented by `.orfe/contracts/issues/formal-work-item/1.0.0.json`, which validates the repository's existing issue structure declaratively rather than through special-case runtime logic.
+The current repository formal work-item template is represented by `.orfe/templates/issues/formal-work-item/1.0.0.json`, which validates the repository's existing issue structure declaratively rather than through special-case runtime logic.
 
 **Success `data` shape**:
 
@@ -826,12 +826,12 @@ The current repository formal work-item contract is represented by `.orfe/contra
 
 ## 11.5 `issue validate`
 
-**Purpose**: Validate an issue body against a repository-defined, versioned body contract without creating or updating an issue.
+**Purpose**: Validate an issue body against a repository-defined, versioned template without creating or updating an issue.
 
 **CLI**:
 
 ```text
-orfe issue validate --body <text> [--body-contract <name@version>] [--repo <owner/name>] [--config <path>]
+orfe issue validate --body <text> [--template <name@version>] [--repo <owner/name>] [--config <path>]
 ```
 
 **Tool input**:
@@ -840,16 +840,16 @@ orfe issue validate --body <text> [--body-contract <name@version>] [--repo <owne
 {
   "command": "issue validate",
   "body": "## Problem / context\n\n...",
-  "body_contract": "formal-work-item@1.0.0"
+  "template": "formal-work-item@1.0.0"
 }
 ```
 
 Rules:
 
 - `body` is required
-- validation requires either `body_contract` or an existing provenance marker in `body`
+- validation requires either `template` or an existing provenance marker in `body`
 - when both explicit selection and provenance marker are present, they must match exactly
-- repo-specific issue structure remains defined by the repository contract artifact, not by hardcoded issue-workflow logic inside `orfe`
+- repo-specific issue structure remains defined by the repository template artifact, not by hardcoded issue-workflow logic inside `orfe`
 - this command is a generic validation surface; it does not create workflow side effects or derive labels, assignees, or project changes from issue content
 
 Structured validation behavior:
@@ -860,7 +860,7 @@ Structured validation behavior:
 - validation issues may identify provenance, body patterns, missing sections, empty sections, missing or duplicate fields, and invalid allowed values
 - when validation passes, `normalized_body` returns the body with canonical provenance appended or normalized
 
-The current repository issue contract enforces these rules through `.orfe/contracts/issues/formal-work-item/1.0.0.json`:
+The current repository issue template enforces these rules through `.orfe/templates/issues/formal-work-item/1.0.0.json`:
 
 - required top-level sections such as `Problem / context`, `Desired outcome`, `Scope`, and `Acceptance criteria`
 - required `Scope` subsections for `In scope` and `Out of scope`
@@ -872,13 +872,13 @@ The current repository issue contract enforces these rules through `.orfe/contra
 ```json
 {
   "valid": true,
-  "contract": {
+  "template": {
     "artifact_type": "issue",
-    "contract_name": "formal-work-item",
-    "contract_version": "1.0.0"
+    "template_name": "formal-work-item",
+    "template_version": "1.0.0"
   },
-  "contract_source": "explicit",
-  "normalized_body": "## Problem / context\n\n...\n\n<!-- orfe-body-contract: issue/formal-work-item@1.0.0 -->",
+  "template_source": "explicit",
+  "normalized_body": "## Problem / context\n\n...\n\n<!-- orfe-template: issue/formal-work-item@1.0.0 -->",
   "errors": []
 }
 ```
@@ -888,12 +888,12 @@ Representative invalid result:
 ```json
 {
   "valid": false,
-  "contract": {
+  "template": {
     "artifact_type": "issue",
-    "contract_name": "formal-work-item",
-    "contract_version": "1.0.0"
+    "template_name": "formal-work-item",
+    "template_version": "1.0.0"
   },
-  "contract_source": "explicit",
+  "template_source": "explicit",
   "errors": [
     {
       "kind": "invalid_allowed_value",
@@ -902,7 +902,7 @@ Representative invalid result:
       "field_label": "Docs impact",
       "expected_values": ["none", "update existing docs", "add new durable docs"],
       "actual_value": "maybe",
-      "message": "Body contract validation failed: field \"Docs impact\" in section \"Docs impact\" must be one of none, update existing docs, add new durable docs."
+      "message": "Template validation failed: field \"Docs impact\" in section \"Docs impact\" must be one of none, update existing docs, add new durable docs."
     }
   ]
 }
@@ -912,10 +912,10 @@ Minimal generation/normalization note:
 
 - this issue slice does not add interactive or inferred issue authoring
 - the only body-generation behavior in scope is deterministic normalization of the provided body plus provenance insertion after successful validation
-- the contract file and version remain the source of that normalization provenance
+- the template file and version remain the source of that normalization provenance
 
 **Side effects**: none  
-**Failure behavior**: malformed command input => `invalid_usage`; invalid contract files => `contract_invalid` / `contract_not_found`  
+**Failure behavior**: malformed command input => `invalid_usage`; invalid template files => `template_invalid` / `template_not_found`  
 **Idempotency**: yes
 
 ## 11.6 `issue comment`
@@ -1074,7 +1074,7 @@ orfe pr get --pr-number <number> [--repo <owner/name>] [--config <path>]
 **CLI**:
 
 ```text
-orfe pr get-or-create --head <branch> --title <text> [--body <text>] [--body-contract <name@version>] [--base <branch>] [--draft] [--repo <owner/name>] [--config <path>]
+orfe pr get-or-create --head <branch> --title <text> [--body <text>] [--template <name@version>] [--base <branch>] [--draft] [--repo <owner/name>] [--config <path>]
 ```
 
 Rules:
@@ -1084,20 +1084,20 @@ Rules:
 - `--base` defaults to `repository.default_branch`
 - lookup key is `(repo, head, base, state=open)`
 - if one open PR matches, return it unchanged
-- when an open PR is reused, provided `body` and `body_contract` inputs are ignored and not validated
+- when an open PR is reused, provided `body` and `template` inputs are ignored and not validated
 - if more than one open PR matches, fail with `github_conflict`
 - if none match, create a new PR
 
-Body-contract rules:
+Template rules:
 
-- `body_contract` is optional
-- when provided, the PR body must validate against the selected PR contract
-- when a provenance marker is already present in `body`, validation may use that marker even if `body_contract` is omitted
+- `template` is optional
+- when provided, the PR body must validate against the selected PR template
+- when a provenance marker is already present in `body`, validation may use that marker even if `template` is omitted
 - when both explicit selection and provenance marker are present, they must match exactly
 - successful validation appends or normalizes an HTML comment provenance marker in this form:
 
 ```html
-<!-- orfe-body-contract: pr/<contract-name>@<version> -->
+<!-- orfe-template: pr/<template-name>@<version> -->
 ```
 
 **Success `data` shape**:
@@ -1119,12 +1119,12 @@ Body-contract rules:
 
 ## 11.10 `pr validate`
 
-**Purpose**: Validate a pull request body against a repository-defined, versioned body contract without creating or updating a PR.
+**Purpose**: Validate a pull request body against a repository-defined, versioned template without creating or updating a PR.
 
 **CLI**:
 
 ```text
-orfe pr validate --body <text> [--body-contract <name@version>] [--repo <owner/name>] [--config <path>]
+orfe pr validate --body <text> [--template <name@version>] [--repo <owner/name>] [--config <path>]
 ```
 
 **Tool input**:
@@ -1133,17 +1133,17 @@ orfe pr validate --body <text> [--body-contract <name@version>] [--repo <owner/n
 {
   "command": "pr validate",
   "body": "Ref: #58\n\n## Summary\n- ...",
-  "body_contract": "implementation-ready@1.0.0"
+  "template": "implementation-ready@1.0.0"
 }
 ```
 
 Rules:
 
 - `body` is required
-- validation requires either `body_contract` or an existing provenance marker in `body`
+- validation requires either `template` or an existing provenance marker in `body`
 - when both explicit selection and provenance marker are present, they must match exactly
-- repo-specific rules such as the `Ref: #<issue-number>` first-line requirement and auto-closing keyword rejection stay in the repository contract artifact, not in hardcoded PR workflow logic
-- required-section validation is implemented in this slice through the shared contract section model
+- repo-specific rules such as the `Ref: #<issue-number>` first-line requirement and auto-closing keyword rejection stay in the repository template artifact, not in hardcoded PR workflow logic
+- required-section validation is implemented in this slice through the shared template section model
 - this command is a generic validation surface; it does not create workflow side effects or turn `orfe` into a workflow engine
 
 Structured validation behavior:
@@ -1154,7 +1154,7 @@ Structured validation behavior:
 - validation issues may identify provenance, preamble/body patterns, missing or forbidden sections, and invalid fields/allowed values
 - when validation passes, `normalized_body` returns the body with canonical provenance appended or normalized
 
-The current repository PR contract enforces these rules through `.orfe/contracts/pr/implementation-ready/1.0.0.json`:
+The current repository PR template enforces these rules through `.orfe/templates/pr/implementation-ready/1.0.0.json`:
 
 - the first line must match `Ref: #<issue-number>`
 - auto-closing keywords such as `Closes`, `Fixes`, and `Resolves` are forbidden by default
@@ -1165,13 +1165,13 @@ The current repository PR contract enforces these rules through `.orfe/contracts
 ```json
 {
   "valid": true,
-  "contract": {
+  "template": {
     "artifact_type": "pr",
-    "contract_name": "implementation-ready",
-    "contract_version": "1.0.0"
+    "template_name": "implementation-ready",
+    "template_version": "1.0.0"
   },
-  "contract_source": "explicit",
-  "normalized_body": "Ref: #58\n\n## Summary\n- ...\n\n<!-- orfe-body-contract: pr/implementation-ready@1.0.0 -->",
+  "template_source": "explicit",
+  "normalized_body": "Ref: #58\n\n## Summary\n- ...\n\n<!-- orfe-template: pr/implementation-ready@1.0.0 -->",
   "errors": []
 }
 ```
@@ -1181,25 +1181,25 @@ Representative invalid result:
 ```json
 {
   "valid": false,
-  "contract": {
+  "template": {
     "artifact_type": "pr",
-    "contract_name": "implementation-ready",
-    "contract_version": "1.0.0"
+    "template_name": "implementation-ready",
+    "template_version": "1.0.0"
   },
-  "contract_source": "explicit",
+  "template_source": "explicit",
   "errors": [
     {
       "kind": "matched_forbidden_pattern",
       "scope": "body",
       "pattern": "(?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+",
-      "message": "Body contract validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+."
+      "message": "Template validation failed: body matched forbidden pattern (?:^|\\n)(?:Closes|Close|Closed|Fixes|Fix|Fixed|Resolves|Resolve|Resolved)\\s*:?\\s*#\\d+."
     }
   ]
 }
 ```
 
 **Side effects**: none  
-**Failure behavior**: malformed command input => `invalid_usage`; invalid contract files => `contract_invalid` / `contract_not_found`  
+**Failure behavior**: malformed command input => `invalid_usage`; invalid template files => `template_invalid` / `template_not_found`  
 **Idempotency**: yes
 
 ## 11.11 `pr update`
@@ -1209,7 +1209,7 @@ Representative invalid result:
 **CLI**:
 
 ```text
-orfe pr update --pr-number <number> [--title <text>] [--body <text>] [--body-contract <name@version>] [--repo <owner/name>] [--config <path>] [--auth-config <path>]
+orfe pr update --pr-number <number> [--title <text>] [--body <text>] [--template <name@version>] [--repo <owner/name>] [--config <path>] [--auth-config <path>]
 ```
 
 **Tool input**:
@@ -1220,7 +1220,7 @@ orfe pr update --pr-number <number> [--title <text>] [--body <text>] [--body-con
   "pr_number": 9,
   "title": "Corrected PR title",
   "body": "Ref: #142\n\n## Summary\n- ...",
-  "body_contract": "implementation-ready@1.0.0"
+  "template": "implementation-ready@1.0.0"
 }
 ```
 
@@ -1228,21 +1228,21 @@ Rules:
 
 - at least one mutation option is required
 - supported mutable fields in this slice are `title` and `body`
-- `body_contract` does not count as a mutation by itself; it only constrains `body` validation
+- `template` does not count as a mutation by itself; it only constrains `body` validation
 - this slice intentionally does not add merge workflow semantics or broader workflow recovery logic
 - head/base retargeting is out of scope for this command slice
 - draft-state toggling is not included in this slice
 
-Body-contract rules match `pr get-or-create` and `pr validate`:
+Template rules match `pr get-or-create` and `pr validate`:
 
-- `body_contract` is optional
-- when provided, the PR body must validate against the selected PR contract
-- when a provenance marker is already present in `body`, validation may use that marker even if `body_contract` is omitted
+- `template` is optional
+- when provided, the PR body must validate against the selected PR template
+- when a provenance marker is already present in `body`, validation may use that marker even if `template` is omitted
 - when both explicit selection and provenance marker are present, they must match exactly
 - successful validation appends or normalizes an HTML comment provenance marker in this form:
 
 ```html
-<!-- orfe-body-contract: pr/<contract-name>@<version> -->
+<!-- orfe-template: pr/<template-name>@<version> -->
 ```
 
 **Success `data` shape**:
@@ -1260,7 +1260,7 @@ Body-contract rules match `pr get-or-create` and `pr validate`:
 ```
 
 **Side effects**: updates pull request metadata  
-**Failure behavior**: invalid combination => `invalid_usage`; missing PR => `github_not_found`; body contract failures => `contract_validation_failed`  
+**Failure behavior**: invalid combination => `invalid_usage`; missing PR => `github_not_found`; template failures => `template_validation_failed`  
 **Idempotency**: yes when the requested title/body already matches the current pull request state
 
 ## 11.12 `pr comment`

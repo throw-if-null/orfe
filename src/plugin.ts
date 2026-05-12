@@ -13,7 +13,7 @@ const args = {
   pr_number: tool.schema.number().int().positive().optional(),
   title: tool.schema.string().optional(),
   body: tool.schema.string().optional(),
-  body_contract: tool.schema.string().optional(),
+  template: tool.schema.string().optional(),
   state: tool.schema.string().optional(),
   state_reason: tool.schema.string().optional(),
   duplicate_of: tool.schema.number().int().positive().optional(),

@@ -33,7 +33,13 @@ This glossary defines durable terminology for `orfe` so docs, config, runtime ou
 - identifies the GitHub App installation source
 - remains `app_slug`; it is not renamed because it already describes GitHub metadata precisely
 
+### template
+- a versioned repo-defined JSON artifact for issue and PR body validation and provenance
+- lives under `.orfe/templates/`
+- selected through `template` tool input, `--template` CLI input, or an existing provenance marker in the body
+- declarative only; it must not execute code or encode workflow side effects
+
 ## Historical note
 
 Earlier `orfe` code and docs used `role` where this glossary now uses `bot` for the GitHub App-backed auth identity.
-That older terminology is superseded directly rather than preserved as an alias.
+The term `body-contract` was also used earlier for repo-defined validation artifacts; `template` is now the canonical public/runtime term.

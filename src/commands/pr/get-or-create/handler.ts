@@ -7,7 +7,7 @@ import {
   type PullRequestGetResponseData,
   type PullRequestSummaryData,
 } from '../shared.js';
-import { preparePullRequestBodyFromInput } from '../../body-contract-shared.js';
+import { preparePullRequestBodyFromInput } from '../../shared/body-input.js';
 
 export async function handlePrGetOrCreate(context: CommandContext<'pr get-or-create'>): Promise<PullRequestGetOrCreateData> {
   const head = context.input.head as string;

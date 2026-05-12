@@ -1,5 +1,5 @@
-import { prepareArtifactBody } from '../body-contracts.js';
-import type { CommandContext, CommandInput } from '../types.js';
+import { prepareArtifactBody } from '../../templates.js';
+import type { CommandContext, CommandInput } from '../../types.js';
 
 export async function prepareIssueBodyFromInput(
   context: Pick<CommandContext, 'input' | 'repoConfig'>,
@@ -8,7 +8,7 @@ export async function prepareIssueBodyFromInput(
   const preparedBody = await prepareArtifactBody({
     artifactType: 'issue',
     ...(typeof input.body === 'string' ? { body: input.body } : {}),
-    ...(typeof input.body_contract === 'string' ? { bodyContract: input.body_contract } : {}),
+    ...(typeof input.template === 'string' ? { template: input.template } : {}),
     repoConfig: context.repoConfig,
   });
 
@@ -22,7 +22,7 @@ export async function preparePullRequestBodyFromInput(
   const preparedBody = await prepareArtifactBody({
     artifactType: 'pr',
     ...(typeof input.body === 'string' ? { body: input.body } : {}),
-    ...(typeof input.body_contract === 'string' ? { bodyContract: input.body_contract } : {}),
+    ...(typeof input.template === 'string' ? { template: input.template } : {}),
     repoConfig: context.repoConfig,
   });
 

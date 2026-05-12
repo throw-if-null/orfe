@@ -64,10 +64,10 @@ export function createGitHubClientFactory() {
   });
 }
 
-export function renderIssueBodyContractMarker(): string {
-  return '<!-- orfe-body-contract: issue/formal-work-item@1.0.0 -->';
+export function renderIssueTemplateMarker(): string {
+  return '<!-- orfe-template: issue/formal-work-item@1.0.0 -->';
 }
 
-export function renderPrBodyContractMarker(): string {
-  return '<!-- orfe-body-contract: pr/implementation-ready@1.0.0 -->';
+export function renderPrTemplateMarker(): string {
+  return '<!-- orfe-template: pr/implementation-ready@1.0.0 -->';
 }

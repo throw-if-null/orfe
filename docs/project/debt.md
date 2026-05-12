@@ -34,7 +34,7 @@ This file keeps known documentation, architecture, and process debt visible so i
 - **Current treatment:** keep the logger internal so CLI and OpenCode entrypoints can suppress dependency noise by default while still allowing local troubleshooting.
 - **Follow-up direction:** decide whether log-level configuration should become part of the public interface once the desired UX is clearer.
 
-### 7. GitHub-native issue and PR templates are now transitional relative to body contracts
-- **Impact:** the repository now has a versioned body-contract foundation under `.orfe/contracts/`, but `.github/ISSUE_TEMPLATE/feature.md` and `.github/pull_request_template.md` still remain active human-facing fallback aids. That creates a temporary dual-source risk for artifact structure expectations.
-- **Current treatment:** treat versioned body contracts as the canonical runtime source for validated agent-authored artifacts, while keeping the GitHub-native templates as transitional workflow aids that `orfe` does not read or depend on.
+### 7. GitHub-native issue and PR templates are now transitional relative to repo-defined validation templates
+- **Impact:** the repository now has a versioned template foundation under `.orfe/templates/`, but `.github/ISSUE_TEMPLATE/feature.md` and `.github/pull_request_template.md` still remain active human-facing fallback aids. That creates a temporary dual-source risk for artifact structure expectations.
+- **Current treatment:** treat versioned repo-defined templates as the canonical runtime source for validated agent-authored artifacts, while keeping the GitHub-native templates as transitional workflow aids that `orfe` does not read or depend on.
 - **Follow-up direction:** once contract-driven authoring and validation are in routine use, reduce or realign the GitHub-native templates intentionally so durable structure expectations do not drift.

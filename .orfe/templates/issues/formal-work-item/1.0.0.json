@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "artifact_type": "issue",
-  "contract_name": "formal-work-item",
-  "contract_version": "1.0.0",
-  "description": "Declarative issue-body contract for formal work-item issues.",
+  "template_name": "formal-work-item",
+  "template_version": "1.0.0",
+  "description": "Declarative issue-body template for formal work-item issues.",
   "allow_additional_sections": false,
   "sections": [
     {
