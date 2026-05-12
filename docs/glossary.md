@@ -42,4 +42,4 @@ This glossary defines durable terminology for `orfe` so docs, config, runtime ou
 ## Historical note
 
 Earlier `orfe` code and docs used `role` where this glossary now uses `bot` for the GitHub App-backed auth identity.
-An earlier term was also used for repo-defined validation artifacts; `template` is now the canonical public/runtime term.
+The term `body-contract` was also used earlier for repo-defined validation artifacts; `template` is now the canonical public/runtime term.
