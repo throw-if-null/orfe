@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { GitHubClientFactory } from '../../src/github.js';
+import { GitHubClientFactory } from '../../src/github/client-factory.js';
 
 const supportDirectory = path.dirname(fileURLToPath(import.meta.url));
 

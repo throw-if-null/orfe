@@ -1,5 +1,5 @@
-import { OrfeError } from '../../../errors.js';
-import type { CommandInput } from '../../../types.js';
+import { OrfeError } from '../../../runtime/errors.js';
+import type { CommandInput } from '../../../core/types.js';
 
 export function validatePrUpdateInput(input: CommandInput): CommandInput {
   if (input.template !== undefined && input.body === undefined) {

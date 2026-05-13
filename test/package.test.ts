@@ -19,16 +19,16 @@ test('package manifest keeps the public CLI and plugin entrypoints stable', asyn
   const bin = packageJson.bin as Record<string, string> | undefined;
   const exportsField = packageJson.exports as Record<string, string> | undefined;
 
-  assert.equal(packageJson.main, './dist/wrapper.js');
-  assert.equal(exportsField?.['.'], './dist/wrapper.js');
-  assert.equal(exportsField?.['./plugin'], './dist/plugin.js');
-  assert.equal(bin?.orfe, './dist/cli.js');
+  assert.equal(packageJson.main, './dist/opencode/tool.js');
+  assert.equal(exportsField?.['.'], './dist/opencode/tool.js');
+  assert.equal(exportsField?.['./plugin'], './dist/opencode/plugin.js');
+  assert.equal(bin?.orfe, './dist/cli/entrypoint.js');
   assert.ok(files?.includes('dist'));
   assert.ok(files?.includes('README.md'));
 });
 
 test('CLI source keeps a node shebang for packaged execution', async () => {
-  const cliSource = await readFile(resolve(workspaceRoot, 'src/cli.ts'), 'utf8');
+  const cliSource = await readFile(resolve(workspaceRoot, 'src/cli/entrypoint.ts'), 'utf8');
 
   assert.match(cliSource, /^#!\/usr\/bin\/env node/m);
 });

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-import { executeOrfeTool, resolveCallerNameFromContext } from '../../src/wrapper.js';
+import { executeOrfeTool, resolveCallerNameFromContext } from '../../src/opencode/tool.js';
 
 test('resolveCallerNameFromContext accepts a string agent name', () => {
   assert.equal(resolveCallerNameFromContext({ agent: 'Greg' }), 'Greg');

@@ -1,6 +1,6 @@
 import type { ArtifactTemplateValidationResult } from '../../templates.js';
-import { OrfeError } from '../../errors.js';
-import type { GitHubClients } from '../../types.js';
+import { OrfeError } from '../../runtime/errors.js';
+import type { GitHubClients } from '../../github/types.js';
 
 export interface IssueCreateData {
   issue_number: number;

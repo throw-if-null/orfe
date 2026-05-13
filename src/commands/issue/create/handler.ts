@@ -1,6 +1,7 @@
-import { resolveProjectCommandConfig } from '../../../config.js';
-import { OrfeError } from '../../../errors.js';
-import type { CommandContext, CommandInput } from '../../../types.js';
+import { resolveProjectCommandConfig } from '../../../config/project-defaults.js';
+import { OrfeError } from '../../../runtime/errors.js';
+import type { CommandContext } from '../../../core/context.js';
+import type { CommandInput } from '../../../core/types.js';
 import {
   addProjectItemByContentId,
   mapProjectAddItemError,

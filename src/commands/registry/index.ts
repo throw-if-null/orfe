@@ -1,8 +1,8 @@
-import { OrfeError } from '../../errors.js';
+import { OrfeError } from '../../runtime/errors.js';
 import { COMMANDS, type OrfeCommandGroup, type OrfeCommandName } from '../index.js';
 import { COMMON_CLI_OPTIONS } from './common-options.js';
 import type { CommandDefinition, CommandOptionDefinition } from './types.js';
-import type { CommandInput } from '../../types.js';
+import type { CommandInput } from '../../core/types.js';
 
 export type { CommandDefinition, CommandOptionDefinition } from './types.js';
 

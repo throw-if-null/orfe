@@ -1,5 +1,5 @@
-import { OrfeError } from '../../../errors.js';
-import type { CommandInput } from '../../../types.js';
+import { OrfeError } from '../../../runtime/errors.js';
+import type { CommandInput } from '../../../core/types.js';
 import type { PullRequestReviewEvent } from '../shared.js';
 
 export function validatePrSubmitReviewInput(input: CommandInput): CommandInput {

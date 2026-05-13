@@ -1,5 +1,5 @@
-import { OrfeError } from '../../../errors.js';
-import type { CommandInput } from '../../../types.js';
+import { OrfeError } from '../../../runtime/errors.js';
+import type { CommandInput } from '../../../core/types.js';
 
 export function validateIssueSetStateInput(input: CommandInput): CommandInput {
   if (input.state_reason !== undefined && input.state !== 'closed') {

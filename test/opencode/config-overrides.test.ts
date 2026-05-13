@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { test } from 'vitest';
 
-import { executeOrfeTool } from '../../src/wrapper.js';
+import { executeOrfeTool } from '../../src/opencode/tool.js';
 import { workspaceRoot } from '../support/runtime-fixtures.js';
 
 test('executeOrfeTool returns structured config failures when forwarded config path is invalid', async () => {

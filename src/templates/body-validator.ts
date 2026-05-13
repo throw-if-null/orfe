@@ -1,4 +1,4 @@
-import { OrfeError } from '../errors.js';
+import { OrfeError } from '../runtime/errors.js';
 import { parseBodyStructure, type ParsedBodySection } from './body-parser.js';
 import { throwFirstValidationIssue } from './errors.js';
 import { formatTemplateRef } from './formatters.js';

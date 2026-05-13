@@ -1,4 +1,4 @@
-import { OrfeError } from '../errors.js';
+import { OrfeError } from '../runtime/errors.js';
 import { formatTemplateRef } from './formatters.js';
 import { inspectTemplateProvenance } from './provenance.js';
 import type { BodyValidationIssue, TemplateArtifactType, TemplateRef, TemplateSource } from './types.js';

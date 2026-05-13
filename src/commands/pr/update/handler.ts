@@ -1,5 +1,6 @@
-import { OrfeError } from '../../../errors.js';
-import type { CommandContext, CommandInput } from '../../../types.js';
+import { OrfeError } from '../../../runtime/errors.js';
+import type { CommandContext } from '../../../core/context.js';
+import type { CommandInput } from '../../../core/types.js';
 import {
   assertPrTargetIsPullRequest,
   getGitHubRequestStatus,

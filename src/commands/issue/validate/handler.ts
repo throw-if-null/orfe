@@ -1,5 +1,5 @@
 import { validateArtifactBody } from '../../../templates.js';
-import type { CommandContext } from '../../../types.js';
+import type { CommandContext } from '../../../core/context.js';
 import type { IssueValidateData } from '../shared.js';
 
 export async function handleIssueValidate(context: CommandContext<'issue validate'>): Promise<IssueValidateData> {

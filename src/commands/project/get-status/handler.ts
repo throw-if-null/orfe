@@ -1,5 +1,5 @@
-import { resolveProjectCommandConfig } from '../../../config.js';
-import type { CommandContext } from '../../../types.js';
+import { resolveProjectCommandConfig } from '../../../config/project-defaults.js';
+import type { CommandContext } from '../../../core/context.js';
 import {
   mapProjectGetStatusError,
   resolveProjectStatusContext,

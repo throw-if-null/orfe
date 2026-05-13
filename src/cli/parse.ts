@@ -1,98 +1,32 @@
 import {
   getCliCommonOptions,
   getCommandDefinition,
-  getGroupDefinitions,
   getTopLevelCommandDefinition,
-  listCommandDefinitions,
   listCommandGroups,
   type CommandDefinition,
   type CommandOptionDefinition,
-} from './commands/registry/index.js';
-import { CliUsageError, OrfeError, formatCliUsageError } from './errors.js';
-import { runOrfeCore, type OrfeCoreDependencies } from './core.js';
-import { createErrorResponse } from './response.js';
-import { createCliLogger } from './logger.js';
-import type { CommandInput } from './types.js';
-import type { OrfeCommandGroup } from './commands/index.js';
-import { getOrfeVersion } from './version.js';
+} from '../commands/registry/index.js';
+import { getOrfeVersion } from '../version.js';
+import { CliUsageError } from '../runtime/errors.js';
 
-export interface ParsedLeafInvocation {
-  kind: 'leaf';
-  commandDefinition: CommandDefinition;
-  callerName: string;
-  configPath?: string;
-  authConfigPath?: string;
-  input: CommandInput;
-}
-
-export interface ParsedHelpInvocation {
-  kind: 'help';
-  output: string;
-}
-
-export interface ParsedVersionInvocation {
-  kind: 'version';
-  output: string;
-}
-
-export type ParsedInvocation = ParsedLeafInvocation | ParsedHelpInvocation | ParsedVersionInvocation;
-
-export interface RunCliDependencies extends OrfeCoreDependencies {
-  env?: NodeJS.ProcessEnv;
-  stdout?: Pick<NodeJS.WriteStream, 'write'>;
-  stderr?: Pick<NodeJS.WriteStream, 'write'>;
-}
+import { renderGroupHelp, renderLeafHelp, renderRootHelp } from './help.js';
+import type { OrfeCommandGroup, ParsedInvocation } from './types.js';
+import type { CommandInput } from '../core/types.js';
 
 export function parseInvocationForCli(args: string[], env: NodeJS.ProcessEnv): ParsedInvocation {
   return parseInvocation(args, env);
 }
 
-export async function runCli(args: string[], dependencies: RunCliDependencies = {}): Promise<number> {
-  const env = dependencies.env ?? process.env;
-  const stdout = dependencies.stdout ?? process.stdout;
-  const stderr = dependencies.stderr ?? process.stderr;
-  const logger = createCliLogger({ env, stderr });
-  let parsedInvocation: ParsedLeafInvocation | undefined;
+export function createLeafUsageError(commandDefinition: CommandDefinition, message: string): CliUsageError {
+  const see = commandDefinition.topLevel
+    ? `orfe ${commandDefinition.name} --help`
+    : `orfe ${commandDefinition.group} ${commandDefinition.leaf} --help`;
 
-  try {
-    const invocation = parseInvocation(args, env);
-    if (invocation.kind === 'help' || invocation.kind === 'version') {
-      stdout.write(`${invocation.output}\n`);
-      return 0;
-    }
-
-    parsedInvocation = invocation;
-    const result = await runOrfeCore(
-      {
-        callerName: invocation.callerName,
-        command: invocation.commandDefinition.name,
-        input: invocation.input,
-        entrypoint: 'cli',
-        ...(invocation.configPath ? { configPath: invocation.configPath } : {}),
-        ...(invocation.authConfigPath ? { authConfigPath: invocation.authConfigPath } : {}),
-        logger,
-      },
-      dependencies,
-    );
-
-    stdout.write(`${JSON.stringify(result)}\n`);
-    return 0;
-  } catch (error) {
-    if (error instanceof CliUsageError) {
-      stderr.write(`${formatCliUsageError(error)}\n`);
-      return 2;
-    }
-
-    if (parsedInvocation && error instanceof OrfeError && error.code === 'invalid_usage') {
-      const cliUsageError = createLeafUsageError(parsedInvocation.commandDefinition, error.message);
-      stderr.write(`${formatCliUsageError(cliUsageError)}\n`);
-      return 2;
-    }
-
-    const commandName = parsedInvocation?.commandDefinition.name ?? 'unknown';
-    stderr.write(`${JSON.stringify(createErrorResponse(commandName, error))}\n`);
-    return 1;
-  }
+  return new CliUsageError(message, {
+    usage: commandDefinition.usage,
+    example: commandDefinition.examples[0] ?? commandDefinition.usage,
+    see,
+  });
 }
 
 function parseInvocation(args: string[], env: NodeJS.ProcessEnv): ParsedInvocation {
@@ -295,104 +229,4 @@ function getCommandDefinitionForCli(commandName: string, group: OrfeCommandGroup
       see: `orfe ${group} --help`,
     });
   }
-}
-
-function renderRootHelp(): string {
-  const commandGroups = listCommandGroups();
-  const rootExamples = listCommandDefinitions()
-    .flatMap((definition) => definition.examples)
-    .filter((example, index, examples) => example.trim().length > 0 && examples.indexOf(example) === index)
-    .slice(0, 2);
-
-  return [
-    'orfe - generic GitHub operations runtime',
-    '',
-    'Usage:',
-    `  orfe <${commandGroups.join('|')}> <command> [options]`,
-    '  orfe --help',
-    '  orfe --version',
-    '',
-    'Command groups:',
-    ...commandGroups.map((group) => `  ${group}`),
-    '',
-    'Examples:',
-    ...(rootExamples.length > 0 ? rootExamples.map((example) => `  ${example}`) : ['  orfe --help']),
-    '',
-    'Run `orfe <group> --help` for group-specific help.',
-  ].join('\n');
-}
-
-function renderGroupHelp(group: OrfeCommandGroup): string {
-  const groupDefinitions = getGroupDefinitions(group);
-
-  return [
-    `orfe ${group}`,
-    '',
-    'Usage:',
-    `  orfe ${group} <command> [options]`,
-    '',
-    'Commands:',
-    ...groupDefinitions.map((definition) => `  ${definition.leaf} - ${definition.purpose}`),
-    '',
-    'Example:',
-    `  ${groupDefinitions[0]?.examples[0] ?? `orfe ${group} --help`}`,
-  ].join('\n');
-}
-
-function renderLeafHelp(commandDefinition: CommandDefinition): string {
-  const requiredOptions = commandDefinition.options.filter((option) => option.required);
-  const optionalOptions = dedupeOptionDefinitions([
-    ...commandDefinition.options.filter((option) => !option.required),
-    ...getCliCommonOptions().filter((option) => !requiredOptions.some((requiredOption) => requiredOption.flag === option.flag)),
-  ]);
-
-  return [
-    `${commandDefinition.name}`,
-    '',
-    `Purpose: ${commandDefinition.purpose}`,
-    `Usage: ${commandDefinition.usage}`,
-    '',
-    'Required options:',
-    ...(requiredOptions.length > 0 ? requiredOptions.map(formatOptionLine) : ['  (none)']),
-    '',
-    'Optional options:',
-    ...optionalOptions.map(formatOptionLine),
-    '',
-    `Success: ${commandDefinition.successSummary}`,
-    '',
-    'Examples:',
-    ...commandDefinition.examples.map((example) => `  ${example}`),
-    '',
-    'JSON success shape example:',
-    `  ${JSON.stringify(commandDefinition.successDataExample)}`,
-  ].join('\n');
-}
-
-function dedupeOptionDefinitions(optionDefinitions: CommandOptionDefinition[]): CommandOptionDefinition[] {
-  const seenFlags = new Set<string>();
-
-  return optionDefinitions.filter((optionDefinition) => {
-    if (seenFlags.has(optionDefinition.flag)) {
-      return false;
-    }
-
-    seenFlags.add(optionDefinition.flag);
-    return true;
-  });
-}
-
-function formatOptionLine(optionDefinition: CommandOptionDefinition): string {
-  return `  ${optionDefinition.flag} - ${optionDefinition.description}`;
-}
-
-function createLeafUsageError(commandDefinition: CommandDefinition, message: string): CliUsageError {
-  const see = commandDefinition.topLevel
-    ? `orfe ${commandDefinition.name} --help`
-    : `orfe ${commandDefinition.group} ${commandDefinition.leaf} --help`;
-
-  return new CliUsageError(message, {
-    usage: commandDefinition.usage,
-    example: commandDefinition.examples[0] ?? commandDefinition.usage,
-    see,
-  });
 }
