@@ -215,7 +215,7 @@ To add a new command:
 - register the slice in `src/commands/index.ts`
 - use or extend `<group>/shared/` only for helper logic genuinely shared by multiple commands in that group, and name modules by responsibility
 
-Command-specific tests live beside the slice by default. Cross-cutting CLI, core, OpenCode tool/plugin, and package-level tests remain in `test/`.
+Command-specific tests live beside the slice by default when they exercise only that slice's local contract surface, such as `definition.test.ts` and focused runtime-surface tests like `core.test.ts`, `tool.test.ts`, or `cli.test.ts`. Cross-cutting CLI, core, OpenCode tool/plugin, template-runtime, shared mock, and package-level tests remain in `test/`, and test-only support artifacts such as GitHub mocks must not live under `src/`.
 
 ## Architectural rules to keep in mind
 
