@@ -15,7 +15,7 @@ See also:
 `orfe` is a stand-alone GitHub operations tool with two entrypoints:
 
 - an installable CLI named `orfe`
-- an OpenCode custom tool wrapper also named `orfe`
+- an OpenCode plugin that registers the `orfe` tool
 
 V1 exists to provide a deterministic, reusable contract for:
 
@@ -32,8 +32,8 @@ Accepted architecture direction now also includes installable extensions layered
 ## 2. Resolved design decisions
 
 1. `orfe` is a stand-alone tool, not a repo-specific workflow engine.
-2. The OpenCode wrapper is the **only** layer allowed to read `context.agent`.
-3. The wrapper resolves a plain `callerName` string and passes that into the `orfe` core.
+2. The OpenCode tool entrypoint is the **only** layer allowed to read `context.agent`.
+3. The tool entrypoint resolves a plain `callerName` string and passes that into the `orfe` core.
 4. The core never reads `context.agent` directly.
 5. Repo-local config maps `callerName` to the GitHub bot used for auth.
 6. `orfe` uses Octokit as the GitHub API client layer.
@@ -70,8 +70,8 @@ For terminology in this spec:
 
 - package/runtime architecture
 - CLI contract
-- OpenCode wrapper contract
-- wrapper/core boundary
+- OpenCode tool contract
+- OpenCode tool/core boundary
 - caller resolution rules
 - repo-local config model
 - success/error/help contract
@@ -99,7 +99,7 @@ For terminology in this spec:
 
 `orfe` v1 is split into four layers.
 
-### 4.1 OpenCode wrapper
+### 4.1 OpenCode tool entrypoint
 
 Responsibilities:
 
@@ -109,7 +109,7 @@ Responsibilities:
 - reject missing or invalid caller context
 - pass plain structured input plus `callerName` into the core
 
-The wrapper must not:
+The tool entrypoint must not:
 
 - call GitHub directly
 - load repo config itself except as needed to locate repo context
@@ -130,7 +130,7 @@ Responsibilities:
 - dispatch command handlers
 - return structured success objects or typed errors
 
-The core is runtime-agnostic. It must be callable from both CLI and OpenCode wrapper code.
+The core is runtime-agnostic. It must be callable from both CLI and OpenCode tool entrypoint code.
 
 ### 4.3 Auth adapter
 
@@ -138,7 +138,7 @@ V1 auth is bot-aware and internal to `orfe`.
 
 Auth flow:
 
-1. the wrapper or CLI provides `callerName`
+1. the OpenCode tool entrypoint or CLI provides `callerName`
 2. the core resolves `callerName -> github bot`
 3. the auth adapter loads machine-local auth config for that GitHub bot
 4. the auth adapter reads the GitHub App credentials and private key path for that bot
@@ -169,13 +169,13 @@ For `issue set-state` specifically:
 - non-duplicate open/close transitions use Octokit REST issue update operations
 - duplicate closure uses Octokit GraphQL because REST `state_reason=duplicate` alone does not establish GitHub's canonical duplicate relationship
 
-## 5. Wrapper/core boundary
+## 5. OpenCode tool/core boundary
 
 The boundary is strict.
 
-### 5.1 Wrapper input source
+### 5.1 Tool entrypoint input source
 
-At the OpenCode boundary, the wrapper resolves the caller from `context.agent` only.
+At the OpenCode boundary, the tool entrypoint resolves the caller from `context.agent` only.
 
 Resolution rules:
 
@@ -183,7 +183,7 @@ Resolution rules:
 2. Else if `context.agent.name` is a non-empty string, use that string.
 3. Else fail with `caller_context_missing`.
 
-After resolution, the wrapper passes only a plain string:
+After resolution, the tool entrypoint passes only a plain string:
 
 ```ts
 type CallerName = string;
@@ -576,7 +576,7 @@ The tool name is `orfe`.
 
 ### 9.1 Tool input shape
 
-The wrapper accepts structured JSON input:
+The tool entrypoint accepts structured JSON input:
 
 ```json
 {
@@ -591,14 +591,14 @@ Rules:
 - `command` is required.
 - `command` uses the canonical space-separated vocabulary, matching the CLI subcommands exactly.
 - command-specific fields use `snake_case`.
-- `config` and `auth_config` are supported wrapper-level path overrides, matching CLI `--config` and `--auth-config`.
+- `config` and `auth_config` are supported tool-level path overrides, matching CLI `--config` and `--auth-config`.
 - template selection uses `template` in tool input when applicable.
 - `caller_name` is **not** accepted from tool input.
-- the wrapper injects `callerName` from `context.agent`.
+- the tool entrypoint injects `callerName` from `context.agent`.
 
 ### 9.2 Tool output
 
-The wrapper returns the same structured success/error object shape produced by the core. The wrapper may translate thrown errors into the shared error envelope, but it must not redefine field names or introduce repo-specific semantics.
+The tool entrypoint returns the same structured success/error object shape produced by the core. The tool entrypoint may translate thrown errors into the shared error envelope, but it must not redefine field names or introduce repo-specific semantics.
 
 ## 10. CLI command hierarchy
 
@@ -661,7 +661,7 @@ orfe auth token --repo <owner/name> [--config <path>] [--auth-config <path>]
 
 Rules:
 
-- the caller identity is resolved normally through CLI or wrapper caller resolution
+- the caller identity is resolved normally through CLI or tool entrypoint caller resolution
 - the command mints only for that resolved caller bot; it is not a cross-bot impersonation feature
 - `repo` is required and must be `owner/name`
 - `app_slug` is config-derived from the resolved bot auth metadata, not looked up live from GitHub
@@ -1622,7 +1622,7 @@ Representative targeted help shape:
 
 Rules:
 
-- help is a deliberate public runtime command, not a wrapper-only special case
+- help is a deliberate public runtime command, not a tool-entrypoint-only special case
 - root help must expose enough structured information for an agent to discover available commands and choose the correct one
 - root help is the canonical agent discovery entrypoint for OpenCode tool usage
 - root help must make the recommended discovery flow explicit: start with root help, then request targeted help for a canonical command name
@@ -1644,7 +1644,7 @@ Issues #14 and #15 should assume these implementation constraints:
 - core handlers return structured result objects
 - handlers throw typed errors with stable codes
 - CLI formatting is a thin adapter over core success/error objects
-- custom tool formatting is also a thin adapter over the same core contract
+- OpenCode tool formatting is also a thin adapter over the same core contract
 - unimplemented leaf commands in early scaffolding must fail consistently with `not_implemented`
 
 Placeholder behavior for stubs:
@@ -1666,7 +1666,9 @@ Placeholder behavior for stubs:
 ### 13.1 Required automated coverage direction
 
 - contract tests for CLI structure and validation
-- contract tests for wrapper/core separation
+- contract tests for OpenCode tool/core separation
+- slice-local `definition.test.ts` files cover command metadata, validation wiring, and help-data construction where applicable
+- runtime-surface contract coverage should stay split by entrypoint as `core.test.ts`, `tool.test.ts`, and `cli.test.ts` rather than mixing those surfaces in one file
 - config-loading tests
 - caller-resolution tests
 - command-handler tests for GitHub interactions

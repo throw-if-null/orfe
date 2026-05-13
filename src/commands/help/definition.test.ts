@@ -2,124 +2,56 @@ import assert from 'node:assert/strict';
 
 import { test } from 'vitest';
 
-import { COMMANDS } from '../index.js';
+import { COMMANDS, helpCommand } from '../index.js';
+import { validateCommandInput } from '../registry/index.js';
+import { assertDefinitionIdentity, assertOption } from '../../../test/support/definition-test.js';
 import { createHelpCommandSuccessData, createHelpRootSuccessData } from './definition.js';
-import { runCoreCommand, runToolCommand } from '../../../test/support/command-runtime.js';
-import { invokeCli } from '../../../test/support/cli-test.js';
 
-test('runOrfeCore returns structured root help without caller context, config, auth, or GitHub access', async () => {
-  const result = await runCoreCommand({
-    command: 'help',
-    input: {},
+test('help definition stays a top-level runtime command with optional targeted lookup', () => {
+  assertDefinitionIdentity(helpCommand, { name: 'help', group: 'help', leaf: 'help', execution: 'runtime', topLevel: true });
+  assertOption(helpCommand, 'command_name', {
+    flag: '--command-name',
+    type: 'string',
+    description: 'Return detailed help for one canonical command name.',
   });
+  assert.equal(helpCommand.requiresCaller, false);
+  assert.equal(helpCommand.requiresRepoConfig, false);
+  assert.equal(helpCommand.requiresAuthConfig, false);
+  assert.equal(helpCommand.requiresGitHubAccess, false);
+  assert.deepEqual(validateCommandInput(helpCommand, helpCommand.validInputExample), helpCommand.validInputExample);
+});
 
-  assert.deepEqual(result, {
-    ok: true,
-    command: 'help',
-    data: createHelpRootSuccessData(COMMANDS),
+test('help root success data excludes top-level commands and groups registered slices', () => {
+  const data = createHelpRootSuccessData(COMMANDS);
+
+  assert.deepEqual(
+    data.command_groups.map((group) => group.name),
+    ['auth', 'issue', 'pr', 'project', 'runtime'],
+  );
+  assert.equal(
+    data.command_groups.flatMap((group) => group.commands.map((command) => command.canonical_command_name)).includes('help'),
+    false,
+  );
+  assert.equal(
+    data.command_groups.flatMap((group) => group.commands.map((command) => command.canonical_command_name)).includes('runtime info'),
+    true,
+  );
+});
+
+test('help command success data merges required options, common CLI options, and requirements', () => {
+  const issueGetHelp = createHelpCommandSuccessData(COMMANDS, 'issue get');
+  const issueValidateHelp = createHelpCommandSuccessData(COMMANDS, 'issue validate');
+
+  assert.deepEqual(issueGetHelp.required_options.map((option) => option.input_key), ['issue_number']);
+  assert.deepEqual(issueGetHelp.optional_options.map((option) => option.input_key), ['repo', 'config', 'auth_config']);
+  assert.deepEqual(issueValidateHelp.requirements, {
+    caller_context: 'not_required',
+    repo_local_config: 'required',
+    machine_local_auth_config: 'not_required',
+    github_access: 'not_required',
   });
 });
 
-test('executeOrfeTool returns targeted command help through the shared success envelope', async () => {
-  const result = await runToolCommand({
-    input: {
-      command: 'help',
-      command_name: 'issue get',
-    },
-  });
-
-  assert.deepEqual(result, {
-    ok: true,
-    command: 'help',
-    data: createHelpCommandSuccessData(COMMANDS, 'issue get'),
-  });
-});
-
-test('runOrfeCore returns representative targeted help across issue, pr, and project commands', async () => {
-  for (const commandName of ['issue get', 'pr update', 'project set-status'] as const) {
-    const result = await runCoreCommand({
-      command: 'help',
-      input: {
-        command_name: commandName,
-      },
-    });
-
-    assert.deepEqual(result, {
-      ok: true,
-      command: 'help',
-      data: createHelpCommandSuccessData(COMMANDS, commandName),
-    });
-  }
-});
-
-test('runCli prints structured root help for the runtime help command without caller, config, auth, or GitHub access', async () => {
-  const result = await invokeCli(['help'], {
-    env: {},
-    loadRepoConfigImpl: async () => {
-      throw new Error('loadRepoConfigImpl should not run');
-    },
-    loadAuthConfigImpl: async () => {
-      throw new Error('loadAuthConfigImpl should not run');
-    },
-  });
-
-  assert.equal(result.exitCode, 0);
-  assert.equal(result.stderr, '');
-  assert.deepEqual(JSON.parse(result.stdout), {
-    ok: true,
-    command: 'help',
-    data: createHelpRootSuccessData(COMMANDS),
-  });
-});
-
-test('runCli prints targeted structured help for the requested command', async () => {
-  const result = await invokeCli(['help', '--command-name', 'issue get'], {
-    env: {},
-    loadRepoConfigImpl: async () => {
-      throw new Error('loadRepoConfigImpl should not run');
-    },
-    loadAuthConfigImpl: async () => {
-      throw new Error('loadAuthConfigImpl should not run');
-    },
-  });
-
-  assert.equal(result.exitCode, 0);
-  assert.equal(result.stderr, '');
-  assert.deepEqual(JSON.parse(result.stdout), {
-    ok: true,
-    command: 'help',
-    data: createHelpCommandSuccessData(COMMANDS, 'issue get'),
-  });
-});
-
-test('runCli prints representative targeted structured help for issue, pr, and project commands', async () => {
-  for (const commandName of ['issue get', 'pr update', 'project set-status'] as const) {
-    const result = await invokeCli(['help', '--command-name', commandName], {
-      env: {},
-      loadRepoConfigImpl: async () => {
-        throw new Error('loadRepoConfigImpl should not run');
-      },
-      loadAuthConfigImpl: async () => {
-        throw new Error('loadAuthConfigImpl should not run');
-      },
-    });
-
-    assert.equal(result.exitCode, 0);
-    assert.equal(result.stderr, '');
-    assert.deepEqual(JSON.parse(result.stdout), {
-      ok: true,
-      command: 'help',
-      data: createHelpCommandSuccessData(COMMANDS, commandName),
-    });
-  }
-});
-
-test('runCli reports help-command usage errors with the top-level help reference', async () => {
-  const result = await invokeCli(['help', '--command-name']);
-
-  assert.equal(result.exitCode, 2);
-  assert.equal(result.stdout, '');
-  assert.match(result.stderr, /Error: Missing value for option "--command-name"\./);
-  assert.match(result.stderr, /Usage: orfe help \[--command-name <command>]$/m);
-  assert.match(result.stderr, /See: orfe help --help/);
+test('help command success data rejects unknown canonical command names', () => {
+  assert.throws(() => createHelpCommandSuccessData(COMMANDS, 'issue unknown'), /Unknown command "issue unknown"\./);
 });
