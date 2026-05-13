@@ -4,22 +4,28 @@ import type { CommandContext } from '../../../core/context.js';
 import type { CommandInput } from '../../../core/types.js';
 import {
   addProjectItemByContentId,
+  type ProjectAddItemResult,
+  updateProjectStatus,
+} from '../../project/shared/mutations.js';
+import {
   mapProjectAddItemError,
   mapProjectSetStatusError,
+} from '../../project/shared/github-errors.js';
+import {
   resolveProjectIdByOwnerAndNumber,
   resolveProjectStatusContext,
-  selectProjectStatusOption,
-  updateProjectStatus,
-} from '../../project/shared.js';
+} from '../../project/shared/lookup.js';
 import {
-  getGitHubRequestStatus,
+  selectProjectStatusOption,
+} from '../../project/shared/status-field.js';
+import { prepareIssueBodyFromInput } from '../../shared/body-input.js';
+import type { IssueCreateData, IssueCreateProjectAssignmentData } from './output.js';
+import { getGitHubRequestStatus } from '../shared/github-errors.js';
+import {
   normalizeIssueCreateResponse,
   readIssueNodeId,
-  type IssueCreateData,
-  type IssueCreateProjectAssignmentData,
   type IssueGetResponseData,
-} from '../shared.js';
-import { prepareIssueBodyFromInput } from '../../shared/body-input.js';
+} from '../shared/github-response.js';
 
 interface IssueCreateMutation {
   title: string;
@@ -68,7 +74,7 @@ async function applyProjectAssignment(
   const createdIssueSummary = normalizeIssueCreateResponse(createdIssue);
   const issueNumber = createdIssueSummary.issue_number;
   const { graphql } = await context.getGitHubClient();
-  let addResult: { projectId: string; projectItemId: string };
+  let addResult: ProjectAddItemResult;
 
   try {
     const projectId = await resolveProjectIdByOwnerAndNumber(

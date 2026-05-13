@@ -1,6 +1,6 @@
 import { validateArtifactBody } from '../../../templates.js';
 import type { CommandContext } from '../../../core/context.js';
-import type { PullRequestValidateData } from '../shared.js';
+import type { PullRequestValidateData } from './output.js';
 
 export async function handlePrValidate(context: CommandContext<'pr validate'>): Promise<PullRequestValidateData> {
   const body = context.input.body as string;

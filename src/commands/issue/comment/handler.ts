@@ -1,12 +1,12 @@
 import { OrfeError } from '../../../runtime/errors.js';
 import type { CommandContext } from '../../../core/context.js';
+import type { IssueCommentData } from './output.js';
+import { getGitHubRequestStatus } from '../shared/github-errors.js';
 import {
   assertIssueTargetIsIssue,
-  getGitHubRequestStatus,
   normalizeIssueCommentResponse,
-  type IssueCommentData,
   type IssueCommentResponseData,
-} from '../shared.js';
+} from '../shared/github-response.js';
 
 export async function handleIssueComment(context: CommandContext<'issue comment'>): Promise<IssueCommentData> {
   const issueNumber = context.input.issue_number as number;

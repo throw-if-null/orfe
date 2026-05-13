@@ -1,14 +1,14 @@
 import { OrfeError } from '../../../runtime/errors.js';
 import type { CommandContext } from '../../../core/context.js';
 import type { CommandInput } from '../../../core/types.js';
+import { prepareIssueBodyFromInput } from '../../shared/body-input.js';
+import type { IssueUpdateData } from './output.js';
+import { getGitHubRequestStatus } from '../shared/github-errors.js';
 import {
   assertIssueTargetIsIssue,
-  getGitHubRequestStatus,
   normalizeIssueUpdateResponse,
   type IssueGetResponseData,
-  type IssueUpdateData,
-} from '../shared.js';
-import { prepareIssueBodyFromInput } from '../../shared/body-input.js';
+} from '../shared/github-response.js';
 
 interface IssueUpdateMutation {
   title?: string;

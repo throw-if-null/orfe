@@ -4,13 +4,11 @@ import type { CommandContext } from '../../../core/context.js';
 import {
   formatProjectTrackedItem,
   mapProjectSetStatusError,
-  normalizeProjectSetStatusResult,
-  resolveProjectStatusContext,
-  selectProjectStatusOption,
-  updateProjectStatus,
-  type ProjectItemType,
-  type ProjectSetStatusData,
-} from '../shared.js';
+} from '../shared/github-errors.js';
+import { updateProjectStatus } from '../shared/mutations.js';
+import { resolveProjectStatusContext, type ProjectItemType } from '../shared/lookup.js';
+import { selectProjectStatusOption } from '../shared/status-field.js';
+import type { ProjectSetStatusData } from './output.js';
 
 export async function handleProjectSetStatus(context: CommandContext<'project set-status'>): Promise<ProjectSetStatusData> {
   const itemType = context.input.item_type as ProjectItemType;
@@ -38,15 +36,20 @@ export async function handleProjectSetStatus(context: CommandContext<'project se
     );
 
     if (currentStatusContext.status?.option_id === targetOption.id) {
-      return normalizeProjectSetStatusResult(
-        projectConfig.projectOwner,
-        projectConfig.projectNumber,
-        itemType,
-        itemNumber,
-        currentStatusContext,
-        currentStatusContext.status,
-        false,
-      );
+      return {
+        project_owner: projectConfig.projectOwner,
+        project_number: projectConfig.projectNumber,
+        status_field_name: currentStatusContext.statusField.name,
+        status_field_id: currentStatusContext.statusField.id,
+        item_type: itemType,
+        item_number: itemNumber,
+        project_item_id: currentStatusContext.projectItemId,
+        status_option_id: currentStatusContext.status.option_id,
+        status: currentStatusContext.status.name,
+        previous_status_option_id: currentStatusContext.status.option_id,
+        previous_status: currentStatusContext.status.name,
+        changed: false,
+      };
     }
 
     await updateProjectStatus(
@@ -79,15 +82,20 @@ export async function handleProjectSetStatus(context: CommandContext<'project se
       );
     }
 
-    return normalizeProjectSetStatusResult(
-      projectConfig.projectOwner,
-      projectConfig.projectNumber,
-      itemType,
-      itemNumber,
-      currentStatusContext,
-      observedStatusContext.status,
-      true,
-    );
+    return {
+      project_owner: projectConfig.projectOwner,
+      project_number: projectConfig.projectNumber,
+      status_field_name: currentStatusContext.statusField.name,
+      status_field_id: currentStatusContext.statusField.id,
+      item_type: itemType,
+      item_number: itemNumber,
+      project_item_id: currentStatusContext.projectItemId,
+      status_option_id: observedStatusContext.status.option_id,
+      status: observedStatusContext.status.name,
+      previous_status_option_id: currentStatusContext.status?.option_id ?? null,
+      previous_status: currentStatusContext.status?.name ?? null,
+      changed: true,
+    };
   } catch (error) {
     throw mapProjectSetStatusError(error, itemType, itemNumber);
   }

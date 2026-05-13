@@ -1,69 +1,12 @@
-import type { ArtifactTemplateValidationResult } from '../../templates.js';
-import { OrfeError } from '../../runtime/errors.js';
-import type { CommandContext } from '../../core/context.js';
-
-export interface PullRequestCommentData {
-  pr_number: number;
-  comment_id: number;
-  html_url: string;
-  created: true;
-}
-
-export interface PullRequestReplyData {
-  pr_number: number;
-  comment_id: number;
-  in_reply_to_comment_id: number;
-  created: true;
-}
-
-export type PullRequestReviewEvent = 'approve' | 'request-changes' | 'comment';
-
-export interface PullRequestSubmitReviewData {
-  pr_number: number;
-  review_id: number;
-  event: PullRequestReviewEvent;
-  submitted: true;
-}
-
-export interface PullRequestGetData {
-  pr_number: number;
-  title: string;
-  body: string;
-  state: string;
-  draft: boolean;
-  head: string;
-  base: string;
-  html_url: string;
-}
-
-export interface PullRequestGetOrCreateData {
-  pr_number: number;
-  html_url: string;
-  head: string;
-  base: string;
-  draft: boolean;
-  created: boolean;
-}
-
-export interface PullRequestUpdateData {
-  pr_number: number;
-  title: string;
-  html_url: string;
-  head: string;
-  base: string;
-  draft: boolean;
-  changed: true;
-}
-
-export type PullRequestValidateData = ArtifactTemplateValidationResult;
-
-export interface PullRequestSummaryData {
-  pr_number: number;
-  draft: boolean;
-  head: string;
-  base: string;
-  html_url: string;
-}
+import type { GitHubClients } from '../../../github/types.js';
+import { OrfeError } from '../../../runtime/errors.js';
+import type { PullRequestCommentData } from '../comment/output.js';
+import type { PullRequestGetData } from '../get/output.js';
+import type { PullRequestGetOrCreateData } from '../get-or-create/output.js';
+import type { PullRequestReplyData } from '../reply/output.js';
+import type { PullRequestSubmitReviewData } from '../submit-review/output.js';
+import type { PullRequestUpdateData } from '../update/output.js';
+import type { PullRequestReviewEvent } from './review.js';
 
 interface PullRequestRefData {
   ref?: unknown;
@@ -94,8 +37,16 @@ export interface PullRequestGetResponseData {
   html_url?: unknown;
 }
 
+export interface PullRequestSummaryData {
+  pr_number: number;
+  draft: boolean;
+  head: string;
+  base: string;
+  html_url: string;
+}
+
 export async function assertPrTargetIsPullRequest(
-  rest: Awaited<ReturnType<CommandContext['getGitHubClient']>>['rest'],
+  rest: GitHubClients['rest'],
   owner: string,
   repo: string,
   prNumber: number,
@@ -227,6 +178,17 @@ export function normalizePullRequestSummaryResponse(pullRequest: PullRequestGetR
   };
 }
 
+export function normalizePullRequestGetOrCreateData(summary: PullRequestSummaryData, created: boolean): PullRequestGetOrCreateData {
+  return {
+    pr_number: summary.pr_number,
+    html_url: summary.html_url,
+    head: summary.head,
+    base: summary.base,
+    draft: summary.draft,
+    created,
+  };
+}
+
 export function normalizePullRequestUpdateResponse(pullRequest: PullRequestGetResponseData): PullRequestUpdateData {
   const normalizedPullRequest = normalizePullRequestGetResponse(pullRequest);
 
@@ -239,27 +201,6 @@ export function normalizePullRequestUpdateResponse(pullRequest: PullRequestGetRe
     draft: normalizedPullRequest.draft,
     changed: true,
   };
-}
-
-export function getGitHubRequestStatus(error: unknown): number | undefined {
-  if (error instanceof Error && 'status' in error && typeof (error as { status?: unknown }).status === 'number') {
-    return (error as { status: number }).status;
-  }
-
-  if (
-    error instanceof Error &&
-    'response' in error &&
-    isObject((error as { response?: unknown }).response) &&
-    typeof (error as { response: { status?: unknown } }).response.status === 'number'
-  ) {
-    return (error as { response: { status: number } }).response.status;
-  }
-
-  return undefined;
-}
-
-export function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 function readPullRequestNumber(pullRequest: PullRequestGetResponseData): number {
@@ -281,4 +222,8 @@ function readPullRequestRef(value: unknown, prNumber: number, label: 'head' | 'b
   }
 
   return ref;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }

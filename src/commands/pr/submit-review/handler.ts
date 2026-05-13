@@ -1,13 +1,13 @@
 import { OrfeError } from '../../../runtime/errors.js';
 import type { CommandContext } from '../../../core/context.js';
+import type { PullRequestSubmitReviewData } from './output.js';
+import { getGitHubRequestStatus } from '../shared/github-errors.js';
 import {
   assertPrTargetIsPullRequest,
-  getGitHubRequestStatus,
   normalizePullRequestSubmitReviewResponse,
-  type PullRequestSubmitReviewData,
   type PullRequestSubmitReviewResponseData,
-} from '../shared.js';
-import { readPullRequestReviewEvent } from './errors.js';
+} from '../shared/github-response.js';
+import { mapPullRequestReviewEvent, readPullRequestReviewEvent } from '../shared/review.js';
 
 export async function handlePrSubmitReview(context: CommandContext<'pr submit-review'>): Promise<PullRequestSubmitReviewData> {
   const prNumber = context.input.pr_number as number;
@@ -28,17 +28,6 @@ export async function handlePrSubmitReview(context: CommandContext<'pr submit-re
     return normalizePullRequestSubmitReviewResponse(prNumber, event, response.data as PullRequestSubmitReviewResponseData);
   } catch (error) {
     throw mapPullRequestSubmitReviewError(error, prNumber);
-  }
-}
-
-function mapPullRequestReviewEvent(value: 'approve' | 'request-changes' | 'comment'): 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT' {
-  switch (value) {
-    case 'approve':
-      return 'APPROVE';
-    case 'request-changes':
-      return 'REQUEST_CHANGES';
-    case 'comment':
-      return 'COMMENT';
   }
 }
 
