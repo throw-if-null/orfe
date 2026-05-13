@@ -1,25 +1,19 @@
 import path from 'node:path';
 
 import { OrfeError } from '../runtime/errors.js';
-import { expandUserPath } from '../path/path.js';
+import { expandUserPath } from '../fs/path.js';
 
 import {
-  expectLiteralNumber,
-  expectNumber,
-  expectObject,
-  expectString,
-  isObject,
-  readJsonFile,
   resolveAuthConfigPath,
-  type GitHubAppBotAuthConfig,
-  type LoadAuthConfigOptions,
-  type MachineAuthConfig,
-} from './shared.js';
+} from './config-paths.js';
+import { readConfigJsonFile } from './json-file.js';
+import { expectLiteralNumber, expectNumber, expectObject, expectString, isObject } from './schema.js';
+import type { GitHubAppBotAuthConfig, LoadAuthConfigOptions, MachineAuthConfig } from './types.js';
 
 export async function loadAuthConfig(options: LoadAuthConfigOptions = {}): Promise<MachineAuthConfig> {
   const cwd = path.resolve(options.cwd ?? process.cwd());
   const authConfigPath = resolveAuthConfigPath(cwd, options.authConfigPath, options.homeDirectory);
-  const parsed = await readJsonFile(authConfigPath, 'machine-local auth config');
+  const parsed = await readConfigJsonFile(authConfigPath, 'machine-local auth config');
 
   if (!isObject(parsed)) {
     throw new OrfeError('config_invalid', `Auth config at ${authConfigPath} must contain a JSON object.`);

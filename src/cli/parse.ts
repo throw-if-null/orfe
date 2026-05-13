@@ -7,9 +7,9 @@ import {
   type CommandOptionDefinition,
 } from '../commands/registry/index.js';
 import { getOrfeVersion } from '../version.js';
-import { CliUsageError } from '../runtime/errors.js';
 
 import { renderGroupHelp, renderLeafHelp, renderRootHelp } from './help.js';
+import { CliUsageError } from './usage-error.js';
 import type { OrfeCommandGroup, ParsedInvocation } from './types.js';
 import type { CommandInput } from '../core/types.js';
 

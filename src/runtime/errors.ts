@@ -35,20 +35,6 @@ export class OrfeError extends Error {
   }
 }
 
-export class CliUsageError extends Error {
-  readonly usage: string;
-  readonly example: string;
-  readonly see: string;
-
-  constructor(message: string, details: { usage: string; example: string; see: string }) {
-    super(message);
-    this.name = 'CliUsageError';
-    this.usage = details.usage;
-    this.example = details.example;
-    this.see = details.see;
-  }
-}
-
 export function toOrfeError(error: unknown): OrfeError {
   if (error instanceof OrfeError) {
     return error;
@@ -59,8 +45,4 @@ export function toOrfeError(error: unknown): OrfeError {
   }
 
   return new OrfeError('internal_error', 'Unknown error.');
-}
-
-export function formatCliUsageError(error: CliUsageError): string {
-  return [`Error: ${error.message}`, `Usage: ${error.usage}`, `Example: ${error.example}`, `See: ${error.see}`].join('\n');
 }

@@ -1,7 +1,7 @@
 import type { Octokit } from 'octokit';
 
-import type { GitHubAppBotAuthConfig } from '../config/shared.js';
-import type { RepoRef } from '../config/repository-ref.js';
+import type { GitHubAppBotAuthConfig } from '../config/types.js';
+import type { RepoRef } from '../config/repo/ref.js';
 import type { Logger } from '../logging/logger.js';
 import type { OctokitLogAdapter } from '../logging/octokit-log.js';
 

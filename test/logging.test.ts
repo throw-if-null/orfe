@@ -2,10 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
 import { runCli } from '../src/cli/run.js';
+import type { GitHubAppBotAuthConfig, RepoRef } from '../src/config/index.js';
 import { GitHubClientFactory, type GitHubOctokitOptions } from '../src/github/client-factory.js';
 import { createLogger } from '../src/logging/logger.js';
-import type { GitHubAppBotAuthConfig } from '../src/config/shared.js';
-import type { RepoRef } from '../src/config/repository-ref.js';
 import { executeOrfeTool } from '../src/opencode/tool.js';
 
 class MemoryStream {

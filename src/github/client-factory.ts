@@ -4,7 +4,7 @@ import { createOctokitLog } from '../logging/octokit-log.js';
 import type { Logger } from '../logging/logger.js';
 
 import { createGitHubAppJwt } from './jwt.js';
-import { createInstallationAuth } from './installation-auth.js';
+import { createInstallationAuth } from './app-installation-auth.js';
 import {
   GITHUB_API_VERSION,
   type GitHubClientFactoryDependencies,
@@ -12,8 +12,8 @@ import {
   type GitHubOctokitOptions,
 } from './types.js';
 
-import type { GitHubAppBotAuthConfig } from '../config/shared.js';
-import type { RepoRef } from '../config/repository-ref.js';
+import type { GitHubAppBotAuthConfig } from '../config/types.js';
+import type { RepoRef } from '../config/repo/ref.js';
 
 const USER_AGENT = 'orfe/0.1.2';
 

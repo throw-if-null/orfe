@@ -10,6 +10,7 @@ import {
   extractTemplateProvenance,
   loadTemplate,
   prepareArtifactBody,
+  prepareIssueBodyFromInput,
   renderTemplateProvenance,
   validateArtifactBody,
   validateBodyAgainstTemplate,
@@ -161,6 +162,25 @@ test('prepareArtifactBody validates a provenance-selected template when no expli
     template_name: 'formal-work-item',
     template_version: '1.0.0',
   });
+});
+
+test('prepareIssueBodyFromInput lives in the template layer and appends provenance', async () => {
+  const prepared = await prepareIssueBodyFromInput(
+    {
+      body: createValidIssueBody(),
+      template: 'formal-work-item@1.0.0',
+    },
+    createRepoConfig(),
+  );
+
+  assert.equal(
+    prepared,
+    `${createValidIssueBody()}\n\n${renderTemplateProvenance({
+      artifact_type: 'issue',
+      template_name: 'formal-work-item',
+      template_version: '1.0.0',
+    })}`,
+  );
 });
 
 test('prepareArtifactBody rejects mismatched explicit and provenance templates', async () => {

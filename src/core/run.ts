@@ -1,7 +1,7 @@
 import { getCommandDefinition, validateCommandInput } from '../commands/registry/index.js';
 import { getBotAuthConfig, loadAuthConfig } from '../config/auth-config.js';
-import { loadRepoConfig, resolveCallerBot } from '../config/repo-config.js';
-import { resolveRepository } from '../config/repository-ref.js';
+import { loadRepoConfig, resolveCallerBot } from '../config/repo/config.js';
+import { resolveRepository } from '../config/repo/ref.js';
 import { GitHubClientFactory } from '../github/client-factory.js';
 import type { GitHubClients } from '../github/types.js';
 import { createLogger } from '../logging/logger.js';

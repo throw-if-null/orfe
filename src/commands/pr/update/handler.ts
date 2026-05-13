@@ -1,7 +1,7 @@
 import { OrfeError } from '../../../runtime/errors.js';
 import type { CommandContext } from '../../../core/context.js';
 import type { CommandInput } from '../../../core/types.js';
-import { preparePullRequestBodyFromInput } from '../../shared/body-input.js';
+import { preparePullRequestBodyFromInput } from '../../../templates/body-input.js';
 import type { PullRequestUpdateData } from './output.js';
 import { getGitHubRequestStatus } from '../shared/github-errors.js';
 import {
@@ -43,7 +43,7 @@ async function buildPullRequestUpdateMutation(context: CommandContext<'pr update
     mutation.title = input.title;
   }
 
-  const body = await preparePullRequestBodyFromInput(context);
+  const body = await preparePullRequestBodyFromInput(context.input, context.repoConfig);
   if (typeof body === 'string') {
     mutation.body = body;
   }

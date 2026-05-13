@@ -1,6 +1,7 @@
+import { CliUsageError, formatCliUsageError } from './usage-error.js';
 import { runOrfeCore } from '../core/run.js';
 import { createCliLogger } from '../logging/logger.js';
-import { CliUsageError, OrfeError, formatCliUsageError } from '../runtime/errors.js';
+import { OrfeError } from '../runtime/errors.js';
 import { createErrorResponse } from '../runtime/response.js';
 
 import { createLeafUsageError, parseInvocationForCli } from './parse.js';

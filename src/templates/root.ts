@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { findUp } from '../path/path.js';
+import { findUp } from '../fs/path.js';
 
 export async function resolveTemplatesRoot(configPath: string): Promise<string> {
   const configDirectory = path.dirname(configPath);

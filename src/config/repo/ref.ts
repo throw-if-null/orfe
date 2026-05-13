@@ -1,6 +1,6 @@
-import { OrfeError } from '../runtime/errors.js';
+import { OrfeError } from '../../runtime/errors.js';
 
-import type { RepoLocalConfig } from './shared.js';
+import type { RepoLocalConfig } from '../types.js';
 
 export interface RepoRef {
   owner: string;
