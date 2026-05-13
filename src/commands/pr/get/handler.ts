@@ -1,6 +1,8 @@
 import { OrfeError } from '../../../runtime/errors.js';
 import type { CommandContext } from '../../../core/context.js';
-import { getGitHubRequestStatus, normalizePullRequestGetResponse, type PullRequestGetData, type PullRequestGetResponseData } from '../shared.js';
+import type { PullRequestGetData } from './output.js';
+import { getGitHubRequestStatus } from '../shared/github-errors.js';
+import { normalizePullRequestGetResponse, type PullRequestGetResponseData } from '../shared/github-response.js';
 
 export async function handlePrGet(context: CommandContext<'pr get'>): Promise<PullRequestGetData> {
   const prNumber = context.input.pr_number as number;

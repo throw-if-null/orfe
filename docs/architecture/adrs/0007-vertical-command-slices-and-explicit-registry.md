@@ -87,7 +87,7 @@ It does not become a host for command business rules.
 
 ### 6. Group-local shared helpers are allowed
 
-When commands within one group share helper logic, that logic may live in a small `shared.ts` module scoped to that group.
+When commands within one group share helper logic, that logic may live under a small `shared/` directory scoped to that group, using responsibility-named modules rather than a catch-all file.
 These helpers must remain subordinate to the slice architecture.
 
 ## Consequences

@@ -1,52 +1,9 @@
-import type { ArtifactTemplateValidationResult } from '../../templates.js';
-import { OrfeError } from '../../runtime/errors.js';
-import type { GitHubClients } from '../../github/types.js';
-
-export interface IssueCreateData {
-  issue_number: number;
-  title: string;
-  state: string;
-  html_url: string;
-  created: true;
-  project_assignment?: IssueCreateProjectAssignmentData;
-}
-
-export interface IssueCreateProjectAssignmentData {
-  project_owner: string;
-  project_number: number;
-  project_item_id: string;
-  status_field_name?: string;
-  status_option_id?: string | null;
-  status?: string | null;
-}
-
-export interface IssueGetData {
-  issue_number: number;
-  title: string;
-  body: string;
-  state: string;
-  state_reason: string | null;
-  labels: string[];
-  assignees: string[];
-  html_url: string;
-}
-
-export interface IssueCommentData {
-  issue_number: number;
-  comment_id: number;
-  html_url: string;
-  created: true;
-}
-
-export interface IssueUpdateData {
-  issue_number: number;
-  title: string;
-  state: string;
-  html_url: string;
-  changed: boolean;
-}
-
-export type IssueValidateData = ArtifactTemplateValidationResult;
+import type { GitHubClients } from '../../../github/types.js';
+import { OrfeError } from '../../../runtime/errors.js';
+import type { IssueCommentData } from '../comment/output.js';
+import type { IssueCreateData, IssueCreateProjectAssignmentData } from '../create/output.js';
+import type { IssueGetData } from '../get/output.js';
+import type { IssueUpdateData } from '../update/output.js';
 
 export interface IssueGetResponseData {
   number?: unknown;
@@ -72,32 +29,6 @@ interface IssueCoreFields {
   state: string;
   htmlUrl: string;
 }
-
-export interface IssueStateLookupResponse {
-  repository?: {
-    issue?: IssueStateNode | null;
-  } | null;
-}
-
-export interface IssueStateNode {
-  id?: unknown;
-  number?: unknown;
-  state?: unknown;
-  stateReason?: unknown;
-  duplicateOf?: unknown;
-}
-
-export interface ObservedIssueState {
-  id: string;
-  issueNumber: number;
-  state: string;
-  stateReason: string | null;
-  duplicateOfIssueNumber: number | null;
-  duplicateOfId: string | null;
-}
-
-export type IssueTargetState = 'open' | 'closed';
-export type IssueTargetStateReason = 'completed' | 'not_planned' | 'duplicate';
 
 export function normalizeIssueGetResponse(issue: IssueGetResponseData): IssueGetData {
   const coreFields = readIssueCoreFields(issue);
@@ -167,6 +98,10 @@ export function normalizeIssueCommentResponse(issueNumber: number, comment: Issu
   };
 }
 
+export function issueResponseHasPullRequest(issue: IssueGetResponseData): boolean {
+  return isObject(issue.pull_request);
+}
+
 export async function assertIssueTargetIsIssue(options: {
   rest: GitHubClients['rest'];
   owner: string;
@@ -182,7 +117,7 @@ export async function assertIssueTargetIsIssue(options: {
       issue_number: options.issueNumber,
     });
 
-    if (isObject((response.data as IssueGetResponseData).pull_request)) {
+    if (issueResponseHasPullRequest(response.data as IssueGetResponseData)) {
       throw new OrfeError('github_conflict', options.conflictMessage);
     }
   } catch (error) {
@@ -190,24 +125,7 @@ export async function assertIssueTargetIsIssue(options: {
   }
 }
 
-export function normalizeIssueStateValue(value: string): string {
-  return value.toLowerCase();
-}
-
-export function normalizeIssueStateReasonValue(value: unknown): string | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  if (typeof value !== 'string' || value.length === 0) {
-    throw new OrfeError('internal_error', 'GitHub issue state response is missing a valid stateReason value.');
-  }
-
-  const normalizedValue = value.toLowerCase().replace(/ /g, '_');
-  return normalizedValue === 'reopened' ? null : normalizedValue;
-}
-
-export function normalizeLabels(value: unknown): string[] {
+function normalizeLabels(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -225,7 +143,7 @@ export function normalizeLabels(value: unknown): string[] {
   });
 }
 
-export function normalizeAssignees(value: unknown): string[] {
+function normalizeAssignees(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -239,24 +157,7 @@ export function normalizeAssignees(value: unknown): string[] {
   });
 }
 
-export function getGitHubRequestStatus(error: unknown): number | undefined {
-  if (error instanceof Error && 'status' in error && typeof (error as { status?: unknown }).status === 'number') {
-    return (error as { status: number }).status;
-  }
-
-  if (
-    error instanceof Error &&
-    'response' in error &&
-    isObject((error as { response?: unknown }).response) &&
-    typeof (error as { response: { status?: unknown } }).response.status === 'number'
-  ) {
-    return (error as { response: { status: number } }).response.status;
-  }
-
-  return undefined;
-}
-
-export function isObject(value: unknown): value is Record<string, unknown> {
+function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 

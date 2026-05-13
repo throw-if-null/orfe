@@ -134,7 +134,7 @@ graph TD
   AuthToken --> AuthTokenDef[definition.ts]
   AuthToken --> AuthTokenHandler[handler.ts]
 
-  IssueGroup --> IssueShared[shared.ts]
+  IssueGroup --> IssueShared[shared/<br/>github-errors.ts + github-response.ts + state.ts]
   IssueGroup --> IssueGet[get]
   IssueGroup --> IssueCreate[create]
   IssueGroup --> IssueComment[comment]
@@ -146,7 +146,7 @@ graph TD
   IssueUpdate --> IssueUpdateParts[definition.ts + handler.ts + errors.ts]
   IssueSetState --> IssueSetStateParts[definition.ts + handler.ts + errors.ts]
 
-  PrGroup --> PrShared[shared.ts]
+  PrGroup --> PrShared[shared/<br/>github-errors.ts + github-response.ts + review.ts]
   PrGroup --> PrGet[get]
   PrGroup --> PrGetOrCreate[get-or-create]
   PrGroup --> PrComment[comment]
@@ -158,7 +158,7 @@ graph TD
   PrReply --> PrReplyParts[definition.ts + handler.ts]
   PrSubmitReview --> PrSubmitReviewParts[definition.ts + handler.ts + errors.ts]
 
-  ProjectGroup --> ProjectShared[shared.ts]
+  ProjectGroup --> ProjectShared[shared/<br/>queries.ts + mutations.ts + graphql-types.ts + lookup.ts + status-field.ts + github-errors.ts]
   ProjectGroup --> ProjectGetStatus[get-status]
   ProjectGroup --> ProjectSetStatus[set-status]
   ProjectGetStatus --> ProjectGetStatusParts[definition.ts + handler.ts]
@@ -181,11 +181,13 @@ src/commands/
     common-options.ts
     index.ts
   <group>/
-    shared.ts                # only when multiple commands in the group reuse helper logic
+    shared/
+      <named-module>.ts      # optional group-local helpers named by responsibility
     <command>/
       definition.ts          # command metadata, examples, options, validation, handler reference
       handler.ts             # implementation
       errors.ts              # optional command-local validation/business-rule helpers
+      output.ts              # command-local public success DTO when the command returns structured data
       definition.test.ts     # slice-local definition/validation tests
 ```
 
@@ -198,12 +200,12 @@ graph LR
   Definition --> Examples[validInputExample / successDataExample]
   Errors[errors.ts<br/>optional] --> Definition
   Tests[definition.test.ts] --> Definition
-  Shared[../shared.ts<br/>optional group helper] --> Handler
+  Shared[../shared/<br/>named helper modules] --> Handler
 ```
 
 Each `definition.ts` is the slice-owned contract. It defines the canonical command name, purpose, usage, examples, options, valid input example, success data example, optional validation hook, and the handler to execute. `src/commands/index.ts` explicitly registers those definitions in the `COMMANDS` array, and `src/commands/registry/index.ts` provides generic lookup, listing, grouping, and option validation over that array.
 
-Group-local `shared.ts` files exist only when multiple commands in the same group reuse normalization, response mapping, or GitHub lookup helpers. They are intentionally scoped helpers, not replacements for the slice structure.
+When multiple commands in one group reuse logic, place it under `<group>/shared/` using responsibility-named modules such as `github-response.ts`, `github-errors.ts`, `lookup.ts`, or `status-field.ts`. Avoid catch-all replacements like `shared.ts`, `types.ts`, or `utils.ts`.
 
 To add a new command:
 - create a new directory at `src/commands/<group>/<command>/`
@@ -211,7 +213,7 @@ To add a new command:
 - add `errors.ts` only if the command has local validation or business-rule helpers
 - add a co-located `definition.test.ts`
 - register the slice in `src/commands/index.ts`
-- use or extend `<group>/shared.ts` only for helper logic genuinely shared by multiple commands in that group
+- use or extend `<group>/shared/` only for helper logic genuinely shared by multiple commands in that group, and name modules by responsibility
 
 Command-specific tests live beside the slice by default. Cross-cutting CLI, core, OpenCode tool/plugin, and package-level tests remain in `test/`.
 

@@ -1,14 +1,14 @@
 import { OrfeError } from '../../../runtime/errors.js';
 import type { CommandContext } from '../../../core/context.js';
 import type { CommandInput } from '../../../core/types.js';
+import { preparePullRequestBodyFromInput } from '../../shared/body-input.js';
+import type { PullRequestUpdateData } from './output.js';
+import { getGitHubRequestStatus } from '../shared/github-errors.js';
 import {
   assertPrTargetIsPullRequest,
-  getGitHubRequestStatus,
   normalizePullRequestUpdateResponse,
   type PullRequestGetResponseData,
-  type PullRequestUpdateData,
-} from '../shared.js';
-import { preparePullRequestBodyFromInput } from '../../shared/body-input.js';
+} from '../shared/github-response.js';
 
 interface PullRequestUpdateMutation {
   title?: string;

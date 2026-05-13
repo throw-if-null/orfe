@@ -1,6 +1,6 @@
 import { validateArtifactBody } from '../../../templates.js';
 import type { CommandContext } from '../../../core/context.js';
-import type { IssueValidateData } from '../shared.js';
+import type { IssueValidateData } from './output.js';
 
 export async function handleIssueValidate(context: CommandContext<'issue validate'>): Promise<IssueValidateData> {
   const body = context.input.body as string;

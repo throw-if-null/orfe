@@ -3,17 +3,17 @@ import type { CommandContext } from '../../../core/context.js';
 import type { GitHubClients } from '../../../github/types.js';
 import {
   assertIssueTargetIsIssue,
-  getGitHubRequestStatus,
-  isObject,
-  normalizeIssueStateReasonValue,
-  normalizeIssueStateValue,
   type IssueGetResponseData,
+  issueResponseHasPullRequest,
+} from '../shared/github-response.js';
+import { getGitHubRequestStatus } from '../shared/github-errors.js';
+import {
+  normalizeObservedIssueState,
   type IssueStateLookupResponse,
-  type IssueStateNode,
   type IssueTargetState,
   type IssueTargetStateReason,
   type ObservedIssueState,
-} from '../shared.js';
+} from '../shared/state.js';
 
 export interface IssueSetStateData {
   issue_number: number;
@@ -212,7 +212,7 @@ async function resolveCanonicalDuplicateIssue(options: {
       issue_number: options.duplicateOfIssueNumber,
     });
 
-    if (isObject((response.data as IssueGetResponseData).pull_request)) {
+    if (issueResponseHasPullRequest(response.data as IssueGetResponseData)) {
       throw new OrfeError(
         'github_conflict',
         `Duplicate target issue #${options.duplicateOfIssueNumber} is a pull request. --duplicate-of must reference an issue.`,
@@ -275,62 +275,6 @@ async function lookupObservedIssueStateAllowNotFound(
   }
 
   return normalizeObservedIssueState(issueNode, issueNumber);
-}
-
-function normalizeObservedIssueState(issue: IssueStateNode, issueNumber: number): ObservedIssueState {
-  if (typeof issue.id !== 'string' || issue.id.length === 0) {
-    throw new OrfeError('internal_error', `GitHub issue state response for issue #${issueNumber} is missing a valid id.`);
-  }
-
-  if (typeof issue.number !== 'number' || !Number.isInteger(issue.number)) {
-    throw new OrfeError('internal_error', `GitHub issue state response for issue #${issueNumber} is missing a valid number.`);
-  }
-
-  if (typeof issue.state !== 'string' || issue.state.length === 0) {
-    throw new OrfeError('internal_error', `GitHub issue state response for issue #${issueNumber} is missing a valid state.`);
-  }
-
-  const duplicateOfIssueNumber = readDuplicateIssueNumber(issue.duplicateOf, issueNumber);
-  const duplicateOfId = readDuplicateIssueId(issue.duplicateOf, issueNumber);
-
-  return {
-    id: issue.id,
-    issueNumber: issue.number,
-    state: normalizeIssueStateValue(issue.state),
-    stateReason: normalizeIssueStateReasonValue(issue.stateReason),
-    duplicateOfIssueNumber,
-    duplicateOfId,
-  };
-}
-
-function readDuplicateIssueNumber(value: unknown, issueNumber: number): number | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  if (!isObject(value) || typeof value.number !== 'number' || !Number.isInteger(value.number)) {
-    throw new OrfeError(
-      'internal_error',
-      `GitHub issue state response for issue #${issueNumber} is missing a valid duplicateOf.number value.`,
-    );
-  }
-
-  return value.number;
-}
-
-function readDuplicateIssueId(value: unknown, issueNumber: number): string | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  if (!isObject(value) || typeof value.id !== 'string' || value.id.length === 0) {
-    throw new OrfeError(
-      'internal_error',
-      `GitHub issue state response for issue #${issueNumber} is missing a valid duplicateOf.id value.`,
-    );
-  }
-
-  return value.id;
 }
 
 function buildIssueStateRestUpdateRequest(options: {

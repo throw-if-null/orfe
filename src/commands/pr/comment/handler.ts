@@ -1,12 +1,12 @@
 import { OrfeError } from '../../../runtime/errors.js';
 import type { CommandContext } from '../../../core/context.js';
+import type { PullRequestCommentData } from './output.js';
+import { getGitHubRequestStatus } from '../shared/github-errors.js';
 import {
   assertPrTargetIsPullRequest,
-  getGitHubRequestStatus,
   normalizePullRequestCommentResponse,
-  type PullRequestCommentData,
   type PullRequestCommentResponseData,
-} from '../shared.js';
+} from '../shared/github-response.js';
 
 export async function handlePrComment(context: CommandContext<'pr comment'>): Promise<PullRequestCommentData> {
   const prNumber = context.input.pr_number as number;

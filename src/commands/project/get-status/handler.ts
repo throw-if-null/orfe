@@ -1,11 +1,8 @@
 import { resolveProjectCommandConfig } from '../../../config/project-defaults.js';
 import type { CommandContext } from '../../../core/context.js';
-import {
-  mapProjectGetStatusError,
-  resolveProjectStatusContext,
-  type ProjectGetStatusData,
-  type ProjectItemType,
-} from '../shared.js';
+import type { ProjectGetStatusData } from './output.js';
+import { mapProjectGetStatusError } from '../shared/github-errors.js';
+import { resolveProjectStatusContext, type ProjectItemType } from '../shared/lookup.js';
 
 export async function handleProjectGetStatus(context: CommandContext<'project get-status'>): Promise<ProjectGetStatusData> {
   const itemType = context.input.item_type as ProjectItemType;

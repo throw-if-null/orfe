@@ -1,13 +1,14 @@
 import { OrfeError } from '../../../runtime/errors.js';
 import type { CommandContext } from '../../../core/context.js';
+import { preparePullRequestBodyFromInput } from '../../shared/body-input.js';
+import type { PullRequestGetOrCreateData } from './output.js';
+import { getGitHubRequestStatus } from '../shared/github-errors.js';
 import {
-  getGitHubRequestStatus,
+  normalizePullRequestGetOrCreateData,
   normalizePullRequestSummaryResponse,
-  type PullRequestGetOrCreateData,
   type PullRequestGetResponseData,
   type PullRequestSummaryData,
-} from '../shared.js';
-import { preparePullRequestBodyFromInput } from '../../shared/body-input.js';
+} from '../shared/github-response.js';
 
 export async function handlePrGetOrCreate(context: CommandContext<'pr get-or-create'>): Promise<PullRequestGetOrCreateData> {
   const head = context.input.head as string;
@@ -44,14 +45,7 @@ export async function handlePrGetOrCreate(context: CommandContext<'pr get-or-cre
 
   const existingPullRequest = existingPullRequests[0];
   if (existingPullRequest) {
-    return {
-      pr_number: existingPullRequest.pr_number,
-      html_url: existingPullRequest.html_url,
-      head: existingPullRequest.head,
-      base: existingPullRequest.base,
-      draft: existingPullRequest.draft,
-      created: false,
-    };
+    return normalizePullRequestGetOrCreateData(existingPullRequest, false);
   }
 
   const body = await preparePullRequestBodyFromInput(context);
@@ -69,14 +63,7 @@ export async function handlePrGetOrCreate(context: CommandContext<'pr get-or-cre
     });
     const createdPullRequest = normalizePullRequestSummaryResponse(response.data as PullRequestGetResponseData);
 
-    return {
-      pr_number: createdPullRequest.pr_number,
-      html_url: createdPullRequest.html_url,
-      head: createdPullRequest.head,
-      base: createdPullRequest.base,
-      draft: createdPullRequest.draft,
-      created: true,
-    };
+    return normalizePullRequestGetOrCreateData(createdPullRequest, true);
   } catch (error) {
     throw mapPullRequestCreateError(error, context.repo.fullName, head, base);
   }
