@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { OrfeError } from '../runtime/errors.js';
+import { OrfeError } from '../../runtime/errors.js';
 
 import {
   expectLiteralNumber,
@@ -8,16 +8,15 @@ import {
   expectObject,
   expectString,
   isObject,
-  readJsonFile,
-  resolveRepoConfigPath,
-  type LoadRepoConfigOptions,
-  type RepoLocalConfig,
-} from './shared.js';
+} from '../schema.js';
+import { readConfigJsonFile } from '../json-file.js';
+import { resolveRepoConfigPath } from '../config-paths.js';
+import type { LoadRepoConfigOptions, RepoLocalConfig } from '../types.js';
 
 export async function loadRepoConfig(options: LoadRepoConfigOptions = {}): Promise<RepoLocalConfig> {
   const cwd = path.resolve(options.cwd ?? process.cwd());
   const configPath = await resolveRepoConfigPath(cwd, options.configPath);
-  const parsed = await readJsonFile(configPath, 'repo-local config');
+  const parsed = await readConfigJsonFile(configPath, 'repo-local config');
 
   if (!isObject(parsed)) {
     throw new OrfeError('config_invalid', `Repo config at ${configPath} must contain a JSON object.`);

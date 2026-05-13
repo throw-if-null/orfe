@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { OrfeError } from '../runtime/errors.js';
-import type { RepoLocalConfig } from '../config/shared.js';
+import type { RepoLocalConfig } from '../config/types.js';
 import { formatTemplateRef } from './formatters.js';
 import { resolveTemplatesRoot } from './root.js';
 import { validateTemplateDefinition } from './schema.js';

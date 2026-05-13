@@ -12,7 +12,23 @@ The architecture is evolving toward a layered model of **core plus installable e
 Core remains the shared runtime substrate.
 Extensions are separately installed deterministic opinion layers that repositories may enable declaratively.
 
+The repository is organized as a **feature-oriented vertical slice architecture** flavored by **Unix philosophy**: small, responsibility-named modules composed through explicit boundaries.
+The main command-facing feature verticals are `auth`, `issue`, `pr`, and `project` under `src/commands/`, while runtime, config, templates, auth, GitHub, CLI, and OpenCode layers support those verticals without taking over their feature ownership.
+
 The current command architecture uses explicit vertical command slices under `src/commands/`. Each command owns its own metadata, validation, handler wiring, and co-located tests. A generic registry composes those slices into a single command catalog used by both the CLI and the core.
+
+## Feature verticals, command slices, and cross-cutting concerns
+
+`orfe` distinguishes between a **feature vertical** and a **command slice**:
+
+- a feature vertical is a domain-owned group such as `auth`, `issue`, `pr`, or `project`
+- a command slice is one executable command within that vertical, such as `issue create` or `project set-status`
+
+Each vertical should remain understandable and refactorable on its own. Command slices inside that vertical own their contracts, handlers, and slice-local tests, while group-local shared helpers remain subordinate to the vertical rather than becoming alternate owners of behavior.
+
+Cross-cutting concerns such as config loading, template handling, CLI formatting, filesystem helpers, auth token minting, and GitHub client construction exist to support slices through narrow interfaces. They should be named by responsibility and kept small enough that they do not turn into replacement dumping grounds.
+
+When choosing between incidental deduplication and ownership clarity, prefer **slice autonomy**. Small duplication across slices is acceptable when it preserves encapsulation, keeps feature ownership obvious, and makes a slice easier to change or remove independently.
 
 ## Major runtime parts
 
@@ -58,7 +74,7 @@ The core is runtime-agnostic and must remain callable from both CLI and plugin e
 It is also the future extension host, but it must preserve the same OpenCode tool/core and plain-data boundaries while doing so.
 
 ### 4. Config layer
-Current examples include `src/config/repo-config.ts`, `src/config/auth-config.ts`, `src/config/project-defaults.ts`, `src/config/repository-ref.ts`, `src/config/shared.ts`, and `.orfe/config.json`.
+Current examples include `src/config/index.ts`, `src/config/types.ts`, `src/config/schema.ts`, `src/config/json-file.ts`, `src/config/config-paths.ts`, `src/config/repo/config.ts`, `src/config/repo/ref.ts`, `src/config/auth-config.ts`, `src/config/project-defaults.ts`, and `.orfe/config.json`.
 
 Responsibilities:
 - hold repo-local non-secret configuration
@@ -70,18 +86,20 @@ Responsibilities:
 
 Repo config is declarative and non-secret.
 It may enable or configure extensions, but it must not ship executable extension code.
+The config layer should be composed from narrow modules by responsibility, not a catch-all `shared.ts`.
 
 ### 5. Template layer
-Current examples include `src/templates/index.ts`, `src/templates/prepare.ts`, `src/templates/loader.ts`, `src/commands/shared/body-input.ts`, and `.orfe/templates/`.
+Current examples include `src/templates.ts`, `src/templates/body-input.ts`, `src/templates/prepare.ts`, `src/templates/loader.ts`, and `.orfe/templates/`.
 
 Responsibilities:
 - load versioned declarative issue and PR templates from the repository
 - validate or minimally normalize issue and PR bodies deterministically
 - append and read HTML comment provenance markers
+- prepare command-shared issue/PR body input without placing template concerns under command ownership
 - stay below repository workflow policy rather than interpreting ownership or orchestration semantics
 
 ### 6. Auth layer
-Current examples include `src/github/installation-auth.ts`, `src/github/jwt.ts`, and machine-local auth config.
+Current examples include `src/github/app-installation-auth.ts`, `src/github/jwt.ts`, and machine-local auth config.
 
 Responsibilities:
 - load machine-local per-bot GitHub App credentials
@@ -114,21 +132,21 @@ Enabled does not mean validly configured.
 ```mermaid
 graph TD
   Plugin[OpenCode plugin<br/>src/opencode/plugin.ts + tool.ts + context.ts] --> Core[Core runtime<br/>src/core/run.ts]
-  CLI[CLI entrypoint<br/>src/cli/entrypoint.ts + run.ts + parse.ts + help.ts] --> Core
+  CLI[CLI entrypoint<br/>src/cli/entrypoint.ts + run.ts + parse.ts + help.ts + usage-error.ts] --> Core
 
-  Core --> Config[Repo config<br/>src/config/*.ts]
-  Core --> Templates[Templates modules<br/>src/templates/*.ts]
-  Core --> Auth[Caller bot + auth config<br/>src/config/auth-config.ts + src/github/installation-auth.ts]
+  Core --> Config[Repo config<br/>src/config/index.ts + repo/*.ts]
+  Core --> Templates[Templates modules<br/>src/templates.ts + src/templates/*.ts]
+  Core --> Auth[Caller bot + auth config<br/>src/config/auth-config.ts + src/github/app-installation-auth.ts]
   Core --> GitHub[GitHub client factory<br/>src/github/client-factory.ts]
   Core --> Registry[Generic command registry<br/>src/commands/registry/index.ts]
   Core --> Extensions[Installed extensions<br/>optional + namespaced]
 
   Registry --> Commands[Registered commands<br/>src/commands/index.ts]
 
-  Commands --> AuthGroup[auth]
-  Commands --> IssueGroup[issue]
-  Commands --> PrGroup[pr]
-  Commands --> ProjectGroup[project]
+  Commands --> AuthGroup[auth vertical]
+  Commands --> IssueGroup[issue vertical]
+  Commands --> PrGroup[pr vertical]
+  Commands --> ProjectGroup[project vertical]
 
   AuthGroup --> AuthToken[token]
   AuthToken --> AuthTokenDef[definition.ts]
@@ -169,6 +187,7 @@ graph TD
 
 Command behavior is organized as explicit vertical slices under `src/commands/`.
 The registry is generic composition infrastructure; command semantics live with the slices themselves.
+The vertical is the primary semantic owner; the individual command slice is the executable unit inside that vertical.
 
 Canonical layout:
 
@@ -206,6 +225,7 @@ graph LR
 Each `definition.ts` is the slice-owned contract. It defines the canonical command name, purpose, usage, examples, options, valid input example, success data example, optional validation hook, and the handler to execute. `src/commands/index.ts` explicitly registers those definitions in the `COMMANDS` array, and `src/commands/registry/index.ts` provides generic lookup, listing, grouping, and option validation over that array.
 
 When multiple commands in one group reuse logic, place it under `<group>/shared/` using responsibility-named modules such as `github-response.ts`, `github-errors.ts`, `lookup.ts`, or `status-field.ts`. Avoid catch-all replacements like `shared.ts`, `types.ts`, or `utils.ts`.
+If logic belongs to a cross-cutting layer such as templates, config, filesystem, CLI, or auth, keep it there instead of forcing it under command ownership just because multiple commands call it.
 
 To add a new command:
 - create a new directory at `src/commands/<group>/<command>/`

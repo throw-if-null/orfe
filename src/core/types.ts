@@ -1,6 +1,6 @@
 import type { Logger } from '../logging/logger.js';
 import type { RuntimeEntrypoint } from '../version.js';
-import type { LoadAuthConfigOptions, LoadRepoConfigOptions, MachineAuthConfig, RepoLocalConfig } from '../config/shared.js';
+import type { LoadAuthConfigOptions, LoadRepoConfigOptions, MachineAuthConfig, RepoLocalConfig } from '../config/types.js';
 import type { GitHubClientFactory } from '../github/client-factory.js';
 import type { SuccessResponse } from '../runtime/response.js';
 

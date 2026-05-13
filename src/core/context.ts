@@ -1,5 +1,5 @@
-import type { GitHubAppBotAuthConfig, MachineAuthConfig, RepoLocalConfig } from '../config/shared.js';
-import type { RepoRef } from '../config/repository-ref.js';
+import type { GitHubAppBotAuthConfig, MachineAuthConfig, RepoLocalConfig } from '../config/types.js';
+import type { RepoRef } from '../config/repo/ref.js';
 import type { GitHubClientAuthInfo, GitHubClients } from '../github/types.js';
 import type { Logger } from '../logging/logger.js';
 

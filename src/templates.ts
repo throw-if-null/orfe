@@ -20,5 +20,6 @@ export {
   renderTemplateProvenance,
   stripTemplateProvenance,
 } from './templates/provenance.js';
+export { prepareIssueBodyFromInput, preparePullRequestBodyFromInput } from './templates/body-input.js';
 export { prepareArtifactBody, validateArtifactBody } from './templates/prepare.js';
 export { validateBodyAgainstTemplate, validateBodyAgainstTemplateDetailed } from './templates/body-validator.js';

@@ -1,7 +1,8 @@
-import { resolveProjectCommandConfig } from '../../../config/project-defaults.js';
-import { OrfeError } from '../../../runtime/errors.js';
 import type { CommandContext } from '../../../core/context.js';
 import type { CommandInput } from '../../../core/types.js';
+import { resolveProjectCommandConfig } from '../../../config/project-defaults.js';
+import { prepareIssueBodyFromInput } from '../../../templates/body-input.js';
+import { OrfeError } from '../../../runtime/errors.js';
 import {
   addProjectItemByContentId,
   type ProjectAddItemResult,
@@ -18,7 +19,6 @@ import {
 import {
   selectProjectStatusOption,
 } from '../../project/shared/status-field.js';
-import { prepareIssueBodyFromInput } from '../../shared/body-input.js';
 import type { IssueCreateData, IssueCreateProjectAssignmentData } from './output.js';
 import { getGitHubRequestStatus } from '../shared/github-errors.js';
 import {
@@ -166,7 +166,7 @@ async function buildIssueCreateMutation(context: CommandContext<'issue create'>)
     title: input.title as string,
   };
 
-  const body = await prepareIssueBodyFromInput(context);
+  const body = await prepareIssueBodyFromInput(context.input, context.repoConfig);
 
   if (typeof body === 'string') {
     mutation.body = body;

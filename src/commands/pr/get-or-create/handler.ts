@@ -1,6 +1,6 @@
 import { OrfeError } from '../../../runtime/errors.js';
 import type { CommandContext } from '../../../core/context.js';
-import { preparePullRequestBodyFromInput } from '../../shared/body-input.js';
+import { preparePullRequestBodyFromInput } from '../../../templates/body-input.js';
 import type { PullRequestGetOrCreateData } from './output.js';
 import { getGitHubRequestStatus } from '../shared/github-errors.js';
 import {
@@ -48,7 +48,7 @@ export async function handlePrGetOrCreate(context: CommandContext<'pr get-or-cre
     return normalizePullRequestGetOrCreateData(existingPullRequest, false);
   }
 
-  const body = await preparePullRequestBodyFromInput(context);
+  const body = await preparePullRequestBodyFromInput(context.input, context.repoConfig);
 
   try {
     const { rest } = await context.getGitHubClient();

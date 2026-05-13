@@ -1,6 +1,6 @@
 import { OrfeError } from '../runtime/errors.js';
 
-import type { ProjectCommandOptions, RepoLocalConfig, ResolvedProjectConfig } from './shared.js';
+import type { ProjectCommandOptions, RepoLocalConfig, ResolvedProjectConfig } from './types.js';
 
 type ProjectDefaults = RepoLocalConfig['projects'] extends infer T ? (T extends { default?: infer D } ? D : never) : never;
 

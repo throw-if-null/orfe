@@ -1,7 +1,7 @@
 import { OrfeError } from '../../../runtime/errors.js';
 import type { CommandContext } from '../../../core/context.js';
 import type { CommandInput } from '../../../core/types.js';
-import { prepareIssueBodyFromInput } from '../../shared/body-input.js';
+import { prepareIssueBodyFromInput } from '../../../templates/body-input.js';
 import type { IssueUpdateData } from './output.js';
 import { getGitHubRequestStatus } from '../shared/github-errors.js';
 import {
@@ -52,7 +52,7 @@ async function buildIssueUpdateMutation(context: CommandContext<'issue update'>)
     mutation.title = input.title;
   }
 
-  const body = await prepareIssueBodyFromInput(context);
+  const body = await prepareIssueBodyFromInput(context.input, context.repoConfig);
 
   if (typeof body === 'string') {
     mutation.body = body;
