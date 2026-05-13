@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 
 import { describe, test } from 'vitest';
 
-import { getCommandDefinition, getGroupDefinitions, listCommandGroups, listCommandNames } from '../commands/registry/index.js';
-import { parseInvocationForCli } from './parse.js';
-import { runCli } from './run.js';
-import { MemoryStream, createRuntimeDependencies, readPackageVersion } from '../../test/support/cli-test.js';
+import { getCommandDefinition, getGroupDefinitions, listCommandGroups, listCommandNames } from '../../src/commands/registry/index.js';
+import { parseInvocationForCli } from '../../src/cli/parse.js';
+import { runCli } from '../../src/cli/run.js';
+import { MemoryStream, createRuntimeDependencies, readPackageVersion } from '../support/cli-test.js';
 
 const COMMAND_GROUPS = listCommandGroups();
 const ALL_COMMANDS = listCommandNames();

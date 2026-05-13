@@ -25,9 +25,9 @@ This file keeps known documentation, architecture, and process debt visible so i
 - **Follow-up direction:** consider GitHub issue forms, additional automation, or skill-level enforcement if drift remains high.
 
 ### 5. Some cross-cutting tests are still large after the command-slice refactor
-- **Impact:** command metadata and validation ownership now live with slices, but `test/core.test.ts` and `test/cli.test.ts` still contain substantial integration coverage and shared HTTP fixture setup.
-- **Current treatment:** keep true runtime and CLI integration coverage in `test/`, while new command-definition ownership tests live beside the slices.
-- **Follow-up direction:** continue extracting reusable integration fixtures and shrink the large cross-cutting test files opportunistically without reducing behavior coverage.
+- **Impact:** command metadata and validation ownership now live with slices, but `test/core/runtime-routing.test.ts` and `test/cli/run.test.ts` still carry broad runtime and CLI boundary coverage with shared fixtures under `test/support/`.
+- **Current treatment:** keep true runtime and CLI boundary coverage in `test/`, while command-slice tests stay co-located under `src/commands/**` and shared support stays centralized under `test/support/`.
+- **Follow-up direction:** continue extracting reusable integration fixtures and shrink the broad cross-cutting test files opportunistically without reducing behavior coverage.
 
 ### 6. Internal logger configuration is intentionally minimal for now
 - **Impact:** `orfe` now owns runtime logging policy, but log-level control currently relies on the internal `ORFE_LOG_LEVEL` environment variable rather than a documented public command/tool option.
