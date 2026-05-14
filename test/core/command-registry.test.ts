@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-import { COMMANDS } from '../index.js';
-import { getCommandDefinition, getTopLevelCommandDefinition, listCommandGroups, listCommandNames } from './index.js';
+import { COMMANDS } from '../../src/commands/index.js';
+import { getCommandDefinition, getTopLevelCommandDefinition, listCommandGroups, listCommandNames } from '../../src/commands/registry/index.js';
 
 test('registry lists command names in registration order', () => {
   assert.deepEqual(listCommandNames(), COMMANDS.map((definition) => definition.name));

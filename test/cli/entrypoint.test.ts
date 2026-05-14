@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 
 import { test } from 'vitest';
-import { runCliEntrypoint } from './entrypoint.js';
+import { runCliEntrypoint } from '../../src/cli/entrypoint.js';
 
-import type { runCli } from './run.js';
+import type { runCli } from '../../src/cli/run.js';
 
 test('runCliEntrypoint forwards explicit argv to runCli and sets process.exitCode', async () => {
   const observedCalls: string[][] = [];
