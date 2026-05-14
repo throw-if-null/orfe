@@ -21,6 +21,9 @@ Use it to understand what the project is for, which constraints must hold, which
   - the major runtime parts and how they fit together
 - `docs/architecture/auth-model.md`
   - the current runtime auth model and transitional bot token path
+- `docs/architecture/testing.md`
+  - the repository's behavioral, integration-first testing strategy
+  - preferred test surfaces and when unit tests are justified
 
 ### Decision history
 - `docs/architecture/adrs/`
@@ -65,6 +68,7 @@ Use it to understand what the project is for, which constraints must hold, which
 - Architecture guardrails: read `docs/architecture/invariants.md`
 - System shape: read `docs/architecture/overview.md`
 - Auth and bot identity model: read `docs/architecture/auth-model.md`
+- Testing strategy and preferred test boundaries: read `docs/architecture/testing.md`
 - Terminology and identity definitions: read `docs/glossary.md`
 - "Why is it designed this way?": read the ADRs
 - "What is intentionally imperfect right now?": read `docs/project/debt.md`

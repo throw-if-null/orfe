@@ -4,16 +4,22 @@ import { test } from 'vitest';
 
 import { COMMANDS, helpCommand } from '../index.js';
 import { validateCommandInput } from '../registry/index.js';
-import { assertDefinitionIdentity, assertOption } from '../../../test/support/definition-test.js';
 import { createHelpCommandSuccessData, createHelpRootSuccessData } from './definition.js';
 
 test('help definition stays a top-level runtime command with optional targeted lookup', () => {
-  assertDefinitionIdentity(helpCommand, { name: 'help', group: 'help', leaf: 'help', execution: 'runtime', topLevel: true });
-  assertOption(helpCommand, 'command_name', {
-    flag: '--command-name',
-    type: 'string',
-    description: 'Return detailed help for one canonical command name.',
-  });
+  assert.equal(helpCommand.name, 'help');
+  assert.equal(helpCommand.group, 'help');
+  assert.equal(helpCommand.leaf, 'help');
+  assert.equal(helpCommand.execution, 'runtime');
+  assert.equal(helpCommand.topLevel, true);
+  assert.deepEqual(helpCommand.options, [
+    {
+      key: 'command_name',
+      flag: '--command-name',
+      description: 'Return detailed help for one canonical command name.',
+      type: 'string',
+    },
+  ]);
   assert.equal(helpCommand.requiresCaller, false);
   assert.equal(helpCommand.requiresRepoConfig, false);
   assert.equal(helpCommand.requiresAuthConfig, false);

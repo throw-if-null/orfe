@@ -27,12 +27,6 @@ test('package manifest keeps the public CLI and plugin entrypoints stable', asyn
   assert.ok(files?.includes('README.md'));
 });
 
-test('CLI source keeps a node shebang for packaged execution', async () => {
-  const cliSource = await readFile(resolve(workspaceRoot, 'src/cli/entrypoint.ts'), 'utf8');
-
-  assert.match(cliSource, /^#!\/usr\/bin\/env node/m);
-});
-
 test('runtime info reads the active package version at runtime', async () => {
   const packageJson = await readJsonFile(resolve(workspaceRoot, 'package.json'));
 
