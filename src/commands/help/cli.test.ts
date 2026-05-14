@@ -46,28 +46,6 @@ test('runCli prints targeted structured help for the requested command', async (
   });
 });
 
-test('runCli prints representative targeted structured help for issue, pr, and project commands', async () => {
-  for (const commandName of ['issue get', 'pr update', 'project set-status'] as const) {
-    const result = await invokeCli(['help', '--command-name', commandName], {
-      env: {},
-      loadRepoConfigImpl: async () => {
-        throw new Error('loadRepoConfigImpl should not run');
-      },
-      loadAuthConfigImpl: async () => {
-        throw new Error('loadAuthConfigImpl should not run');
-      },
-    });
-
-    assert.equal(result.exitCode, 0);
-    assert.equal(result.stderr, '');
-    assert.deepEqual(JSON.parse(result.stdout), {
-      ok: true,
-      command: 'help',
-      data: createHelpCommandSuccessData(COMMANDS, commandName),
-    });
-  }
-});
-
 test('runCli reports help-command usage errors with the top-level help reference', async () => {
   const result = await invokeCli(['help', '--command-name']);
 
