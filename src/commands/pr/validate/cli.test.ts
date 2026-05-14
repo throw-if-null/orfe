@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 
 import { test } from 'vitest';
 
-import { createGitHubClientFactory, createRuntimeDependencies, invokeCli } from '../../../../test/support/cli-test.js';
+import { invokeCli } from '../../../../test/support/cli-test.js';
+import { createRepoConfig } from '../../../../test/support/command-runtime.js';
 
-test('runCli prints structured success JSON for pr validate', async () => {
+test('runCli validates PR bodies without caller identity, auth config, or GitHub access', async () => {
   const result = await invokeCli(
     [
       'pr',
@@ -15,9 +16,11 @@ test('runCli prints structured success JSON for pr validate', async () => {
       'implementation-ready@1.0.0',
     ],
     {
-      env: { ORFE_CALLER_NAME: 'Greg' },
-      ...createRuntimeDependencies(),
-      githubClientFactory: createGitHubClientFactory(),
+      env: {},
+      loadRepoConfigImpl: async () => createRepoConfig(),
+      loadAuthConfigImpl: async () => {
+        throw new Error('loadAuthConfigImpl should not run');
+      },
     },
   );
 
@@ -44,9 +47,11 @@ test('runCli prints structured success JSON for pr validate', async () => {
 
 test('runCli prints structured PR validation failures for pr validate', async () => {
   const result = await invokeCli(['pr', 'validate', '--body', 'Ref: #58\n\nCloses: #58', '--template', 'implementation-ready@1.0.0'], {
-    env: { ORFE_CALLER_NAME: 'Greg' },
-    ...createRuntimeDependencies(),
-    githubClientFactory: createGitHubClientFactory(),
+    env: {},
+    loadRepoConfigImpl: async () => createRepoConfig(),
+    loadAuthConfigImpl: async () => {
+      throw new Error('loadAuthConfigImpl should not run');
+    },
   });
 
   assert.equal(result.exitCode, 0);

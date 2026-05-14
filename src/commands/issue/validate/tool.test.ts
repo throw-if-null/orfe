@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 
 import { test } from 'vitest';
 
-import { runToolCommand } from '../../../../test/support/command-runtime.js';
+import { executeOrfeTool } from '../../../../src/opencode/tool.js';
+import { createToolDependencies } from '../../../../test/support/command-runtime.js';
 
-test('executeOrfeTool returns structured issue validation output', async () => {
-  const result = await runToolCommand({
-    input: {
+test('executeOrfeTool validates issue bodies without caller context for auth-free commands', async () => {
+  const result = await executeOrfeTool(
+    {
       command: 'issue validate',
       body: [
         '## Problem / context',
@@ -49,7 +50,17 @@ test('executeOrfeTool returns structured issue validation output', async () => {
       ].join('\n'),
       template: 'formal-work-item@1.0.0',
     },
-  });
+    {
+      cwd: '/tmp/repo',
+    },
+    createToolDependencies({
+      overrides: {
+        loadAuthConfigImpl: async () => {
+          throw new Error('loadAuthConfigImpl should not run');
+        },
+      },
+    }),
+  );
 
   assert.equal(result.ok, true);
   if (result.ok) {

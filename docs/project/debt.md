@@ -38,3 +38,8 @@ This file keeps known documentation, architecture, and process debt visible so i
 - **Impact:** the repository now has a versioned template foundation under `.orfe/templates/`, but `.github/ISSUE_TEMPLATE/feature.md` and `.github/pull_request_template.md` still remain active human-facing fallback aids. That creates a temporary dual-source risk for artifact structure expectations.
 - **Current treatment:** treat versioned repo-defined templates as the canonical runtime source for validated agent-authored artifacts, while keeping the GitHub-native templates as transitional workflow aids that `orfe` does not read or depend on.
 - **Follow-up direction:** once contract-driven authoring and validation are in routine use, reduce or realign the GitHub-native templates intentionally so durable structure expectations do not drift.
+
+### 8. Live GitHub E2E coverage is still intentionally limited
+- **Impact:** the testing strategy prefers live E2E where practical, but the current suite still relies mainly on integration tests with mocked GitHub boundaries. That leaves a gap in real bot-auth and live GitHub smoke coverage.
+- **Current treatment:** keep integration tests as the main default because they are deterministic and practical, and reserve live E2E for future high-value smoke coverage only.
+- **Follow-up direction:** add a small sandboxed live E2E smoke set for token minting and a few representative issue/PR/project flows when the repository has a safe, reliable sandbox path.

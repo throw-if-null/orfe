@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 
 import { test } from 'vitest';
 
-import { createGitHubClientFactory, createRuntimeDependencies, invokeCli } from '../../../../test/support/cli-test.js';
+import { invokeCli } from '../../../../test/support/cli-test.js';
+import { createRepoConfig } from '../../../../test/support/command-runtime.js';
 
-test('runCli prints structured success JSON for issue validate', async () => {
+test('runCli validates issue bodies without caller identity, auth config, or GitHub access', async () => {
   const result = await invokeCli(
     [
       'issue',
@@ -15,9 +16,11 @@ test('runCli prints structured success JSON for issue validate', async () => {
       'formal-work-item@1.0.0',
     ],
     {
-      env: { ORFE_CALLER_NAME: 'Greg' },
-      ...createRuntimeDependencies(),
-      githubClientFactory: createGitHubClientFactory(),
+      env: {},
+      loadRepoConfigImpl: async () => createRepoConfig(),
+      loadAuthConfigImpl: async () => {
+        throw new Error('loadAuthConfigImpl should not run');
+      },
     },
   );
 
@@ -53,9 +56,11 @@ test('runCli prints structured issue validation failures for issue validate', as
       'formal-work-item@1.0.0',
     ],
     {
-      env: { ORFE_CALLER_NAME: 'Greg' },
-      ...createRuntimeDependencies(),
-      githubClientFactory: createGitHubClientFactory(),
+      env: {},
+      loadRepoConfigImpl: async () => createRepoConfig(),
+      loadAuthConfigImpl: async () => {
+        throw new Error('loadAuthConfigImpl should not run');
+      },
     },
   );
 
