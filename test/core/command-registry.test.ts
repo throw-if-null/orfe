@@ -1,40 +1,61 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-import { COMMANDS } from '../../src/commands/index.js';
-import { getCommandDefinition, getTopLevelCommandDefinition, listCommandGroups, listCommandNames } from '../../src/commands/registry/index.js';
+import { runOrfeCore } from '../../src/core/run.js';
+import { OrfeError } from '../../src/runtime/errors.js';
+import { readPackageVersion } from '../support/cli-test.js';
 
-test('registry lists command names in registration order', () => {
-  assert.deepEqual(listCommandNames(), COMMANDS.map((definition) => definition.name));
-});
+test('runOrfeCore executes runtime-only commands without caller, config, auth, or GitHub access', async () => {
+  const packageVersion = await readPackageVersion();
 
-test('registry derives unique command groups and keeps top-level commands out of them', () => {
-  assert.deepEqual(
-    listCommandGroups(),
-    COMMANDS.filter((definition) => !definition.topLevel)
-      .map((definition) => definition.group)
-      .filter((group, index, groups) => groups.indexOf(group) === index),
+  const result = await runOrfeCore(
+    {
+      callerName: '',
+      command: 'runtime info',
+      input: {},
+    },
+    {
+      loadRepoConfigImpl: async () => {
+        throw new Error('loadRepoConfigImpl should not run');
+      },
+      loadAuthConfigImpl: async () => {
+        throw new Error('loadAuthConfigImpl should not run');
+      },
+    },
   );
-  assert.equal(getTopLevelCommandDefinition('help')?.name, 'help');
+
+  assert.deepEqual(result, {
+    ok: true,
+    command: 'runtime info',
+    data: {
+      orfe_version: packageVersion,
+      entrypoint: 'cli',
+    },
+  });
 });
 
-test('registry marks runtime-only commands explicitly', () => {
-  const helpDefinition = getCommandDefinition('help');
-  const runtimeInfoDefinition = getCommandDefinition('runtime info');
-
-  assert.equal(helpDefinition.execution, 'runtime');
-  assert.equal(runtimeInfoDefinition.execution, 'runtime');
-  assert.equal(Object.prototype.hasOwnProperty.call(helpDefinition, 'handler'), false);
-  assert.equal(Object.prototype.hasOwnProperty.call(runtimeInfoDefinition, 'handler'), false);
-});
-
-test('registry resolves definitions from the explicit registration array', () => {
-  for (const definition of COMMANDS) {
-    assert.equal(getCommandDefinition(definition.name), definition);
-  }
-});
-
-test('registry rejects unknown commands', () => {
-  assert.throws(() => getCommandDefinition('issue unknown'), /Unknown command "issue unknown"\./);
-  assert.equal(getTopLevelCommandDefinition('issue unknown'), undefined);
+test('runOrfeCore rejects unknown commands before loading config or auth', async () => {
+  await assert.rejects(
+    runOrfeCore(
+      {
+        callerName: 'Greg',
+        command: 'issue unknown',
+        input: {},
+      },
+      {
+        loadRepoConfigImpl: async () => {
+          throw new Error('loadRepoConfigImpl should not run');
+        },
+        loadAuthConfigImpl: async () => {
+          throw new Error('loadAuthConfigImpl should not run');
+        },
+      },
+    ),
+    (error: unknown) => {
+      assert(error instanceof OrfeError);
+      assert.equal(error.code, 'invalid_usage');
+      assert.match(error.message, /Unknown command "issue unknown"\./);
+      return true;
+    },
+  );
 });
