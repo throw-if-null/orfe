@@ -246,3 +246,36 @@ test('runCli formats core invalid_usage errors as CLI usage failures', async () 
   assert.match(result.stderr, /Example: ORFE_CALLER_NAME=Greg orfe issue set-state --issue-number 14 --state closed --state-reason completed/);
   assert.match(result.stderr, /See: orfe issue set-state --help/);
 });
+
+test('runCli requires --duplicate-of when closing an issue as duplicate', async () => {
+  const result = await invokeCli(['issue', 'set-state', '--issue-number', '14', '--state', 'closed', '--state-reason', 'duplicate'], {
+    env: { ORFE_CALLER_NAME: 'Greg' },
+    loadRepoConfigImpl: async () => {
+      throw new OrfeError('internal_error', 'loadRepoConfigImpl should not run');
+    },
+  });
+
+  assert.equal(result.exitCode, 2);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /issue set-state requires --duplicate-of when state_reason=duplicate\./);
+  assert.match(result.stderr, /Usage: orfe issue set-state/);
+  assert.match(result.stderr, /See: orfe issue set-state --help/);
+});
+
+test('runCli rejects marking an issue as a duplicate of itself', async () => {
+  const result = await invokeCli(
+    ['issue', 'set-state', '--issue-number', '14', '--state', 'closed', '--state-reason', 'duplicate', '--duplicate-of', '14'],
+    {
+      env: { ORFE_CALLER_NAME: 'Greg' },
+      loadRepoConfigImpl: async () => {
+        throw new OrfeError('internal_error', 'loadRepoConfigImpl should not run');
+      },
+    },
+  );
+
+  assert.equal(result.exitCode, 2);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /issue set-state cannot mark an issue as a duplicate of itself\./);
+  assert.match(result.stderr, /Usage: orfe issue set-state/);
+  assert.match(result.stderr, /See: orfe issue set-state --help/);
+});
