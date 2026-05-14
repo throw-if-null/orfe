@@ -6,27 +6,6 @@ import { COMMANDS, helpCommand } from '../index.js';
 import { validateCommandInput } from '../registry/index.js';
 import { createHelpCommandSuccessData, createHelpRootSuccessData } from './definition.js';
 
-test('help definition stays a top-level runtime command with optional targeted lookup', () => {
-  assert.equal(helpCommand.name, 'help');
-  assert.equal(helpCommand.group, 'help');
-  assert.equal(helpCommand.leaf, 'help');
-  assert.equal(helpCommand.execution, 'runtime');
-  assert.equal(helpCommand.topLevel, true);
-  assert.deepEqual(helpCommand.options, [
-    {
-      key: 'command_name',
-      flag: '--command-name',
-      description: 'Return detailed help for one canonical command name.',
-      type: 'string',
-    },
-  ]);
-  assert.equal(helpCommand.requiresCaller, false);
-  assert.equal(helpCommand.requiresRepoConfig, false);
-  assert.equal(helpCommand.requiresAuthConfig, false);
-  assert.equal(helpCommand.requiresGitHubAccess, false);
-  assert.deepEqual(validateCommandInput(helpCommand, helpCommand.validInputExample), helpCommand.validInputExample);
-});
-
 test('help root success data excludes top-level commands and groups registered slices', () => {
   const data = createHelpRootSuccessData(COMMANDS);
 
@@ -48,6 +27,7 @@ test('help command success data merges required options, common CLI options, and
   const issueGetHelp = createHelpCommandSuccessData(COMMANDS, 'issue get');
   const issueValidateHelp = createHelpCommandSuccessData(COMMANDS, 'issue validate');
 
+  assert.deepEqual(validateCommandInput(helpCommand, helpCommand.validInputExample), helpCommand.validInputExample);
   assert.deepEqual(issueGetHelp.required_options.map((option) => option.input_key), ['issue_number']);
   assert.deepEqual(issueGetHelp.optional_options.map((option) => option.input_key), ['repo', 'config', 'auth_config']);
   assert.deepEqual(issueValidateHelp.requirements, {

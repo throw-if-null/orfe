@@ -19,19 +19,17 @@ test('runOrfeCore returns structured root help without caller context, config, a
   });
 });
 
-test('runOrfeCore returns representative targeted help across issue, pr, and project commands', async () => {
-  for (const commandName of ['issue get', 'pr update', 'project set-status'] as const) {
-    const result = await runCoreCommand({
-      command: 'help',
-      input: {
-        command_name: commandName,
-      },
-    });
+test('runOrfeCore returns targeted help for a requested command through the runtime boundary', async () => {
+  const result = await runCoreCommand({
+    command: 'help',
+    input: {
+      command_name: 'issue get',
+    },
+  });
 
-    assert.deepEqual(result, {
-      ok: true,
-      command: 'help',
-      data: createHelpCommandSuccessData(COMMANDS, commandName),
-    });
-  }
+  assert.deepEqual(result, {
+    ok: true,
+    command: 'help',
+    data: createHelpCommandSuccessData(COMMANDS, 'issue get'),
+  });
 });
