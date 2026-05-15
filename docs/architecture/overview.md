@@ -13,7 +13,7 @@ Core remains the shared runtime substrate.
 Extensions are separately installed deterministic opinion layers that repositories may enable declaratively.
 
 The repository is organized as a **feature-oriented vertical slice architecture** flavored by **Unix philosophy**: small, responsibility-named modules composed through explicit boundaries.
-The main command-facing feature verticals are `auth`, `issue`, `pr`, and `project` under `src/commands/`, while runtime, config, templates, auth, GitHub, CLI, and OpenCode layers support those verticals without taking over their feature ownership.
+The built-in command catalog currently lives under `src/commands/` as grouped verticals for `auth`, `issue`, `pr`, `project`, and `runtime`, plus the top-level `help` command. Slices such as `issue validate`, `issue update`, `pr validate`, `pr update`, `project set-status`, and `runtime info` are first-class peers of the older get/create/comment paths.
 
 The current command architecture uses explicit vertical command slices under `src/commands/`. Each command owns its own metadata, validation, handler wiring, and co-located tests. A generic registry composes those slices into a single command catalog used by both the CLI and the core.
 
@@ -21,14 +21,28 @@ The current command architecture uses explicit vertical command slices under `sr
 
 `orfe` distinguishes between a **feature vertical** and a **command slice**:
 
-- a feature vertical is a domain-owned group such as `auth`, `issue`, `pr`, or `project`
+- a feature vertical is a domain-owned command group such as `auth`, `issue`, `pr`, `project`, or `runtime`
 - a command slice is one executable command within that vertical, such as `issue create` or `project set-status`
+- some built-in commands are top-level rather than vertical-owned, such as `help`
 
 Each vertical should remain understandable and refactorable on its own. Command slices inside that vertical own their contracts, handlers, and slice-local tests, while group-local shared helpers remain subordinate to the vertical rather than becoming alternate owners of behavior.
 
 Cross-cutting concerns such as config loading, template handling, CLI formatting, filesystem helpers, auth token minting, and GitHub client construction exist to support slices through narrow interfaces. They should be named by responsibility and kept small enough that they do not turn into replacement dumping grounds.
 
 When choosing between incidental deduplication and ownership clarity, prefer **slice autonomy**. Small duplication across slices is acceptable when it preserves encapsulation, keeps feature ownership obvious, and makes a slice easier to change or remove independently.
+
+## Current built-in command surface
+
+The current built-in command catalog is small enough to describe conceptually without turning this overview into a generated inventory:
+
+- top-level discovery: `help`
+- auth bootstrap: `auth token`
+- issue lifecycle: `issue get`, `issue create`, `issue comment`, `issue update`, `issue validate`, `issue set-state`
+- pull request lifecycle: `pr get`, `pr get-or-create`, `pr comment`, `pr reply`, `pr submit-review`, `pr update`, `pr validate`
+- project tracking: `project get-status`, `project set-status`
+- runtime inspection: `runtime info`
+
+This overview should stay aligned with those command families and ownership boundaries, but it should not try to mirror every internal file one-for-one.
 
 ## Major runtime parts
 
@@ -67,7 +81,7 @@ Responsibilities:
 - build GitHub clients
 - look up a command definition through the generic registry in `src/commands/registry/index.ts`
 - validate input against slice-owned option definitions and validators
-- dispatch to the slice-owned handler referenced by the registered definition
+- execute the slice-owned runtime path referenced by the registered definition, whether that is a dispatched handler or a definition-owned runtime handler
 - return structured success or typed errors
 
 The core is runtime-agnostic and must remain callable from both CLI and plugin entrypoints.
@@ -143,44 +157,29 @@ graph TD
 
   Registry --> Commands[Registered commands<br/>src/commands/index.ts]
 
+  Commands --> HelpCommand[top-level help]
   Commands --> AuthGroup[auth vertical]
   Commands --> IssueGroup[issue vertical]
   Commands --> PrGroup[pr vertical]
   Commands --> ProjectGroup[project vertical]
+  Commands --> RuntimeGroup[runtime vertical]
 
-  AuthGroup --> AuthToken[token]
-  AuthToken --> AuthTokenDef[definition.ts]
-  AuthToken --> AuthTokenHandler[handler.ts]
+  HelpCommand --> HelpParts[help/definition.ts + slice-local tests]
 
-  IssueGroup --> IssueShared[shared/<br/>github-errors.ts + github-response.ts + state.ts]
-  IssueGroup --> IssueGet[get]
-  IssueGroup --> IssueCreate[create]
-  IssueGroup --> IssueComment[comment]
-  IssueGroup --> IssueUpdate[update]
-  IssueGroup --> IssueSetState[set-state]
-  IssueGet --> IssueGetParts[definition.ts + handler.ts]
-  IssueCreate --> IssueCreateParts[definition.ts + handler.ts]
-  IssueComment --> IssueCommentParts[definition.ts + handler.ts]
-  IssueUpdate --> IssueUpdateParts[definition.ts + handler.ts + errors.ts]
-  IssueSetState --> IssueSetStateParts[definition.ts + handler.ts + errors.ts]
+  AuthGroup --> AuthToken[auth token]
+  AuthToken --> AuthTokenParts[definition.ts + handler.ts + slice-local tests]
 
-  PrGroup --> PrShared[shared/<br/>github-errors.ts + github-response.ts + review.ts]
-  PrGroup --> PrGet[get]
-  PrGroup --> PrGetOrCreate[get-or-create]
-  PrGroup --> PrComment[comment]
-  PrGroup --> PrReply[reply]
-  PrGroup --> PrSubmitReview[submit-review]
-  PrGet --> PrGetParts[definition.ts + handler.ts]
-  PrGetOrCreate --> PrGetOrCreateParts[definition.ts + handler.ts]
-  PrComment --> PrCommentParts[definition.ts + handler.ts]
-  PrReply --> PrReplyParts[definition.ts + handler.ts]
-  PrSubmitReview --> PrSubmitReviewParts[definition.ts + handler.ts + errors.ts]
+  IssueGroup --> IssueShared[issue/shared/<br/>group-local helpers]
+  IssueGroup --> IssueSlices[get + create + comment + update + validate + set-state]
 
-  ProjectGroup --> ProjectShared[shared/<br/>queries.ts + mutations.ts + graphql-types.ts + lookup.ts + status-field.ts + github-errors.ts]
-  ProjectGroup --> ProjectGetStatus[get-status]
-  ProjectGroup --> ProjectSetStatus[set-status]
-  ProjectGetStatus --> ProjectGetStatusParts[definition.ts + handler.ts]
-  ProjectSetStatus --> ProjectSetStatusParts[definition.ts + handler.ts]
+  PrGroup --> PrShared[pr/shared/<br/>group-local helpers]
+  PrGroup --> PrSlices[get + get-or-create + comment + reply + submit-review + update + validate]
+
+  ProjectGroup --> ProjectShared[project/shared/<br/>GraphQL + status helpers]
+  ProjectGroup --> ProjectSlices[get-status + set-status]
+
+  RuntimeGroup --> RuntimeInfo[runtime info]
+  RuntimeInfo --> RuntimeInfoParts[definition.ts]
 ```
 
 ## Command slice structure
@@ -189,7 +188,7 @@ Command behavior is organized as explicit vertical slices under `src/commands/`.
 The registry is generic composition infrastructure; command semantics live with the slices themselves.
 The vertical is the primary semantic owner; the individual command slice is the executable unit inside that vertical.
 
-Canonical layout:
+Representative layout:
 
 ```text
 src/commands/
@@ -199,39 +198,47 @@ src/commands/
     definition.ts
     common-options.ts
     index.ts
+  help/
+    definition.ts          # top-level runtime-owned command
+    *.test.ts              # slice-local tests when present
+  runtime/
+    info/
+      definition.ts        # runtime-only slice handled directly from the definition
   <group>/
     shared/
       <named-module>.ts      # optional group-local helpers named by responsibility
     <command>/
       definition.ts          # command metadata, examples, options, validation, handler reference
-      handler.ts             # implementation
+      handler.ts             # implementation for dispatched command slices
       errors.ts              # optional command-local validation/business-rule helpers
       output.ts              # command-local public success DTO when the command returns structured data
-      definition.test.ts     # slice-local definition/validation tests
+      *.test.ts              # slice-local tests such as cli/core/tool/definition coverage
 ```
 
 Per-slice relationship:
 
 ```mermaid
 graph LR
-  Definition[definition.ts] --> Handler[handler.ts]
-  Definition --> Validation[validate / option metadata]
-  Definition --> Examples[validInputExample / successDataExample]
+  Definition[definition.ts] --> Validation[options / validate / examples]
+  Definition --> RuntimeHandler[runtimeHandler for definition-only slices]
+  Definition --> Handler[handler.ts for dispatched slices]
   Errors[errors.ts<br/>optional] --> Definition
-  Tests[definition.test.ts] --> Definition
   Shared[../shared/<br/>named helper modules] --> Handler
+  Tests[*.test.ts<br/>optional] --> Definition
+  Tests --> Handler
 ```
 
-Each `definition.ts` is the slice-owned contract. It defines the canonical command name, purpose, usage, examples, options, valid input example, success data example, optional validation hook, and the handler to execute. `src/commands/index.ts` explicitly registers those definitions in the `COMMANDS` array, and `src/commands/registry/index.ts` provides generic lookup, listing, grouping, and option validation over that array.
+Each `definition.ts` is the slice-owned contract. It defines the canonical command name, purpose, usage, examples, options, valid input example, success data example, and either the dispatched handler or the runtime-owned execution path for that command. `src/commands/index.ts` explicitly registers those definitions in the `COMMANDS` array, including grouped commands plus the top-level `help` command, and `src/commands/registry/index.ts` provides generic lookup, listing, grouping, and option validation over that array.
 
 When multiple commands in one group reuse logic, place it under `<group>/shared/` using responsibility-named modules such as `github-response.ts`, `github-errors.ts`, `lookup.ts`, or `status-field.ts`. Avoid catch-all replacements like `shared.ts`, `types.ts`, or `utils.ts`.
 If logic belongs to a cross-cutting layer such as templates, config, filesystem, CLI, or auth, keep it there instead of forcing it under command ownership just because multiple commands call it.
 
 To add a new command:
+- decide whether it belongs in an existing vertical, a new vertical, or as a rare top-level command such as `help`
 - create a new directory at `src/commands/<group>/<command>/`
-- implement `definition.ts` and `handler.ts`
+- implement `definition.ts`, and add `handler.ts` when the command is dispatched rather than definition-only
 - add `errors.ts` only if the command has local validation or business-rule helpers
-- add a co-located `definition.test.ts`
+- add co-located `*.test.ts` coverage appropriate to the slice
 - register the slice in `src/commands/index.ts`
 - use or extend `<group>/shared/` only for helper logic genuinely shared by multiple commands in that group, and name modules by responsibility
 
