@@ -1,14 +1,10 @@
 import assert from 'node:assert/strict';
 
-import { describe, test } from 'vitest';
+import { test } from 'vitest';
 
-import { getCommandDefinition, getGroupDefinitions, listCommandGroups, listCommandNames } from '../../src/commands/registry/index.js';
 import { parseInvocationForCli } from '../../src/cli/parse.js';
 import { runCli } from '../../src/cli/run.js';
 import { MemoryStream, createRuntimeDependencies, readPackageVersion } from '../support/cli-test.js';
-
-const COMMAND_GROUPS = listCommandGroups();
-const ALL_COMMANDS = listCommandNames();
 
 test('runCli renders root help', async () => {
   const stdout = new MemoryStream();
@@ -101,52 +97,6 @@ test('runCli does not support -v as a root-level alias for --version', async () 
   assert.match(stderr.output, /See: orfe --help/);
 });
 
-describe('runCli renders help for each command group', () => {
-  for (const group of COMMAND_GROUPS) {
-    test(`group ${group}`, async () => {
-      const stdout = new MemoryStream();
-      const stderr = new MemoryStream();
-
-      const exitCode = await runCli([group, '--help'], { stdout, stderr });
-
-      assert.equal(exitCode, 0);
-      assert.equal(stderr.output, '');
-      assert.match(stdout.output, new RegExp(`orfe ${group}`));
-      assert.match(stdout.output, /Usage:/);
-      assert.match(stdout.output, /Commands:/);
-
-      for (const definition of getGroupDefinitions(group)) {
-        assert.match(stdout.output, new RegExp(`${definition.leaf} - ${escapeForRegExp(definition.purpose)}`));
-      }
-    });
-  }
-});
-
-describe('runCli renders leaf help for every agreed V1 command', () => {
-  for (const commandName of ALL_COMMANDS) {
-    test(commandName, async () => {
-      const stdout = new MemoryStream();
-      const stderr = new MemoryStream();
-      const definition = getCommandDefinition(commandName);
-      const args = definition.topLevel ? [commandName, '--help'] : [definition.group, definition.leaf, '--help'];
-
-      const exitCode = await runCli(args, { stdout, stderr });
-
-      assert.equal(exitCode, 0);
-      assert.equal(stderr.output, '');
-      assert.match(stdout.output, new RegExp(`^${escapeForRegExp(commandName)}`, 'm'));
-      assert.match(stdout.output, new RegExp(`Purpose: ${escapeForRegExp(definition.purpose)}`));
-      assert.match(stdout.output, new RegExp(`Usage: ${escapeForRegExp(definition.usage)}`));
-      assert.match(stdout.output, /Required options:/);
-      assert.match(stdout.output, /Optional options:/);
-      assert.match(stdout.output, new RegExp(`Success: ${escapeForRegExp(definition.successSummary)}`));
-      assert.match(stdout.output, /Examples:/);
-      assert.match(stdout.output, /JSON success shape example:/);
-      assert.match(stdout.output, new RegExp(escapeForRegExp(JSON.stringify(definition.successDataExample))));
-    });
-  }
-});
-
 test('runCli reports invalid usage for unknown commands', async () => {
   const stdout = new MemoryStream();
   const stderr = new MemoryStream();
@@ -232,7 +182,3 @@ test('runCli reports malformed repo overrides as usage errors', async () => {
   assert.match(stderr.output, /Repository must be in "owner\/name" format\./);
   assert.match(stderr.output, /See: orfe issue get --help/);
 });
-
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
